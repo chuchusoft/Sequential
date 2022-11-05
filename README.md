@@ -14,6 +14,7 @@ macOS 10.14 (on an Intel Mac) and macOS 11.7.1 (on an Apple Silicon Mac).
 
 
 
+The original Sequential source code is at <https://github.com/btrask/Sequential>.
 
 
 
