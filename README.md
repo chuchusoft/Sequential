@@ -1,6 +1,5 @@
-#  Title
+#  Sequential 2.2.0 (2022-11-05).
 
-Sequential 2.2.0 (2022-11-05).
 
 This is a modernized build of Sequential for Intel and Apple Silicon Macs
 running 10.14 (Intel) or 11.4 (Apple Silicon) or later.
