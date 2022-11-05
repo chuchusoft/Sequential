@@ -3,3 +3,4 @@ plugins:
 - jekyll-remote-theme # add this line to the plugins list if you already have one
 title: Sequential for macOS
 description: Sequential is an image and comic viewer for macOS. This version is modernized for Intel and Apple Silicon Macs running 10.14 (Intel) or 11.4 (Apple Silicon) or later.
+show_downloads: true
