@@ -1,0 +1,4 @@
+*.pbxproj binary
+*.nib binary
+*.xib binary
+*.helpindex binary

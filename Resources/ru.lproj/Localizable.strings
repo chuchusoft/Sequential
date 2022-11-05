@@ -1,0 +1,139 @@
+/* The primary screen. */
+"Main Screen" = "Основное окно";
+
+/* Non-primary screens. %lu is replaced with the screen number. */
+"Screen %lu" = "Окно %lu";
+
+/* Clear the Open Recent menu. Should be the same as the standard text. */
+"Clear Menu" = "Очистить меню";
+
+/* Label for when no image is being displayed in the window. */
+"No image" = "Нет изображения";
+
+/* Update menu item title. One of two states. */
+"Check for Updates..." = "Проверить обновления…";
+"Install Update..." = "Установить обновление…";
+
+/* Reveal in Finder, Path Finder (www.cocoatech.com) or web browser. Three states of the same item. */
+"Reveal in Finder" = "Показать в Finder";
+"Reveal in Path Finder" = "Показать в Path Finder";
+"Reveal in Browser" = "Показать в браузере";
+
+/* Switch to Finder or Path Finder (www.cocoatech.com). Two states of the same item. */
+"Switch to Finder" = "Открыть в Finder";
+"Switch to Path Finder" = "Открыть в Path Finder";
+
+/* Title of save dialog when setting a copy as the desktop picture. */
+"Save Copy as Desktop Picture" = "Использовать как обои рабочего стола";
+
+/* Enter/exit full screen. Two states of the same item. */
+"Enter Full Screen" = "Войти в полноэкранный режим";
+"Exit Full Screen" = "Выйти из полноэкранного режима";
+
+/* Lets the user toggle the on-screen display. Two states of the same item. */
+"Show Info" = "Показать инф. панель";
+"Hide Info" = "Спрятать инф. панель";
+
+/* Lets the user toggle whether thumbnails are shown. Two states of the same item. */
+"Show Thumbnails" = "Показать эскизы фотографий";
+"Hide Thumbnails" = "Спрятать эскизы фотографий";
+
+/* Title of menu item for toggling animation. Two states. */
+"Turn Animation On" = "Включить анимацию";
+"Turn Animation Off" = "Выключить анимацию";
+
+/* Scale image down so the entire thing fits menu item. Two labels, depending on mode. */
+"Fit to Window" = "Масштаб под размер окна";
+"Fit to Screen" = "Масштаб под размер экрана";
+
+/* The title of the bookmarks menu. Two states. */
+"Resume" = "Возобновить";
+"Delete" = "Удалить";
+
+/* Bookmark menu item used when the file named %@ cannot be found. */
+"Missing File %@" = "Отсутствует файл “%@”";
+
+/* Display string for timer intervals. %@ is replaced with the remaining seconds and tenths of seconds.*/
+"%@ seconds" = "%@ секунд";
+
+/* Units (bytes, kilobytes, etc). */
+"B" = "B";
+"KB" = "KB";
+"MB" = "MB";
+"GB" = "GB";
+"TB" = "TB";
+
+/* Title of general pref pane. */
+"General" = "Основное";
+
+/* Title of navigation pref pane. */
+"Navigation" = "Просмотр";
+
+/* Title of update pref pane. */
+"Update" = "Обновления";
+
+/* Offer to resume from bookmark alert message text. %@ is replaced with the page name. */
+"This document has a bookmark for the page %@." = "Обнаружена закладка на стр. “%@.”";
+
+/* Offer to resume from bookmark alert informative text. */
+"If you don't resume from this page, the bookmark will be kept and you will start from the first page as usual." = "Если вы не желаете продолжить чтение от закладки, она сохранится, а вы начнете читать с первой страницы как обычно.";
+
+/* Don't resume from bookmark button. */
+"Don't Resume" = "Не продолжать";
+
+/* Do resume from bookmark button. */
+"Resume" = "Продолжить";
+
+/* The URL returned a error status code. %ld is replaced by the status code, the first %@ is replaced by the human-readable error (automatically localized), the second %@ is replaced by the full URL. */
+"The error %ld %@ was generated while loading the URL %@." = "Произошла ошибка “%ld %@” при загрузке URL “%@.”";
+
+/* The URL could not be loaded for an unknown reason. %@ is replaced by the full URL. */
+"The URL %@ could not be loaded." = "Страница “%@” не загружается.";
+
+/* Replace file alert. The first %@ is replaced with the filename, the second is replaced with the destination name. */
+"%@ already exists in %@. Do you want to replace it?" = "“%@” уже существует в папке “%@.” Записать поверх?";
+
+/* Replace multiple files alert. %lu is replaced with a number greater than 1, %@ is replaced with the destination name. */
+"%lu pages already exist in %@. Do you want to replace them?" = "%lu файлов уже существуют в папке “%@.” Записать поверх?";
+
+/* Informative text for replacement alerts. */
+"Replacing a file overwrites its current contents." = "Файл будет записан поверх существующего.";
+
+/* Single image save failure alert. The first %@ is replaced with the filename, the second is replaced with the destination name. */
+"The image %@ could not be saved to %@." = "Изображение %@ не удалось сохранить в %@.";
+
+/* Multiple image save failure alert. %lu is replaced with the number of files, %@ is replaced with the destination name. */
+"%lu images could not be saved to %@." = "%lu изображений не удалось сохранить в “%@.”";
+
+/* Informative text for save failure alerts. */
+"Make sure the volume is writable and has enough free space." = "Проверьте, что на диски достаточно места и защита от записи снята.";
+
+/* Appears in the image save alert beside each filename that conflicts with an existing file in the destination folder. */
+"File already exists." = "Такой файл уже существует.";
+
+/* Bookmarked file could not be found error. %@ is replaced with the missing page's saved filename. */
+"The file referenced by the bookmark %@ could not be found." = "Файл, указанный в закладке “%@” отсутствует.";
+
+/* Bookmarked file could not be found error informative text. */
+"It may have been moved or deleted." = "Вероятно, вы его переместили или удалили.";
+
+/* XADMaster error reporting. %@ is replaced with the XADMaster error. */
+"The error %@ occurred while parsing the archive." = "The error “%@” occurred while parsing the archive.";
+
+/* Informative string for secondary mouse button action. */
+"Secondary click goes to the previous page." = "Правый щелчок мыши ведет на предыдущую страницу.";
+"Secondary click goes right." = "Правый щелчок мыши ведет вправо.";
+"Secondary click goes left." = "Правый щелчок мыши ведет влево.";
+
+/* Flickr generic error message. %@ is replaced with the message as returned by Flickr. */
+"Flickr returned the error %@." = "Ошибка Flickr “%@.”";
+
+/* Flickr user not found error message. %@ is replaced with the user name/NSID. */
+"Flickr could not find the user %@. This user may not exist or may have disabled searches in the Flickr privacy settings." = "Flickr не может найти пользователя “%@.” Возможно, такого пользователя не существует или в свойствах безопасности Flickr выключен поиск.";
+
+/* Dialog button labels. */
+"OK" = "OK";
+"Cancel" = "Отмена";
+"Delete Bookmark" = "Удалить закладку";
+"Replace" = "Заменить";
+"Choose" = "Выбрать";

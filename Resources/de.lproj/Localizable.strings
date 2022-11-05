@@ -1,0 +1,139 @@
+﻿/* The primary screen. */
+"Main Screen" = "Hauptbildschirm";
+
+/* Non-primary screens. %lu is replaced with the screen number. */
+"Screen %lu" = "Bildschirm %lu";
+
+/* Clear the Open Recent menu. Should be the same as the standard text. */
+"Clear Menu" = "Menü löschen";
+
+/* Label for when no image is being displayed in the window. */
+"No image" = "Kein Bild";
+
+/* Update menu item title. One of two states. */
+"Check for Updates..." = "Nach Aktualisierungen suchen ...";
+"Install Update..." = "Update installieren ...";
+
+/* Reveal in Finder, Path Finder (www.cocoatech.com) or web browser. Three states of the same item. */
+"Reveal in Finder" = "Im Finder anzeigen";
+"Reveal in Path Finder" = "In Path Finder anzeigen";
+"Reveal in Browser" = "Im Browser anzeigen";
+
+/* Switch to Finder or Path Finder (www.cocoatech.com). Two states of the same item. */
+"Switch to Finder" = "Zum Finder wechseln";
+"Switch to Path Finder" = "Zu Path Finder wechseln";
+
+/* Title of save dialog when setting a copy as the desktop picture. */
+"Save Copy as Desktop Picture" = "Kopie als Schreibtischbild sichern";
+
+/* Enter/exit full screen. Two states of the same item. */
+"Enter Full Screen" = "Vollbild ein";
+"Exit Full Screen" = "Vollbild aus";
+
+/* Lets the user toggle the on-screen display. Two states of the same item. */
+"Show Info" = "Informationen einblenden";
+"Hide Info" = "Information ausblenden";
+
+/* Lets the user toggle whether thumbnails are shown. Two states of the same item. */
+"Show Thumbnails" = "Miniaturen einblenden";
+"Hide Thumbnails" = "Miniaturen ausblenden";
+
+/* Title of menu item for toggling animation. Two states. */
+"Turn Animation On" = "Animationen einschalten";
+"Turn Animation Off" = "Animationen ausschalten";
+
+/* Scale image down so the entire thing fits menu item. Two labels, depending on mode. */
+"Fit to Window" = "An Fenster anpassen";
+"Fit to Screen" = "An Bildschirm anpassen";
+
+/* The title of the bookmarks menu. Two states. */
+"Resume" = "Resume";
+"Delete" = "Löschen";
+
+/* Bookmark menu item used when the file named %@ cannot be found. */
+"Missing File %@" = "Datei “%@” nicht vorhanden";
+
+/* Display string for timer intervals. %@ is replaced with the remaining seconds and tenths of seconds.*/
+"%@ seconds" = "%@ Sekunden";
+
+/* Units (bytes, kilobytes, etc). */
+"B" = "Byte";
+"KB" = "KB";
+"MB" = "MB";
+"GB" = "GB";
+"TB" = "TB";
+
+/* Title of general pref pane. */
+"General" = "Allgemein";
+
+/* Title of navigation pref pane. */
+"Navigation" = "Navigation";
+
+/* Title of update pref pane. */
+"Update" = "Softwareaktualisierung";
+
+/* Offer to resume from bookmark alert message text. %@ is replaced with the page name. */
+"This document has a bookmark for the page %@." = "Dieses Dokument enthält ein Lesezeichen für die Seite “%@.”";
+
+/* Offer to resume from bookmark alert informative text. */
+"If you don't resume from this page, the bookmark will be kept and you will start from the first page as usual." = "Wenn Sie von dieser Seite nicht fortsetzen, wird das Lesezeichen erhalten und Sie starten wie üblich von der ersten Seite.";
+
+/* Don't resume from bookmark button. */
+"Don't Resume" = "Nicht fortsetzen";
+
+/* Do resume from bookmark button. */
+"Resume" = "Fortsetzen";
+
+/* The URL returned a error status code. %ld is replaced by the status code, the first %@ is replaced by the human-readable error (automatically localized), the second %@ is replaced by the full URL. */
+"The error %ld %@ was generated while loading the URL %@." = "Der Fehler “%ld %@” wurde bei Laden der URL “%@” generiert.";
+
+/* The URL could not be loaded for an unknown reason. %@ is replaced by the full URL. */
+"The URL %@ could not be loaded." = "Die URL “%@” konnte nicht geladen werden.";
+
+/* Replace file alert. The first %@ is replaced with the filename, the second is replaced with the destination name. */
+"%@ already exists in %@. Do you want to replace it?" = "“%@” existiert bereits in “%@”. Soll die Datei ersetzt werden?";
+
+/* Replace multiple files alert. %lu is replaced with a number greater than 1, %@ is replaced with the destination name. */
+"%lu pages already exist in %@. Do you want to replace them?" = "%lu Seiten existieren bereits in “%@”. Sollen Sie ersetzt werden?";
+
+/* Informative text for replacement alerts. */
+"Replacing a file overwrites its current contents." = "Ersetzen einer Datei führt zum Überschreiben des Inhalts.";
+
+/* Single image save failure alert. The first %@ is replaced with the filename, the second is replaced with the destination name. */
+"The image %@ could not be saved to %@." = "Das Bild “%@” konnte nicht in “%@ gesichert werden.”";
+
+/* Multiple image save failure alert. %lu is replaced with the number of files, %@ is replaced with the destination name. */
+"%lu images could not be saved to %@." = "%lu Bilder konnten nicht in “%@ gesichert werden.”";
+
+/* Informative text for save failure alerts. */
+"Make sure the volume is writable and has enough free space." = "Stellen Sie sicher, dass das Volume groß genug ist und über ausrechend freien Speicherplatz verfügt.";
+
+/* Appears in the image save alert beside each filename that conflicts with an existing file in the destination folder. */
+"File already exists." = "Datei bereits vorhanden.";
+
+/* Bookmarked file could not be found error. %@ is replaced with the missing page's saved filename. */
+"The file referenced by the bookmark %@ could not be found." = "Die Datei, auf die das Lesezeichen “%@” verweist, konnte nicht gefunden werden.";
+
+/* Bookmarked file could not be found error informative text. */
+"It may have been moved or deleted." = "Die Datei ist möglicherweise verschoben oder gelöscht.";
+
+/* XADMaster error reporting. %@ is replaced with the XADMaster error. */
+"The error %@ occurred while parsing the archive." = "The error “%@” occurred while parsing the archive.";
+
+/* Informative string for secondary mouse button action. */
+"Secondary click goes to the previous page." = "Klick mit sekundärer Maustaste zeigt die vorherige Seite an.";
+"Secondary click goes right." = "Klick mit sekundärer Maustaste geht nach rechts.";
+"Secondary click goes left." = "Klick mit sekundärer Maustaste geht nach links.";
+
+/* Flickr generic error message. %@ is replaced with the message as returned by Flickr. */
+"Flickr returned the error %@." = "Flickr gab den Fehler “%@” zurück.";
+
+/* Flickr user not found error message. %@ is replaced with the user name/NSID. */
+"Flickr could not find the user %@. This user may not exist or may have disabled searches in the Flickr privacy settings." = "Flickr konnte den Benutzer “%@” nicht finden. Dieser Benutzer existiert vielleicht nicht oder hat die Suchen in den Einstellungen für Privatsphäre deaktiviert.";
+
+/* Dialog button labels. */
+"OK" = "OK";
+"Cancel" = "Abbrechen";
+"Delete Bookmark" = "Lesezeichen löschen";
+"Replace" = "Ersetzen";
+"Choose" = "Auswählen";

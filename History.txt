@@ -1,0 +1,246 @@
+2.2.0 (2022-11-05)
+- Intel version: requires macOS 10.14 or later (only tested under 10.14;
+  the app might work as far back as 10.6)
+- Apple Silicon version: requires macOS 11.4 or later
+- modernized the codebase by using newer APIs and removing the use of deprecated APIs
+- numerous small bug fixes
+- enhanced the thumbnail display with the ability to show the image count and the
+  size of a folder's contents (1 level deep only)
+- removed the dependency on the HMBlk framework
+- built with newest versions of XADMaster and UniversalDetector and which are
+  now linked statically (ie, embedded into the Seqential executable file instead
+  of as separate Frameworks)
+- distributed as a RTFD file to work-around the requirement for code signing and
+  notarization
+- source archive is distributed with the versions of XADMaster and
+  UniversalDetector that were used to build the app
+
+2.1.3 (Upcoming release)
+- When opening a file with the Open dialog box, hold the Option key to simultaneously close the previous document.
+- When attempting to open a document that is already open, make sure it becomes active.
+- Fix problems that could prevent help pages from opening.
+
+2.1.2 (January 22nd, 2010)
+- The thumbnail sidebar now accepts keyboard focus.
+- Brings back image scaling constraints.
+- Zooming in and out on an image preserves the location of the top corner instead of the center.
+- Faster and smoother animated scrolling.
+- Fixes a crash with Exif image data on 10.5.
+- Fixes a bug with PDF pages of varying sizes.
+- Fixes a bug where the thumbnail sidebar could appear in the wrong location.
+- Fixes bugs relating to password-protected archives.
+- Fixed bugs with the activity list.
+- New localization system.
+- Removed “maximum depth” setting.
+- Other minor improvements.
+
+2.1.1 (November 6th, 2009)
+- Fixes a bug that prevented launch on 10.5.
+- Other minor fixes and improvements.
+
+2.1 (November 4th, 2009)
+- Mac OS 10.6 Snow Leopard support added. 10.4 support dropped.
+- 64-bit support.
+- Dramatically improved support for all archive file formats.
+- Improved image saving.
+- Smaller and less obtrusive alerts.
+- Built-in update checking.
+- Opening a document with a bookmark will offer to resume from that bookmark.
+- Option to dim secondary monitors in full screen mode.
+- Option to scroll to different locations when going backwards between images.
+- Holding the Control key will preserve the scroll location when changing between images to make comparison easier.
+- Many other improvements.
+
+2.0.3 (February 23rd, 2009)
+- The visible portion of the current image is now highlighted in the thumbnail sidebar.
+- It is now possible to set images as the desktop picture from within Sequential.
+- Mighty Mouse support is improved.
+- Holding command while scrolling the mouse wheel now zooms in and out.
+- Zooming with the + and - keys is now smooth.
+- The timer can now be started and stopped without changing its duration.
+- Thumbnails now use the image orientation.
+- The thumbnail sidebar's performance is improved.
+- Other minor improvements.
+
+2.0.2v2 (December 10th, 2008)
+- Solves issues that could cause some bookmarks to be unopenable.
+- Other minor improvements.
+
+2.0.2 (December 2nd, 2008)
+- Thumbnail view.
+- Improved support for online images.
+- A reload button is displayed for images that couldn't be downloaded.
+- Improved searching with support for page numbers.
+- Fixes keyboard shortcuts some keyboard layouts.
+- Animated GIFs can now be paused with the space bar.
+- Automatic Fit scaling mode is now a bit more clever.
+- The Escape key can now be configured to quit.
+- Other minor improvements.
+- Panther support has been removed. Sorry.
+- Changed from the NCSA license to the BSD license.
+
+2.0.1 (September 15th, 2008)
+- Traditional Chinese localization by Jack Lin.
+- German localization by Christoph Schmitz.
+- Updated French localization by Thomas Audibert.
+- Animates changes to the current image scale.
+- Adds a “grow window” command.
+- Fixes a bug that could cause some URLs to never finish loading.
+- Fixes a bug that prevented the “round image corners” option from staying off.
+- Fixes a bug where correct date or size information wouldn't show up in the Page menu.
+- Better performance when deleting files or noticing folders update.
+- Other minor improvements.
+
+2.0 (August 15th, 2008)
+- Windowed mode.
+- An Exif metadata display.
+- Support for any number of simultaneous open documents.
+- Multitouch support.
+- Dramatically improved 10.3.9 Panther support.
+- Too much more to list.
+
+1.3.2 (March 22nd, 2008)
+- Adds a “Move to Trash” command for local images.
+- It is now possible to zoom in and out from the keyboard.
+- The screen-relative scaling modes can now be set to upscale.
+- Online images stop loading when the document is closed.
+- The B and C keys are now equivalent to Option-space and and Option-V, respectively.
+- Antialiasing is once again used while upscaling.
+- Fixes a number of bugs related to aliases.
+- URLs with non-escaped non-ASCII characters now work.
+- Adds French localization.
+- Other minor improvements.
+
+1.3.1 (January 13th, 2008)
+- The number pad can now be used to scroll.
+- Images embedded on webpages are now used if there are no linked images.
+- Simpler keyboard shortcuts for moving between pages.
+- Holding two adjacent arrow keys scrolls diagonally.
+- URLs with hyphens in the domain name are now allowed.
+- Smooth scrolling is now more “crisp.”
+- Images are no longer smoothed when scaled up.
+- The Mighty Mouse's scroll ball should now be completely supported.
+- Fixes a bug which caused the current file not to be selected in the open panel.
+- Fixes a bug where bookmarked files that were missing could lead to a crash.
+- Fixes a bug where resuming a document that was already open wouldn't jump to the appropriate page.
+- The Polish localization returns.
+- Other minor improvements.
+
+1.3 (December 1st, 2007)
+- Supports opening URLs to view images online.
+- Images can now be explicitly scaled by a factor from 1/4th to 16x.
+- Enhanced extraction window that allows multiple images to be saved at once.
+- Fixes a bug where folders would remain open even when all images were removed.
+- Fixes an issue where the menu bar could become inaccessible on Leopard.
+- Other minor improvements.
+- Temporary settings have been removed.
+- The Polish localization has been removed.
+
+1.2.2 (November 3rd, 2007)
+- Italian localization by Gabriele Callari.
+- Several sort modes are now available.
+- Pages can now be searched. Choose Edit > Find > Find… or press Command-F to show the search field.
+- More responsive when loading large images.
+- Improves sorting in some languages.
+- Fixes an uncommon crasher when pausing and resuming.
+- Improves monitor hot-swapping support.
+- Fixes a bug where the check-mark next to the current screen could disappear.
+- Other minor improvements.
+- The Polish localization is out of date. If you can help, email me!
+
+1.2.1 (September 28th, 2007)
+- An icon
+- Spanish translation by Carola Clavo.
+- Dragging a document onto the fullscreen display opens it.
+- Edit > Copy is now available for images.
+- Honors image rotation information in JPG files.
+- A checkerboard pattern is now available for the background.
+- Fixes a bug where opening the same document twice could cause a crash.
+- Fixes a bug where the info panel could be shown when it was off.
+- Fixes a few memory leaks in the archive framework.
+- Other minor improvements.
+
+1.2.0 (September 14th, 2007)
+- Sessions can be paused and resumed.
+- Temporary reading directions and image scaling modes that are discarded when the document is closed.
+- Improved archive support, including support for password-protected archives.
+- The cursor is now hidden while dragging.
+- Secondary-click to go to the previous image.
+- The progress indicator in the Info panel is now hidden when there is only one image in the current document.
+- Fixes a bug where Sequential could fail to track a document if it is moved while open or in the Open Recent menu.
+- Fixes a bug that could prevent viewing images at the top level of mounted volumes.
+- Fixes a bug where the boot volume and certain folders could be shown as having the wrong names.
+- Screen configuration changes are now be properly handled.
+- Other minor improvements.
+
+1.1.0 (July 13th, 2007)
+- Info panel.
+- PDF support.
+- Alias support.
+- New File > Reveal in Path Finder item that shows up when PF is running.
+- New Sequential > Switch to Finder menu item (and Switch to Path Finder, which again appears when PF is open).
+- Main window no longer disappears when Sequential is deactivated while an alert is up.
+- Fixes a bug where smooth scrolling could go very slowly on older machines.
+- Fixes a drawing bug when going from a displayable to a corrupted image.
+- Improves navigating between pages with the scroll wheel.
+- Extract As… now has Command-E as a keyboard shortcut.
+- Scaling mode keyboard shortcuts are now A, F, and S.
+- Properly handles folders being changed while open.
+- Faster scrolling for some images.
+- Other minor improvements.
+
+1.0.7 (June 15th, 2007)
+- Scroll-wheel support.
+- Fixes a bug when opening where the previous image would stay on-screen.
+- Fixes a bug where images could be enlarged.
+- Polish translation courtesy of Kosma Appel.
+
+1.0.6 (June 8th, 2007)
+- Auto-pan now works properly again when reading left-to-right.
+- V and Option-V auto-pan in a similar way to space and Option-space, but they scroll vertically first, then horizontally.
+- Faster keyboard scrolling on slow machines.
+- Reading directions now have keyboard equivalents.
+- Other minor improvements.
+
+1.0.5 (June 1st, 2007)
+- Images can now be opened directly.
+- Option-space auto-pans backward.
+- Better indication of the first/last image (a graphical alert instead of a system beep).
+- Arrow keys scroll slightly faster.
+- Slightly better handling of corrupted images.
+- Other minor improvements.
+
+1.0.4 (May 11th, 2007)
+- Animated GIF support.
+- Extract Image… option.
+- Automatic Fit scaling mode, which fits tall pages horizontally and wide pages vertically.
+- Better image scaling quality.
+- Stays visible while inactive (unless hidden).
+- Internal help.
+- Other minor improvements.
+
+1.0.3 (April 16th, 2007)
+- Automatic panning no longer occasionally gets stuck at the edge of the screen.
+- Fixed several bugs with the Open Recent menu.
+- Swapped the Close and Reveal in Finder menu items.
+
+1.0.2 (April 1st, 2007)
+- Press the space bar to automatically pan to the next part of the current image or next image as appropriate.
+- Smooth panning.
+- Able to open folders with periods in their filenames.
+- Rearranged View menu items for better efficiency.
+- Added site link to about box and email link to help dialog.
+
+1.0.1 (February 28th, 2007)
+- NCSA license.
+- Improved interface for configuring image scaling.
+- Minor bug fixes.
+
+1.0.0 (February 27th, 2007)
+- Not listed.
+
+1.0.0b2 (February 26th, 2007)
+- Not listed.
+
+1.0.0b1 (January 27th, 2007)
+- Initial release.
