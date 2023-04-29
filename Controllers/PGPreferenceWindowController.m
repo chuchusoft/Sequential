@@ -81,7 +81,7 @@ static PGPreferenceWindowController *PGSharedPrefController = nil;
 - (NSColor *)backgroundPatternColor
 {
 //	NSColor *const color = [[NSUserDefaults standardUserDefaults] PG_decodedObjectForKey:@"PGBackgroundColor"];
-	NSColor *const color = [[NSUserDefaults standardUserDefaults] PG_decodeObjectOfClass:[NSColor class] forKey:@"PGBackgroundColor"];
+	NSColor *const color = [[NSUserDefaults standardUserDefaults] PG_decodeObjectOfClass:[NSColor class] forKey:PGBackgroundColorKey];
 	return [[[NSUserDefaults standardUserDefaults] objectForKey:@"PGBackgroundPattern"] unsignedIntegerValue] == PGCheckerboardPattern ? [color PG_checkerboardPatternColor] : color;
 }
 - (NSScreen *)displayScreen

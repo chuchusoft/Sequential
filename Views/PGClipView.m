@@ -368,14 +368,21 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 		handled = YES;
 		[NSCursor pop];
 		if(PGMouseHiddenDraggingStyle) {
-#if 0	//	2021/07/21 disabled because it's using deprecated APIs and it's unsure what this is doing
 			CGAssociateMouseAndMouseCursorPosition(true);
+#if 1
+			//	2022/11/09 this is probably wrong...
+		//	NSPoint const screenPoint = PGPointInRect([[self window] convertBaseToScreen:finalPoint], [[self window] PG_contentRect]);
+			NSPoint const screenPoint = PGPointInRect([self.window convertPointToScreen:finalPoint], [self.window PG_contentRect]);
+			CGDisplayMoveCursorToPoint(CGMainDisplayID(),	//CGDirectDisplayID display,
+				CGPointMake(round(screenPoint.x), round(CGDisplayPixelsHigh(kCGDirectMainDisplay) - screenPoint.y)));
+#else
+			//	2021/07/21 disabled because it's using deprecated APIs and it's unsure what this is doing
 			NXEventHandle const handle = NXOpenEventStatus();
 			NSPoint const screenPoint = PGPointInRect([[self window] convertBaseToScreen:finalPoint], [[self window] PG_contentRect]);
 			IOHIDSetMouseLocation((io_connect_t)handle, round(screenPoint.x), round(CGDisplayPixelsHigh(kCGDirectMainDisplay) - screenPoint.y)); // Use this function instead of CGDisplayMoveCursorToPoint() because it doesn't make the mouse lag briefly after being moved.
 			NXCloseEventStatus(handle);
-			[NSCursor unhide];
 #endif
+			[NSCursor unhide];
 		}
 		dragMode = PGNotDragging;
 	} else handled = [[self delegate] clipView:self handleMouseEvent:firstEvent first:_firstMouse];

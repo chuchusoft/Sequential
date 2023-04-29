@@ -641,7 +641,7 @@
 	<key>CFBundleExecutable</key>
 	<string>${EXECUTABLE_NAME}</string>
 	<key>CFBundleGetInfoString</key>
-	<string>2.2.0</string>
+	<string>2.2.1</string>
 	<key>CFBundleHelpBookFolder</key>
 	<string>Sequential.help</string>
 	<key>CFBundleHelpBookName</key>
@@ -657,7 +657,7 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>2.2.0</string>
+	<string>2.2.1</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleURLTypes</key>
@@ -674,7 +674,7 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>2.2.0</string>
+	<string>2.2.1</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.utilities</string>
 	<key>LSArchitecturePriority</key>
@@ -729,15 +729,9 @@
 			</array>
 			<key>PGBundleTypeFourCCs</key>
 			<array>
-				<data>
-				UEsDBA==
-				</data>
-				<data>
-				UmFyIQ==
-				</data>
-				<data>
-				N3rCvMKv
-				</data>
+				<data>UEsDBA==</data>
+				<data>UmFyIQ==</data>
+				<data>N3rCvMKv</data>
 			</array>
 		</dict>
 		<key>PGFlickrAdapter</key>
@@ -920,9 +914,7 @@
 			</array>
 			<key>PGBundleTypeFourCC</key>
 			<array>
-				<data>
-				JVBERg==
-				</data>
+				<data>JVBERg==</data>
 			</array>
 		</dict>
 		<key>PGResourceAdapter</key>

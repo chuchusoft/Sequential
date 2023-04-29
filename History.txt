@@ -1,3 +1,9 @@
+2.2.1 (2023-04-30)
+- the folder count and size text would not fully display on the thumbnail if the
+  name displayed above it was short. Fixed.
+- the cursor would disappear sometimes. Fixed.
+- updated to build using Xcode 14.2.
+
 2.2.0 (2022-11-05)
 - Intel version: requires macOS 10.14 or later (only tested under 10.14;
   the app might work as far back as 10.6)

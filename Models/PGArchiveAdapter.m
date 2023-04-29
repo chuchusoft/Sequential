@@ -110,7 +110,7 @@ StringAtDepth(NSInteger depth) {
 	NSUInteger i = [indexes firstIndex];
 	for(; NSNotFound != i; i = [indexes indexGreaterThanIndex:i]) {
 		@autoreleasepool {	//	REQUIRED otherwise the heap blows up (try it on a 50000 entry zip file)
-			NSString *const entryPath = [_archive nameOfEntry:i];
+			NSString *const entryPath = [_archive nameOfEntry:(int) i];
 			if(!entryPath)
 				continue;
 
@@ -182,7 +182,7 @@ StringAtDepth(NSInteger depth) {
 #endif
 
 			BOOL const isEntrylessFolder = !PGEqualObjects(subpath, entryPath);
-			BOOL const isFile = !isEntrylessFolder && ![_archive entryIsDirectory:i];
+			BOOL const isFile = !isEntrylessFolder && ![_archive entryIsDirectory:(int) i];
 //NSLog(@"%@\tsubpath '%@', isEntrylessFolder %u, isFile %u", StringAtDepth(depth),
 //	  [subpath substringFromIndex:194], isEntrylessFolder, isFile);
 
@@ -191,7 +191,7 @@ StringAtDepth(NSInteger depth) {
 			[identifier setNaturalDisplayName:[subpath lastPathComponent]];
 			PGNode *const node = [[[PGNode alloc] initWithParent:parent identifier:identifier] autorelease];
 			if(isFile)
-				[node setDataProvider:[[[PGArchiveDataProvider alloc] initWithArchive:_archive entry:i] autorelease]];
+				[node setDataProvider:[[[PGArchiveDataProvider alloc] initWithArchive:_archive entry:(int) i] autorelease]];
 			else {
 				[node setDataProvider:[[[PGFolderDataProvider alloc] init] autorelease]];
 				if(isEntrylessFolder) {
@@ -505,10 +505,10 @@ StringAtDepth(NSInteger depth) {
 	NSInteger i;
 	NSString *root = nil;
 	for(i = 0; i < [self numberOfEntries]; i++) {
-		NSString *entryName = [self nameOfEntry:i];
+		NSString *entryName = [self nameOfEntry:(int) i];
 		if(PG_entryIsInvisibleForName(entryName))//if([self PG_entryIsInvisibleForName:entryName])
 			continue;
-		if(![self entryIsDirectory:i]) entryName = [entryName stringByDeletingLastPathComponent];
+		if(![self entryIsDirectory:(int) i]) entryName = [entryName stringByDeletingLastPathComponent];
 		else if([entryName hasSuffix:@"/"]) entryName = [entryName substringToIndex:[entryName length] - 1];
 		if(!root) root = entryName;
 		else while(!PGEqualObjects(root, entryName)) {
@@ -520,7 +520,7 @@ StringAtDepth(NSInteger depth) {
 }
 - (OSType)PG_OSTypeForEntry:(int)entry
 {
-	return [self entryIsDirectory:entry] ? 'fold' : [[[self attributesOfEntry:entry] objectForKey:NSFileHFSTypeCode] unsignedLongValue];
+	return [self entryIsDirectory:entry] ? 'fold' : [[[self attributesOfEntry:entry] objectForKey:NSFileHFSTypeCode] unsignedIntValue];
 }
 
 @end

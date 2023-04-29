@@ -88,9 +88,11 @@ static void PGDrawGradient(void)
 }
 
 typedef struct MeasuredText {
-	NSRange		glyphRange;
-	NSSize		size;
-	CGVector	margins;
+	NSSize		containerSize;	//	in
+
+	NSRange		glyphRange;		//	out
+	NSSize		textSize;		//	out
+	CGVector	margins;		//	out
 } MeasuredText;
 
 static
@@ -98,7 +100,7 @@ void
 MeasureTextInBubble(NSString *label,
 	BOOL enabled, NSMutableDictionary *attributes, // NSColor *backGroundColor,
 	NSTextStorage *textStorage, NSLayoutManager *layoutManager,
-	NSTextContainer *textContainer, MeasuredText* outMeasuredText) {
+	NSTextContainer *textContainer, MeasuredText* inOutMeasuredText) {
 	//	while disabledControlTextColor can be used, it's much harder
 	//	to read so controlTextColor is used for disabled items
 	attributes[NSForegroundColorAttributeName] = enabled ?
@@ -109,14 +111,27 @@ MeasureTextInBubble(NSString *label,
 
 	textStorage.mutableString.string	=	label;
 	[textStorage setAttributes:attributes range:NSMakeRange(0, textStorage.length)];
-//textContainer.containerSize	=	NSMakeSize(PGThumbnailSize - 12.0f, PGThumbnailSize - 8.0f);
+//	textContainer.containerSize		=	NSMakeSize(PGThumbnailSize - 12.0f, PGThumbnailSize - 8.0f);
+	textContainer.containerSize		=	inOutMeasuredText->containerSize;
 	//	*** -glyphRangeForTextContainer: MUST PRECEDE THE CALL TO -usedRectForTextContainer: ***
-	outMeasuredText->glyphRange	=	[layoutManager glyphRangeForTextContainer:textContainer];
+	inOutMeasuredText->glyphRange	=	[layoutManager glyphRangeForTextContainer:textContainer];
 	// We center the text in the text container, so the
 	// final size has to be the right width.
-	outMeasuredText->size		=	textContainer.containerSize	=
-									[layoutManager usedRectForTextContainer:textContainer].size;
-	outMeasuredText->margins	=	CGVectorMake(-4.0f, -2.0f);
+	inOutMeasuredText->textSize		=	textContainer.containerSize	=
+		[layoutManager usedRectForTextContainer:textContainer].size;
+	inOutMeasuredText->margins		=	CGVectorMake(-4.0f, -2.0f);
+}
+
+static
+void
+MeasureTextInBubbleUsing(NSString *label,
+	BOOL enabled, NSMutableDictionary *attributes, // NSColor *backGroundColor,
+	NSTextStorage *textStorage, NSLayoutManager *layoutManager,
+	NSTextContainer *textContainer, const NSSize frameSize,
+	MeasuredText* inOutMeasuredText) {
+	inOutMeasuredText->containerSize	=	frameSize;
+	MeasureTextInBubble(label, enabled, attributes, textStorage,
+						layoutManager, textContainer, inOutMeasuredText);
 }
 
 static
@@ -124,19 +139,31 @@ bool	//	returns true if text will fit inside the given frameSize
 Measure2TextIn2Bubbles(NSString *label1, NSString *label2,
 	BOOL enabled, NSMutableDictionary *attributes, // NSColor *backGroundColor,
 	NSTextStorage *textStorage, NSLayoutManager *layoutManager,
-	NSTextContainer *textContainer,
-	NSSize frameSize, CGFloat verticalGapBetweenLabels,
-	MeasuredText* outMeasuredText1, MeasuredText* outMeasuredText2) {
-	textContainer.containerSize	=	frameSize;
-	MeasureTextInBubble(label1, enabled, attributes, textStorage, layoutManager, textContainer, outMeasuredText1);
+	NSTextContainer *textContainer, const NSSize frameSize,
+	const CGFloat verticalGapBetweenLabels, const CGFloat heightOfOneFontLine,
+	MeasuredText* inOutMeasuredText1, MeasuredText* inOutMeasuredText2) {
+	MeasureTextInBubbleUsing(label1, enabled, attributes, textStorage,
+		layoutManager, textContainer, frameSize, inOutMeasuredText1);
 
-	textContainer.containerSize	=	frameSize;
-	MeasureTextInBubble(label2, enabled, attributes, textStorage, layoutManager, textContainer, outMeasuredText2);
+	MeasureTextInBubbleUsing(label2, enabled, attributes, textStorage,
+		layoutManager, textContainer, frameSize, inOutMeasuredText2);
 
-	const CGFloat upperH = outMeasuredText1->size.height - 2 * outMeasuredText1->margins.dy;
-	const CGFloat lowerH = outMeasuredText2->size.height - 2 * outMeasuredText2->margins.dy;
-	const CGFloat totalH = upperH + lowerH + verticalGapBetweenLabels;
-	return totalH <= frameSize.height;
+	const CGFloat H1 = inOutMeasuredText1->textSize.height -
+							2 * inOutMeasuredText1->margins.dy;
+	const CGFloat H2 = inOutMeasuredText2->textSize.height -
+							2 * inOutMeasuredText2->margins.dy;
+	const CGFloat totalH = H1 + H2 + verticalGapBetweenLabels;
+
+/*	{
+		NSFont *font = [NSFont systemFontOfSize:11];
+		CGFloat	dy = font.pointSize;
+		CGFloat	a = font.ascender;
+		CGFloat	d = font.descender;
+		CGFloat	l = font.leading;
+printf("dy %f a %f d %f l %f LH %f\n", dy, a, d, l, dy - d);
+	} */
+	return totalH <= frameSize.height &&
+		inOutMeasuredText1->textSize.height <= heightOfOneFontLine;
 }
 
 static
@@ -145,9 +172,10 @@ DrawTextInBubbleBy(NSColor *backGroundColor, NSRect frame,
 	CGFloat dy, NSLayoutManager *layoutManager,
 	const MeasuredText* measuredText) {
 	NSRect const labelRect = NSIntegralRect(NSMakeRect(
-								NSMidX(frame) - measuredText->size.width / 2.0f,
+								NSMidX(frame) - measuredText->textSize.width / 2.0f,
 								NSMidY(frame) + dy,
-								measuredText->size.width, measuredText->size.height));
+								measuredText->textSize.width,
+								measuredText->textSize.height));
 
 	[[(backGroundColor ? backGroundColor : NSColor.controlBackgroundColor) colorWithAlphaComponent:0.6f] set];
 	[[NSBezierPath PG_bezierPathWithRoundRect:NSInsetRect(labelRect, measuredText->margins.dx, measuredText->margins.dy)
@@ -171,7 +199,7 @@ void
 DrawTextInBubbleAtPos(NSColor *backGroundColor, NSRect frame,
 	BubblePosition pos, NSLayoutManager *layoutManager,
 	const MeasuredText* measuredText) {
-	CGFloat	dy = measuredText->size.height;
+	CGFloat	dy = measuredText->textSize.height;
 	switch(pos) {
 	case BubblePositionAbove:		dy	=	-dy;	break;
 	case BubblePositionMiddle:		dy	/=	-2;		break;
@@ -189,10 +217,9 @@ DrawTextInBubble(NSString *label, NSColor *backGroundColor,
 	BubblePosition pos, NSTextStorage *textStorage,
 	NSLayoutManager *layoutManager, NSTextContainer *textContainer) {
 	MeasuredText	mt;
-	textContainer.containerSize	=	frame.size;
-	MeasureTextInBubble(label, enabled, attributes, textStorage,
-						layoutManager, textContainer, &mt);
-	const CGFloat	totalH = mt.size.height - 2 * mt.margins.dy;
+	MeasureTextInBubbleUsing(label, enabled, attributes, textStorage,
+						layoutManager, textContainer, frame.size, &mt);
+	const CGFloat	totalH = mt.textSize.height - 2 * mt.margins.dy;
 	const bool		fits = totalH <= frame.size.height;
 	if(fits)
 		DrawTextInBubbleAtPos(backGroundColor, frame, pos,
@@ -654,27 +681,34 @@ MakeByteSizeString(uint64_t bytes, int nDecimalDigits) {
 //#define	STRING_IMAGE_ICON	"🖼"	//	frame with picture	Unicode: U+1F5BC, UTF-8: F0 9F 96 BC
 					[s appendFormat:@"%lu "STRING_IMAGE_ICON" ", imageCount];
 
-					//	if possible, display the size with as many decimal digits as
-					//	possible (with a max. of 2) on a single line; if the text needs
-					//	more than a single line, fall back to using the default number of
-					//	decimal digits, which is 0 digits if the string shows more than or
-					//	equal to 10 <units> or 1 digit if the string shows less than 10 <units>,
-					//	eg, 12kiB or 9.3MiB (the default string is achieved by passing -1)
-					NSMutableString*	finalStr	=	nil;
-					for(int nDecimalDigits = 3; nDecimalDigits--; ) @autoreleasepool {
-						NSMutableString*	test	=	[NSMutableString stringWithFormat:@"%@%@",
-														 s, MakeByteSizeString(byteSize, nDecimalDigits)];
-						MeasuredText	testMT;
-						MeasureTextInBubble(test, enabled, attributes, textStorage, layoutManager, textContainer, &testMT);
-						if(testMT.size.height <= fontLineHeight) {
-							finalStr	=	[test retain];
-							break;
+					//	if byte size is not zero then append it (PDFs return a zero byteSize)
+					if(0 != byteSize) {
+						//	if possible, display the size with as many decimal digits as
+						//	possible (with a max. of 2) on a single line
+						NSMutableString*	finalStr	=	nil;
+						for(int nDecimalDigits = 3; nDecimalDigits--; ) @autoreleasepool {
+							NSMutableString*	test	=	[NSMutableString stringWithFormat:@"%@%@",
+															 s, MakeByteSizeString(byteSize, nDecimalDigits)];
+							MeasuredText	testMT;
+							//	?use frameWithMargin.size instead?
+							MeasureTextInBubbleUsing(test, enabled, attributes, textStorage, layoutManager,
+													 textContainer, frameWithMargin.size, &testMT);
+							if(testMT.textSize.height <= fontLineHeight) {
+								finalStr	=	[test retain];
+								break;
+							}
 						}
+						if(finalStr)
+							s	=	[finalStr autorelease];
+						else
+							//	if the text needs more than a single line, fall back to using
+							//	the default number of decimal digits, which is 0 digits if the
+							//	string shows more than or equal to 10 <units> or 1 digit if the
+							//	string shows less than 10 <units>, eg, 12kiB or 9.3MiB (the
+							//	default string is achieved by passing -1)
+							s	=	[NSMutableString stringWithFormat:@"%@%@",
+									 s, MakeByteSizeString(byteSize, -1)];
 					}
-					if(finalStr)
-						s	=	[finalStr autorelease];
-					else
-						s	=	[NSMutableString stringWithFormat:@"%@%@", s, MakeByteSizeString(byteSize, -1)];
 				}
 				assert(0 != s.length);
 
@@ -687,17 +721,17 @@ MakeByteSizeString(uint64_t bytes, int nDecimalDigits) {
 											layoutManager, textContainer,
 											NSMakeSize(frame.size.width - 12.0f,
 													   frame.size.height - 8.0f),
-											UPPER_LOWER_GAP, &lowerMT, &upperMT) &&
+											UPPER_LOWER_GAP, fontLineHeight, &lowerMT, &upperMT) &&
 					!Measure2TextIn2Bubbles(s, label, enabled, attributes, textStorage,
 											layoutManager, textContainer, frame.size,
-											UPPER_LOWER_GAP, &lowerMT, &upperMT))
+											UPPER_LOWER_GAP, fontLineHeight, &lowerMT, &upperMT))
 					(void) Measure2TextIn2Bubbles(s, label, enabled, attributes, textStorage,
 												  layoutManager, textContainer, frameWithMargin.size,
-												  UPPER_LOWER_GAP, &lowerMT, &upperMT);
+												  UPPER_LOWER_GAP, fontLineHeight, &lowerMT, &upperMT);
 
 				//	now ready to draw into the smallest bubble possible...
-				const CGFloat upperH = upperMT.size.height - 2 * upperMT.margins.dy;
-				const CGFloat lowerH = lowerMT.size.height - 2 * lowerMT.margins.dy;
+				const CGFloat upperH = upperMT.textSize.height - 2 * upperMT.margins.dy;
+				const CGFloat lowerH = lowerMT.textSize.height - 2 * lowerMT.margins.dy;
 				const CGFloat totalH = upperH + lowerH + UPPER_LOWER_GAP;
 				CGFloat dy = totalH * -0.5f;
 #define BOTTOM_GAP 8.0f

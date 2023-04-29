@@ -1,18 +1,31 @@
-#  Sequential 2.2.0 (2022-11-05).
+# Sequential 2.2.1 (2023-04-30).
 
+Sequential is an image and comic viewer for macOS.
+
+Sequential can displays images in folders, PDF files, and archives of
+these formats: ZIP CBZ RAR CBR 7z.
 
 This is a modernized build of Sequential for Intel and Apple Silicon Macs
 running 10.14 (Intel) or 11.4 (Apple Silicon) or later.
 
 The last build came out in 2010 so this program needed some work to get it
-working for modern Macs.
+to build and run on modern Macs. Several bugs have been fixed and some
+feature enhancements have been added.
+
+There are parts of the application which probably won’t work properly
+(HTML URLs may not display correctly) and it may have bugs and crashes.
+Caveat emptor. For folders, PDFs and archives, the application works well.
 
 The codebase (and its dependencies) have been updated to build with Xcode
-13.2. Sequential is now built as an Universal app and has been tested on
+14.2. Sequential is now built as an Universal app and has been tested on
 macOS 10.14 (on an Intel Mac) and macOS 11.7.1 (on an Apple Silicon Mac).
 
 
 
+
+## Source code
+
+The modernized Sequential source code is at <https://github.com/chuchusoft/Sequential>.
 
 The original Sequential source code is at <https://github.com/btrask/Sequential>.
 
@@ -20,7 +33,7 @@ The original Sequential source code is at <https://github.com/btrask/Sequential>
 
 
 
-Building instructions
+## Building instructions
 
 - decompress the source archive into a folder
   - dependencies are included in the source archive
@@ -33,14 +46,14 @@ Building instructions
 
 
 
-Distribution instructions
+## Distribution instructions
 
 - update the History file
 
 - to create the source backup archive:
 
 % cd ~/folder_containing_sequential_sources
-% tar -c -v -J -H -f Sequential_all.tar.xz --exclude=xcuserdata --exclude=.DS_Store Sequential XADMaster UniversalDetector
+% tar -c -v -J -H -f Sequential_all.tar.xz --exclude=xcuserdata --exclude=.DS_Store --exclude=.git  --exclude=.gitignore --exclude=.gitattributes --exclude=Sequential/docs --exclude=XADMaster/Windows Sequential XADMaster UniversalDetector
 
 - to distribute the built app:
 

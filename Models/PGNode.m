@@ -75,7 +75,7 @@ enum {
 
 + (void)initialize
 {
-	srandom(time(NULL)); // Used by our shuffle sort.
+	srandom((unsigned) time(NULL)); // Used by our shuffle sort.
 }
 
 #pragma mark -PGNode
