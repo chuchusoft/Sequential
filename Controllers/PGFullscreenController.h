@@ -38,4 +38,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (void)displayScreenDidChange:(NSNotification *)aNotif;
 
+- (void)resizeToUseEntireScreen;	//	2023/08/14 added
+
 @end

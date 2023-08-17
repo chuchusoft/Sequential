@@ -64,14 +64,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[self _setMenuBarHidden:NO delayed:NO]; // For some reason, this moves windows downward slightly (at least on 10.5.3), so make sure it happens before our new windows get put onscreen.
 }
 
-#pragma mark -
-
 - (void)displayScreenDidChange:(NSNotification *)aNotif
 {
 	NSScreen *const screen = [[PGPreferenceWindowController sharedPrefController] displayScreen];
 	[(PGFullscreenWindow *)[self window] moveToScreen:screen];
 	if(![[self window] isKeyWindow]) return;
 	[self _setMenuBarHidden:[NSScreen PG_mainScreen] == screen delayed:YES];
+}
+
+- (void)resizeToUseEntireScreen	//	2023/08/14 added
+{
+	[(PGFullscreenWindow *)self.window resizeToUseEntireScreen];
 }
 
 #pragma mark -PGFullscreenController(Private)
@@ -217,8 +220,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	NSArray *const types = [pboard types];
 #if 1
 	if([types containsObject:NSPasteboardTypeFileURL]) {
-		NSArray *const paths = [pboard propertyListForType:NSPasteboardTypeFileURL];
-		return [paths count] == 1 ? NSDragOperationGeneric : NSDragOperationNone;
+		return NSDragOperationGeneric;	//	2023/08/16 bugfix: no complex testing is now done
 	} else if([types containsObject:NSPasteboardTypeURL]) {
 		return [NSURL URLFromPasteboard:pboard] ? NSDragOperationGeneric : NSDragOperationNone;
 	}

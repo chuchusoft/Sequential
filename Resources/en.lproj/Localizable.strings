@@ -30,6 +30,9 @@
 "Enter Full Screen" = "Enter Full Screen";
 "Exit Full Screen" = "Exit Full Screen";
 
+/* Use Entire Screen When In Full Screen (off = don't draw in notch area, on = draw in notch area). 2023/08/14 added */
+"Use Entire Screen When In Full Screen" = "Use Entire Screen When In Full Screen";
+
 /* Lets the user toggle the on-screen display. Two states of the same item. */
 "Show Info" = "Show Info";
 "Hide Info" = "Hide Info";

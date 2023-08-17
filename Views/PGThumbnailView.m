@@ -62,6 +62,8 @@ static NSColor *PGBackgroundColors[PGBackgroundCount];
 
 - (void)_validateSelection;
 - (NSColor *)_backgroundColorWithType:(PGBackgroundType)type;
+//	2023/08/17 made this method private; was -(void)scrollToSelectionAnchor;
+- (void)_scrollToSelectionAnchor:(PGScrollToRectType)scrollToRect;
 
 @end
 
@@ -299,6 +301,15 @@ MakeByteSizeString(uint64_t bytes, int nDecimalDigits) {
 
 #pragma mark -PGThumbnailView
 
+- (void)_invalidate:(NSSet*)items {
+	for(id const item in items) {
+		NSUInteger const i = [_items indexOfObjectIdenticalTo:item];
+		assert(NSNotFound != i);
+		NSRect const r = [self frameOfItemAtIndex:i withMargin:YES];
+		[self setNeedsDisplayInRect:r];
+	}
+}
+
 @synthesize dataSource;
 @synthesize delegate;
 @synthesize representedObject;
@@ -313,16 +324,37 @@ MakeByteSizeString(uint64_t bytes, int nDecimalDigits) {
 @synthesize selection = _selection;
 - (void)setSelection:(NSSet *)items
 {
-	if(items == _selection) return;
-	NSMutableSet *const removedItems = [[_selection mutableCopy] autorelease];
-	[removedItems minusSet:items];
-	for(id const removedItem in removedItems) [self setNeedsDisplayInRect:[self frameOfItemAtIndex:[_items indexOfObjectIdenticalTo:removedItem] withMargin:YES]];
-	NSMutableSet *const addedItems = [[items mutableCopy] autorelease];
-	[addedItems minusSet:_selection];
-	for(id const addedItem in addedItems) [self setNeedsDisplayInRect:[self frameOfItemAtIndex:[_items indexOfObjectIdenticalTo:addedItem] withMargin:YES]];
+	if(items == _selection)
+		return;
+
+	{
+		NSMutableSet *const removedItems = [_selection mutableCopy];
+		[removedItems minusSet:items];
+		[self _invalidate:removedItems];
+		[removedItems release];
+	}
+	{
+		NSMutableSet *const addedItems = [items mutableCopy];
+		[addedItems minusSet:_selection];
+		[self _invalidate:addedItems];
+		[addedItems release];
+	}
+
+	PGScrollToRectType scrollToRect = PGScrollCenterToRect;	//	default is scroll to center
+	if (1 == _selection.count && 1 == items.count) {
+		//	regardless of the selection direction, PGScrollMostToRect is the correct scrollTo value
+		scrollToRect	=	PGScrollMostToRect;
+	/*	NSUInteger const oldI = [_items indexOfObjectIdenticalTo:[_selection anyObject]];
+		assert(NSNotFound != oldI);
+		NSUInteger const newI = [_items indexOfObjectIdenticalTo:[items anyObject]];
+		assert(NSNotFound != newI);
+		assert(newI != oldI);
+		scrollToRect	=	newI > oldI ? PGScrollMostToRect : PGScrollMostToRect;	*/
+	}
+
 	[_selection setSet:items];
 	[self _validateSelection];
-	[self scrollToSelectionAnchor];
+	[self _scrollToSelectionAnchor:scrollToRect];
 	[[self delegate] thumbnailViewSelectionDidChange:self];
 }
 @synthesize selectionAnchor = _selectionAnchor;
@@ -395,19 +427,25 @@ MakeByteSizeString(uint64_t bytes, int nDecimalDigits) {
 	_items = [[[self dataSource] itemsForThumbnailView:self] copy];
 	[self _validateSelection];
 	[self sizeToFit];
-	[self scrollToSelectionAnchor];
+	[self _scrollToSelectionAnchor:PGScrollCenterToRect];
 	[self setNeedsDisplay:YES];
 	if(hadSelection) [[self delegate] thumbnailViewSelectionDidChange:self];
 }
+
 - (void)sizeToFit
 {
 	CGFloat const height = [self superview] ? NSHeight([[self superview] bounds]) : 0.0f;
 	[super setFrameSize:NSMakeSize(PGOuterTotalWidth, MAX(height, [_items count] * PGThumbnailTotalHeight))];
 }
-- (void)scrollToSelectionAnchor
+
+//	2023/08/17 added scrollToRect parameter
+- (void)_scrollToSelectionAnchor:(PGScrollToRectType)scrollToRect
 {
 	NSUInteger const i = [_items indexOfObjectIdenticalTo:_selectionAnchor];
-	if(NSNotFound != i) [self PG_scrollRectToVisible:[self frameOfItemAtIndex:i withMargin:YES] type:PGScrollCenterToRect];
+	if(NSNotFound == i)
+		return;
+
+	[self PG_scrollRectToVisible:[self frameOfItemAtIndex:i withMargin:YES] type:scrollToRect];
 }
 
 #pragma mark -
@@ -453,7 +491,11 @@ MakeByteSizeString(uint64_t bytes, int nDecimalDigits) {
 	NSRect const r = NSMakeRect(0.0f, 0.0f, PGInnerTotalWidth, PGBackgroundHeight);
 	PGDrawGradient();
 	if(PGBackgroundDeselected != type) {
-		[[PGBackgroundSelectedActive == type ? [NSColor alternateSelectedControlColor] : [NSColor secondarySelectedControlColor] colorWithAlphaComponent:0.5f] set];
+		NSColor* c = PGBackgroundSelectedActive == type ?
+						[NSColor selectedContentBackgroundColor] :	//	modernized name
+						[NSColor controlAccentColor];	//	2023/08/12 this seems to be a sensible change
+					//	[NSColor unemphasizedSelectedContentBackgroundColor];	//	modernized name
+		[[c colorWithAlphaComponent:0.5f] set];
 		NSRectFillUsingOperation(r, NSCompositingOperationSourceOver);
 	}
 
@@ -881,7 +923,9 @@ MakeByteSizeString(uint64_t bytes, int nDecimalDigits) {
 - (IBAction)selectAll:(id)sender
 {
 	NSMutableSet *const selection = [NSMutableSet set];
-	for(id const item in _items) if([[self dataSource] thumbnailView:self canSelectItem:item]) [selection addObject:item];
+	for(id const item in _items)
+		if([[self dataSource] thumbnailView:self canSelectItem:item])
+			[selection addObject:item];
 	[self setSelection:selection];
 }
 

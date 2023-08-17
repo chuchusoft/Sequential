@@ -433,14 +433,19 @@ static NSSize PGRoundedCornerSizes[4];
 {
 	if(!_rep) return;
 	NSRect const b = [self bounds];
-	NSRect const imageRect = NSMakeRect(round(NSMidX(b) - _immediateSize.width / 2.0f), round(NSMidY(b) - _immediateSize.height / 2.0f), _immediateSize.width, _immediateSize.height);
+	NSRect const imageRect = NSMakeRect(
+		round(NSMidX(b) - _immediateSize.width / 2.0f),
+		round(NSMidY(b) - _immediateSize.height / 2.0f),
+		_immediateSize.width, _immediateSize.height);
 	CGFloat const deg = [self rotationInDegrees];
 	if(deg) {
 		[NSGraphicsContext saveGraphicsState];
 		[[self _transformWithRotationInDegrees:deg] concat];
 	}
 	[self _cache];
-	if(_cacheLayer) CGContextDrawLayerAtPoint([[NSGraphicsContext currentContext] CGContext], NSPointToCGPoint(imageRect.origin), _cacheLayer);
+	if(_cacheLayer)
+		CGContextDrawLayerAtPoint(NSGraphicsContext.currentContext.CGContext,
+							NSPointToCGPoint(imageRect.origin), _cacheLayer);
 	else {
 		NSInteger count = 0;
 		NSRect const *rects = NULL;
@@ -448,14 +453,25 @@ static NSSize PGRoundedCornerSizes[4];
 		[self _drawImageWithFrame:imageRect compositeCopy:NO rects:rects count:count];
 	}
 #if PGDebugDrawingModes
-	[(_cacheLayer ? [NSColor redColor] : [NSColor blueColor]) set];
-	NSFrameRect(imageRect); // Outer frame: Cached
-	[([self isOpaque] ? [NSColor redColor] : [NSColor blueColor]) set];
-	NSFrameRect(NSInsetRect(imageRect, 2.0f, 2.0f)); // Middle frame 1: View opaque
-	[([self _imageIsOpaque] ? [NSColor redColor] : [NSColor blueColor]) set];
-	NSFrameRect(NSInsetRect(imageRect, 4.0f, 4.0f)); // Middle frame 2: Image opaque
-	[(deg ? [NSColor blueColor] : [NSColor redColor]) set];
-	NSFrameRect(NSInsetRect(imageRect, 6.0f, 6.0f)); // Inner frame: Rotated
+	[(_cacheLayer ? [NSColor redColor] : [NSColor greenColor]) set];
+	NSFrameRect(NSInsetRect(imageRect, 0.5f, 0.5f)); // Outer-most frame: Cached
+
+	[([self isOpaque] ? [NSColor redColor] : [NSColor greenColor]) set];
+	NSFrameRect(NSInsetRect(imageRect, 2.5f, 2.5f)); // Next-inner frame: View opaque
+
+	[([self _imageIsOpaque] ? [NSColor redColor] : [NSColor greenColor]) set];
+	NSFrameRect(NSInsetRect(imageRect, 4.5f, 4.5f)); // Next-inner frame: Image opaque
+
+	[(deg ? [NSColor greenColor] : [NSColor redColor]) set];
+	NSFrameRect(NSInsetRect(imageRect, 6.5f, 6.5f)); // Next-inner frame: Rotated
+
+	//	Currently, the only implementation of "make a full screen window" is to make
+	//	a borderless window whose size is the same as the monitor is should lie on;
+	//	no code exists to use the system's method of creating a fullscreen window;
+	//	when it is possible to do that, this code will need to be changed; search
+	//	for NSWindowStyleMaskBorderless to find the code that will need modifying.
+	[(NSWindowStyleMaskBorderless == self.window.styleMask ? [NSColor redColor] : [NSColor greenColor]) set];
+	NSFrameRect(NSInsetRect(imageRect, 8.5f, 8.5f)); // Inner-most frame: fullscreen
 #endif
 	if(deg) [NSGraphicsContext restoreGraphicsState];
 }

@@ -459,12 +459,16 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 
 - (void)main
 {
+	//	FIXME: wrap this code in an @autorelease pool otherwise it will leak objects
 	if([self isCancelled]) return;
 	NSImageRep *const rep = [_adapter threaded_thumbnailRepWithSize:NSMakeSize(PGThumbnailSize, PGThumbnailSize)];
 	if(!rep || [self isCancelled]) return;
 	NSImage *const image = [[[NSImage alloc] initWithSize:NSMakeSize([rep pixelsWide], [rep pixelsHigh])] autorelease];
 	[image addRepresentation:rep];
 	if([self isCancelled]) return;
+	//	FIXME: need to retain the image object until the thumbnail has been set; this should be done
+	//	FIXME: synchronously (in which case, maybe a [image retain] is not needed?) by passing
+	//	FIXME: waitUntilDone:YES instead of NO
 	[_adapter performSelectorOnMainThread:@selector(setRealThumbnail:) withObject:image waitUntilDone:NO];
 }
 

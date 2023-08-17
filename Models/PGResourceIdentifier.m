@@ -185,9 +185,11 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 	}
 	return [self init];
 }
+
 - (void)encodeWithCoder:(NSCoder *)aCoder
 {
-	if([self class] != [PGResourceIdentifier class] && [self class] != [PGDisplayableIdentifier class]) [aCoder encodeObject:NSStringFromClass([self class]) forKey:@"ClassName"];
+	if([self class] != [PGResourceIdentifier class] && [self class] != [PGDisplayableIdentifier class])
+		[aCoder encodeObject:NSStringFromClass([self class]) forKey:@"ClassName"];
 }
 
 #pragma mark -<NSObject>
@@ -655,8 +657,9 @@ static NSMutableArray *PGCachedAliasIdentifiers;
 {
 	if((self = [super initWithCoder:aCoder])) {
 #if 1
+//NSLog(@"[aCoder allowedClasses] = %@", aCoder.allowedClasses);
+		assert([aCoder.allowedClasses containsObject:NSData.class]);
 		_bookmarkedURL = [[aCoder decodeDataObject] retain];
-	//	assert(_bookmarkedURL);
 		if(!_bookmarkedURL)
 			_bookmarkedURL	=	[NSData new];
 #else
@@ -803,7 +806,10 @@ static NSMutableArray *PGCachedAliasIdentifiers;
 - (id)initWithCoder:(NSCoder *)aCoder
 {
 	if((self = [super initWithCoder:aCoder])) {
-		_superidentifier = [[aCoder decodeObjectOfClass:[PGResourceIdentifier class] forKey:@"Superidentifier"] retain];
+		//	2023/08/12 bugfix: NSKeyedUnarchiver requires the allowedClasses property of
+		//	the NSCoder instance to contain the set of all classes that could be decoded
+		NSSet* classes = [NSSet setWithArray:@[NSData.class, PGResourceIdentifier.class]];
+		_superidentifier = [[aCoder decodeObjectOfClasses:classes forKey:@"Superidentifier"] retain];
 		_index = [aCoder decodeIntegerForKey:@"Index"];
 	}
 	return self;

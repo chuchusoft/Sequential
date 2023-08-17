@@ -78,6 +78,7 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 
 @interface PGDisplayController(Private)
 
+- (void)_setClipViewBackground;
 - (void)_setImageView:(PGImageView *)aView;
 - (BOOL)_setActiveNode:(PGNode *)aNode;
 - (void)_readActiveNode;
@@ -228,11 +229,23 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 - (IBAction)toggleFullscreen:(id)sender
 {
 	[[PGDocumentController sharedDocumentController] setFullscreen:![PGDocumentController sharedDocumentController].fullscreen];
+
+	//	2023/08/14 the background color now depends on whether the view's window
+	//	is in fullscreen mode so the background color must be updated:
+	[self _setClipViewBackground];
 }
+
+- (IBAction)toggleEntireScreenWhenInFullScreen:(id)sender	//	2023/08/14 added
+{
+	PGDocumentController*	dc = PGDocumentController.sharedDocumentController;
+	dc.usesEntireScreenWhenInFullScreen	=	!dc.usesEntireScreenWhenInFullScreen;
+}
+
 - (IBAction)toggleInfo:(id)sender
 {
 	[[self activeDocument] setShowsInfo:![[self activeDocument] showsInfo]];
 }
+
 - (IBAction)toggleThumbnails:(id)sender
 {
 	[[self activeDocument] setShowsThumbnails:![[self activeDocument] showsThumbnails]];
@@ -856,12 +869,30 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	[w setMinSize:minSize];
 //	NSEnableScreenUpdates();	2021/07/21 deprecated
 }
+
 - (void)prefControllerBackgroundPatternColorDidChange:(NSNotification *)aNotif;
 {
-	[clipView setBackgroundColor:[[PGPreferenceWindowController sharedPrefController] backgroundPatternColor]];
+	[self _setClipViewBackground];
+}
+
+- (void)prefControllerBackgroundColorUsedInFullScreenDidChange:(NSNotification *)aNotif;
+{
+	if (PGDocumentController.sharedDocumentController.fullscreen)
+		[self _setClipViewBackground];	//	updates only when in fullscreen mode
 }
 
 #pragma mark -PGDisplayController(Private)
+
+- (void)_setClipViewBackground {
+	//	2023/08/14 added this method to enable the background color to depend on
+	//	whether the view's window is in fullscreen mode and whether user wants it
+	//	used in fullscreen mode.
+	if (PGDocumentController.sharedDocumentController.fullscreen &&
+		![NSUserDefaults.standardUserDefaults boolForKey:PGBackgroundColorUsedInFullScreenKey])
+		[clipView setBackgroundColor:NSColor.blackColor];
+	else
+		[clipView setBackgroundColor:[PGPreferenceWindowController.sharedPrefController backgroundPatternColor]];
+}
 
 - (void)_setImageView:(PGImageView *)aView
 {
@@ -1055,6 +1086,7 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 		[self _updateInfoPanelText];
 
 		[[PGPreferenceWindowController sharedPrefController] PG_addObserver:self selector:@selector(prefControllerBackgroundPatternColorDidChange:) name:PGPreferenceWindowControllerBackgroundPatternColorDidChangeNotification];
+		[[PGPreferenceWindowController sharedPrefController] PG_addObserver:self selector:@selector(prefControllerBackgroundColorUsedInFullScreenDidChange:) name:PGPreferenceWindowControllerBackgroundColorUsedInFullScreenDidChangeNotification];
 		[[NSUserDefaults standardUserDefaults] addObserver:self forKeyPath:PGImageScaleConstraintKey options:kNilOptions context:NULL];
 	}
 	return self;
@@ -1112,6 +1144,11 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 
 	// View:
 	if(@selector(toggleFullscreen:) == action) [anItem setTitle:NSLocalizedString(([[PGDocumentController sharedDocumentController] isFullscreen] ? @"Exit Full Screen" : @"Enter Full Screen"), @"Enter/exit full screen. Two states of the same item.")];
+	if(@selector(toggleEntireScreenWhenInFullScreen:) == action) {	//	2023/08/14 added
+		[anItem setState:PGDocumentController.sharedDocumentController.usesEntireScreenWhenInFullScreen];
+		//	this menu item is only enabled when the window is in full screen mode
+		return PGDocumentController.sharedDocumentController.fullscreen;
+	}
 	if(@selector(toggleInfo:) == action) [anItem setTitle:NSLocalizedString(([[self activeDocument] showsInfo] ? @"Hide Info" : @"Show Info"), @"Lets the user toggle the on-screen display. Two states of the same item.")];
 	if(@selector(toggleThumbnails:) == action) [anItem setTitle:NSLocalizedString(([[self activeDocument] showsThumbnails] ? @"Hide Thumbnails" : @"Show Thumbnails"), @"Lets the user toggle whether thumbnails are shown. Two states of the same item.")];
 	if(@selector(changeReadingDirection:) == action) [anItem setState:[[self activeDocument] readingDirection] == tag];

@@ -88,7 +88,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (void)displayControllerActiveNodeWasRead:(NSNotification *)aNotif
 {
 	[_properties release];
-	_properties = [[self _humanReadablePropertiesWithDictionary:[[[[self displayController] activeNode] resourceAdapter] imageProperties]] copy];
+
+	NSDictionary *d = self.displayController.activeNode.resourceAdapter.imageProperties;
+	//	no need to -copy because the object stored in _properties is not shared
+//	_properties = [[self _humanReadablePropertiesWithDictionary:d] copy];
+	_properties = [[self _humanReadablePropertiesWithDictionary:d] retain];
+
 	[self changeSearch:nil];
 }
 
@@ -102,9 +107,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (NSDictionary *)_humanReadablePropertiesWithDictionary:(NSDictionary *)dict
 {
 	NSDictionary *const keyLabels = [NSDictionary dictionaryWithObjectsAndKeys:
-		@"Size (bytes)", (NSString *)kCGImagePropertyFileSize,		//	2022/10/15 added
+		@"File Size (bytes)", (NSString *)kCGImagePropertyFileSize,	//	2022/10/15 added
+	//	@"Pixel Height", (NSString *)kCGImagePropertyPixelHeight,	[special case]
+	//	@"Pixel Width", (NSString *)kCGImagePropertyPixelWidth,		[special case]
+	//	@"DPI Height", (NSString *)kCGImagePropertyDPIHeight,		[special case]
+	//	@"DPI Width", (NSString *)kCGImagePropertyDPIWidth,			[special case]
+	//	@"Bit Depth", (NSString *)kCGImagePropertyDepth,			[special case]
+		@"Floating Point Pixels", (NSString *)kCGImagePropertyIsFloat,	//	2023/08/14 added
+		@"Indexed (palette) Pixels", (NSString *)kCGImagePropertyIsIndexed,	//	2023/08/14 added
+	//	@"Alpha Channel Present", (NSString *)kCGImagePropertyHasAlpha,
 		@"Color Model", (NSString *)kCGImagePropertyColorModel,
 		@"Profile Name", (NSString *)kCGImagePropertyProfileName,
+
 		[NSDictionary dictionaryWithObjectsAndKeys:
 			@"TIFF", @".",
 			@"Compression", (NSString *)kCGImagePropertyTIFFCompression,
@@ -121,17 +135,36 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 			@"White Point", (NSString *)kCGImagePropertyTIFFWhitePoint,
 			@"Primary Chromaticities", (NSString *)kCGImagePropertyTIFFPrimaryChromaticities,
 			nil], (NSString *)kCGImagePropertyTIFFDictionary,
+
 		[NSDictionary dictionaryWithObjectsAndKeys:
 			@"JFIF", @".",
 			@"Progressive", (NSString *)kCGImagePropertyJFIFIsProgressive,
 			nil], (NSString *)kCGImagePropertyJFIFDictionary,
+
+		//	TODO: add HEIC dictionary here...
+
 		[NSDictionary dictionaryWithObjectsAndKeys:
 			@"Exif", @".",
 			@"Exposure Time", (NSString *)kCGImagePropertyExifExposureTime,
 			@"F Number", (NSString *)kCGImagePropertyExifFNumber,
 			@"Exposure Program", (NSString *)kCGImagePropertyExifExposureProgram,
 			@"Spectral Sensitivity", (NSString *)kCGImagePropertyExifSpectralSensitivity,
+		//	@"ISO Speed Ratings", (NSString *)kCGImagePropertyExifISOSpeedRatings,
 			@"OECF", (NSString *)kCGImagePropertyExifOECF,
+		/*
+			kCGImagePropertyExifSensitivityType
+			kCGImagePropertyExifStandardOutputSensitivity
+			kCGImagePropertyExifRecommendedExposureIndex
+			kCGImagePropertyExifISOSpeed
+			kCGImagePropertyExifISOSpeedLatitudeyyy
+			kCGImagePropertyExifISOSpeedLatitudezzz
+			kCGImagePropertyExifVersion
+			kCGImagePropertyExifDateTimeOriginal
+			kCGImagePropertyExifDateTimeDigitize
+			kCGImagePropertyExifOffsetTime
+			kCGImagePropertyExifOffsetTimeOriginal
+			kCGImagePropertyExifOffsetTimeDigitized
+		 */
 			@"Components Configuration", (NSString *)kCGImagePropertyExifComponentsConfiguration,
 			@"Compressed BPP", (NSString *)kCGImagePropertyExifCompressedBitsPerPixel,
 			@"Shutter Speed", (NSString *)kCGImagePropertyExifShutterSpeedValue,
@@ -147,7 +180,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 			@"Subject Area", (NSString *)kCGImagePropertyExifSubjectArea,
 			@"Maker Note", (NSString *)kCGImagePropertyExifMakerNote,
 			@"User Comment", (NSString *)kCGImagePropertyExifUserComment,
+		//	kCGImagePropertyExifFlashPixVersion
 			@"Color Space", (NSString *)kCGImagePropertyExifColorSpace,
+		//	kCGImagePropertyExifPixelXDimension
+		//	kCGImagePropertyExifPixelYDimension
 			@"Related Sound File", (NSString *)kCGImagePropertyExifRelatedSoundFile,
 			@"Flash Energy", (NSString *)kCGImagePropertyExifFlashEnergy,
 			@"Spatial Frequency Response", (NSString *)kCGImagePropertyExifSpatialFrequencyResponse,
@@ -159,6 +195,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 			@"Sensing Method", (NSString *)kCGImagePropertyExifSensingMethod,
 			@"File Source", (NSString *)kCGImagePropertyExifFileSource,
 			@"Scene Type", (NSString *)kCGImagePropertyExifSceneType,
+		//	kCGImagePropertyExifCFAPattern
 			@"Custom Rendered", (NSString *)kCGImagePropertyExifCustomRendered,
 			@"Exposure Mode", (NSString *)kCGImagePropertyExifExposureMode,
 			@"White Balance", (NSString *)kCGImagePropertyExifWhiteBalance,
@@ -172,10 +209,24 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 			@"Device Setting Description", (NSString *)kCGImagePropertyExifDeviceSettingDescription,
 			@"Subject Dist Range", (NSString *)kCGImagePropertyExifSubjectDistRange,
 			@"Image Unique ID", (NSString *)kCGImagePropertyExifImageUniqueID,
+		/*
+			kCGImagePropertyExifCameraOwnerName
+			kCGImagePropertyExifBodySerialNumber
+			kCGImagePropertyExifLensSpecification
+			kCGImagePropertyExifLensMake
+			kCGImagePropertyExifLensModel
+			kCGImagePropertyExifLensSerialNumber
+		 */
 			@"Gamma", (NSString *)kCGImagePropertyExifGamma,
+		/*
+			kCGImagePropertyExifCompositeImage
+			kCGImagePropertyExifSourceImageNumberOfCompositeImage
+			kCGImagePropertyExifSourceExposureTimesOfCompositeImage
+		 */
 			nil], (NSString *)kCGImagePropertyExifDictionary,
 		[NSDictionary dictionaryWithObjectsAndKeys:
 			@"Exif (Aux)", @".",
+		//	kCGImagePropertyExifAuxLensInfo
 			@"Lens Model", (NSString *)kCGImagePropertyExifAuxLensModel,
 			@"Serial Number", (NSString *)kCGImagePropertyExifAuxSerialNumber,
 			@"Lens ID", (NSString *)kCGImagePropertyExifAuxLensID,
@@ -185,8 +236,53 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 			@"Owner Name", (NSString *)kCGImagePropertyExifAuxOwnerName,
 			@"Firmware", (NSString *)kCGImagePropertyExifAuxFirmware,
 			nil], (NSString *)kCGImagePropertyExifAuxDictionary,
+
+		//	TODO: add GIF dictionary here...
+
+		//	TODO: add PNG dictionary here...
+
+		//	TODO: add APNG dictionary here...
+
+		//	TODO: add WebP dictionary here...
+
+		//	TODO: add GPS dictionary here...
+
+		//	TODO: add IPTC dictionary here...
+
+		//	TODO: add 8BIM dictionary here...
+
+		//	TODO: add DNG dictionary here...
+
+		//	TODO: add CIFF dictionary here...
+
+		//	TODO: add Nikon dictionary here...
+
+		//	TODO: add Canon dictionary here...
+
+		//	TODO: add OpenEXR dictionary here...
+
+		//	TODO: add TGA dictionary here...
+
 		nil];
+
+	//	the returned object:
 	NSMutableDictionary *const properties = [[[[dict PG_replacementUsingObject:keyLabels preserveUnknown:NO getTopLevelKey:NULL] PG_flattenedDictionary] mutableCopy] autorelease];
+
+	//	2023/08/14 any values whose type conforms to NSArray will be converted to a string
+	//	because NSArrays are displayed as "(\n<val0>,\n<val1>,\n<val2>,\n ... <val-last>\n)"
+	{
+		NSMutableDictionary *const replacements = [NSMutableDictionary new];
+		[properties enumerateKeysAndObjectsUsingBlock:^(NSString* key, id obj, BOOL *stop) {
+			if([obj isKindOfClass:NSArray.class]) {
+				NSString* value = [[[obj description] stringByReplacingOccurrencesOfString:@"\n" withString:@""]
+					stringByTrimmingCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@"() "]];
+				[replacements setObject:value forKey:key];
+			}
+		}];
+
+		[properties addEntriesFromDictionary:replacements];
+		[replacements release];
+	}
 
 	// TODO: Create special formatters for certain properties.
 	/*
@@ -196,19 +292,42 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 		Check other properties as well.
 	*/
+#if !defined(NDEBUG) && 0
+	{
+	//	id value = [dict objectForKey:(NSString *)kCGImagePropertyExifComponentsConfiguration];
+	//	if(value)
+	//		NSLog(@"kCGImagePropertyExifComponentsConfiguration value = %@, %@ (%@)",
+	//				value, [value description], [[value class] description]);
+
+		id value2 = [properties objectForKey:@"Components Configuration"];
+		if(value2)
+			NSLog(@"kCGImagePropertyExifComponentsConfiguration value = '%@' (%@), dict =\n%@\nproperties =\n%@",
+					value2, [[value2 class] description], dict, properties);
+	}
+#endif
 
 	NSNumber *const depth = [dict objectForKey:(NSString *)kCGImagePropertyDepth];
-	if(depth) [properties setObject:[NSString stringWithFormat:@"%lu bits per sample", [depth unsignedLongValue]] forKey:@"Depth"];
+	if(depth)
+		[properties setObject:[NSString stringWithFormat:@"%lu bits per sample", depth.unsignedLongValue]
+					   forKey:@"Depth"];
 
 	NSNumber *const pixelWidth = [dict objectForKey:(NSString *)kCGImagePropertyPixelWidth];
 	NSNumber *const pixelHeight = [dict objectForKey:(NSString *)kCGImagePropertyPixelHeight];
-	if(pixelWidth || pixelHeight) [properties setObject:[NSString stringWithFormat:@"%lux%lu", [pixelWidth unsignedLongValue], [pixelHeight unsignedLongValue]] forKey:@"Pixel Count"];
+	if(pixelWidth && pixelHeight)
+		[properties setObject:[NSString stringWithFormat:@"%lu x %lu",
+									pixelWidth.unsignedLongValue, pixelHeight.unsignedLongValue]
+					   forKey:@"Pixel Width x Height"];
 
 	NSNumber *const densityWidth = [dict objectForKey:(NSString *)kCGImagePropertyDPIWidth];
 	NSNumber *const densityHeight = [dict objectForKey:(NSString *)kCGImagePropertyDPIHeight];
-	if(densityWidth || densityHeight) [properties setObject:[NSString stringWithFormat:PGEqualObjects(densityWidth, densityHeight) ? @"%lux%lu DPI" : @"%lux%lu DPI", (unsigned long)round([densityWidth doubleValue]), (unsigned long)round([densityHeight doubleValue])] forKey:@"Pixel Density"];
+	if(densityWidth || densityHeight)
+		[properties setObject:[NSString stringWithFormat:@"%lu x %lu",
+									(unsigned long) round(densityWidth.doubleValue),
+									(unsigned long) round(densityHeight.doubleValue)]
+					   forKey:@"DPI Width x Height"];
 
-	if([[dict objectForKey:(NSString *)kCGImagePropertyHasAlpha] boolValue]) [properties setObject:@"Yes" forKey:@"Alpha"];
+	if([[dict objectForKey:(NSString *)kCGImagePropertyHasAlpha] boolValue])
+		[properties setObject:@"Yes" forKey:@"Alpha"];
 
 	PGOrientation const orientation = PGOrientationWithTIFFOrientation([[dict objectForKey:(NSString *)kCGImagePropertyOrientation] unsignedIntegerValue]);
 	if(PGUpright != orientation) [properties setObject:PGLocalizedStringWithOrientation(orientation) forKey:@"Orientation"];
@@ -217,7 +336,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	NSDictionary *const exifDict = [dict objectForKey:(NSString *)kCGImagePropertyExifDictionary];
 
 	NSString *const dateTime = [self _stringWithDateTime:[TIFFDict objectForKey:(NSString *)kCGImagePropertyTIFFDateTime] subsecTime:[exifDict objectForKey:(NSString *)kCGImagePropertyExifSubsecTime]];
-	[properties PG_setObject:dateTime forKey:@"Date/Time"];
+	[properties PG_setObject:dateTime forKey:@"Date/Time (Created)"];
 
 #if 1
 	NSString *const dateTimeOriginal = [self _stringWithDateTime:[exifDict objectForKey:(NSString *)kCGImagePropertyExifDateTimeOriginal] subsecTime:[exifDict objectForKey:(NSString *)kCGImagePropertyExifSubsecTimeOriginal]];
@@ -231,9 +350,26 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 	return properties;
 }
+
 - (NSString *)_stringWithDateTime:(NSString *)dateTime subsecTime:(NSString *)subsecTime
 {
 	if(!dateTime) return nil;
+
+	//	2023/08/12 change "2023:08:12 12:34:56" to "2023-08-12 12:34:56"
+	NSError*				error = nil;
+	NSRegularExpression*	regex = [NSRegularExpression
+		regularExpressionWithPattern:@"([0-9]{4}):([0-9]{2}):([0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2})"
+							 options:0
+							   error:&error];
+	NSRange		range = NSMakeRange(0, dateTime.length);
+	NSUInteger	matches = [regex numberOfMatchesInString:dateTime options:0 range:range];
+	if (1 == matches)
+		dateTime = [regex stringByReplacingMatchesInString:dateTime
+												   options:0
+													 range:range
+											//withTemplate:@"$1/$2/$3"];
+											  withTemplate:@"$1-$2-$3"];
+
 	if(!subsecTime) return dateTime;
 	return [NSString stringWithFormat:@"%@.%@", dateTime, subsecTime];
 }
@@ -353,8 +489,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (id)PG_replacementUsingObject:(id)replacement preserveUnknown:(BOOL)preserve getTopLevelKey:(out id *)outKey
 {
-	if(!replacement) return preserve ? self : nil;
-	if(outKey) *outKey = replacement;
+	if(!replacement)
+		return preserve ? self : nil;
+	if(outKey)
+		*outKey = replacement;
 	return self;
 }
 
@@ -378,14 +516,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (id)PG_replacementUsingObject:(id)replacement preserveUnknown:(BOOL)preserve getTopLevelKey:(out id *)outKey
 {
-	if(![replacement isKindOfClass:[NSDictionary class]]) return [super PG_replacementUsingObject:replacement preserveUnknown:preserve getTopLevelKey:outKey];
+	if(![replacement isKindOfClass:[NSDictionary class]])
+		return [super PG_replacementUsingObject:replacement
+								preserveUnknown:preserve
+								 getTopLevelKey:outKey];
+
 	NSMutableDictionary *const result = [NSMutableDictionary dictionary];
 	for(id const key in self) {
 		id replacementKey = key;
 		id const replacementObj = [[self objectForKey:key] PG_replacementUsingObject:[(NSDictionary *)replacement objectForKey:key] preserveUnknown:preserve getTopLevelKey:&replacementKey];
-		if(replacementObj) [result setObject:replacementObj forKey:replacementKey];
+
+		if(replacementObj)
+			[result setObject:replacementObj forKey:replacementKey];
 	}
-	if(outKey) *outKey = [(NSDictionary *)replacement objectForKey:@"."];
+
+	if(outKey)
+		*outKey = [(NSDictionary *)replacement objectForKey:@"."];
+
 	return result;
 }
 

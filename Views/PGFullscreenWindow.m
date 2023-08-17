@@ -27,27 +27,138 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 // Other Sources
 #import "PGAppKitAdditions.h"
 
+extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
+
+static
+BOOL
+ShouldUseEntireScreenWhenInFullScreen(void) {
+	return [NSUserDefaults.standardUserDefaults
+			boolForKey:(NSString*)PGUseEntireScreenWhenInFullScreenKey];
+}
+
+static
+CGFloat
+GetNotchHeight(NSScreen* screen) {
+	if (@available(macOS 12.0, *))
+		return screen.safeAreaInsets.top;
+	else
+		return 0;
+}
+
+static
+NSRect
+GetSuitableFrameForScreenWithNotch(BOOL useEntireScreen, NSScreen* screen) {
+	if(nil == screen)
+		return NSZeroRect;
+
+	if(useEntireScreen)
+		return screen.frame;
+
+	//	return a frame that positions the window under the notch
+	return NSMakeRect(screen.frame.origin.x, screen.frame.origin.y,
+						screen.frame.size.width,
+						screen.frame.size.height - GetNotchHeight(screen));
+}
+
 @implementation PGFullscreenWindow
 
 #pragma mark Instance Methods
 
-- (id)initWithScreen:(NSScreen *)anObject
+- (void)_allocateAndShowTheBlackHideTheNotchWindowOn:(NSScreen*)screen {
+	assert(nil == _blackHideTheNotchWindow);
+
+	//	2023/08/14 when a notch is present, create an extra window to
+	//	"paint" the areas besides the notch as black to obscure it.
+	const CGFloat	notchHeight = GetNotchHeight(screen);
+	if (0 != notchHeight) {
+		_blackHideTheNotchWindow	=	[[NSWindow alloc]
+			initWithContentRect:NSMakeRect(0, 0, screen.frame.size.width,
+											screen.frame.size.height)
+					  styleMask:NSWindowStyleMaskBorderless
+						backing:NSBackingStoreBuffered
+						  defer:YES
+						 screen:screen];
+
+		_blackHideTheNotchWindow.backgroundColor	=	NSColor.blackColor;
+		[_blackHideTheNotchWindow orderBack:self];
+	}
+}
+
+- (void)_deallocateTheBlackHideTheNotchWindow {
+	if(_blackHideTheNotchWindow) {
+		[_blackHideTheNotchWindow orderOut:self];
+		[_blackHideTheNotchWindow release];
+		_blackHideTheNotchWindow	=	nil;
+	}
+}
+
+- (void)dealloc {
+	[self _deallocateTheBlackHideTheNotchWindow];
+
+	[super dealloc];
+}
+
+- (id)initWithScreen:(NSScreen *)screen
 {
-	if((self = [super initWithContentRect:anObject ? [anObject frame] : NSZeroRect styleMask:NSWindowStyleMaskBorderless backing:NSBackingStoreBuffered defer:YES])) {
+	const BOOL	useEntireScreen = ShouldUseEntireScreenWhenInFullScreen();
+	if((self = [super initWithContentRect:GetSuitableFrameForScreenWithNotch(useEntireScreen, screen)
+								styleMask:NSWindowStyleMaskBorderless
+								  backing:NSBackingStoreBuffered
+									defer:YES])) {
+		if(!useEntireScreen)
+			[self _allocateAndShowTheBlackHideTheNotchWindowOn:screen];
 		[self setHasShadow:NO];
 	}
 	return self;
 }
-- (void)moveToScreen:(NSScreen *)anObject
+
+- (void)moveToScreen:(NSScreen *)screen
 {
-	if(anObject) [self setFrame:[anObject frame] display:YES];
+	if(nil == screen)
+		return;
+
+	const BOOL	useEntireScreen = ShouldUseEntireScreenWhenInFullScreen();
+
+	if(!useEntireScreen) {
+		if(nil != _blackHideTheNotchWindow) {
+			if(0 != GetNotchHeight(screen))
+				//	already exists and new screen has notch ---> move helper window
+				[_blackHideTheNotchWindow setFrame:screen.frame
+										   display:YES];
+			else
+				//	this screen does not have a notch --> dealloc helper window
+				[self _deallocateTheBlackHideTheNotchWindow];
+		} else
+			[self _allocateAndShowTheBlackHideTheNotchWindowOn:screen];
+	}
+
+	[self setFrame:GetSuitableFrameForScreenWithNotch(useEntireScreen, screen)
+		   display:YES];
+}
+
+- (void)resizeToUseEntireScreen	//	called when the "Use Entire Screen In Full Screen" command is used
+{
+	NSScreen*	screen = self.screen;
+	const BOOL	useEntireScreen = ShouldUseEntireScreenWhenInFullScreen();
+	if(useEntireScreen) {
+		assert(nil != _blackHideTheNotchWindow);
+		[self _deallocateTheBlackHideTheNotchWindow];
+	} else {
+		assert(nil == _blackHideTheNotchWindow);
+		[self _allocateAndShowTheBlackHideTheNotchWindowOn:screen];
+	}
+
+	[self setFrame:GetSuitableFrameForScreenWithNotch(useEntireScreen, screen)
+		   display:YES];
 }
 
 #pragma mark NSMenuValidation Protocol
 
 - (BOOL)validateMenuItem:(NSMenuItem *)anItem
 {
-	return [anItem action] == @selector(performClose:) ? YES : [super validateMenuItem:anItem]; // NSWindow doesn't like -performClose: for borderless windows.
+	// NSWindow doesn't like -performClose: for borderless windows.
+	return [anItem action] == @selector(performClose:) ? YES :
+			[super validateMenuItem:anItem];
 }
 
 #pragma mark NSWindow
@@ -63,6 +174,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 {
 	return YES;
 }
+
 - (BOOL)canBecomeMainWindow
 {
 	return [self isVisible]; // Return -isVisible because that's (the relevant part of) what NSWindow does.
@@ -72,6 +184,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @implementation NSObject(PGFullscreenWindowDelegate)
 
-- (void)closeWindowContent:(PGFullscreenWindow *)sender {}
+- (void)closeWindowContent:(PGFullscreenWindow *)sender {
+}
 
 @end

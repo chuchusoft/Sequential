@@ -62,24 +62,33 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 	NSImageRep *rep = nil;
 	if(data) {
 		CGImageSourceRef const source = CGImageSourceCreateWithData((CFDataRef)data, (CFDictionaryRef)[self _imageSourceOptions]);
-		size_t const imageCount = CGImageSourceGetCount(source);
+		size_t const imageCount = source ? CGImageSourceGetCount(source) : 0;
 		if(imageCount) {
 #if 1
-			//	2022/10/15 if this container file only has 1 image in it then add the properties
-			//	of the container to the properties dictionary; this allows the Inspector panel
-			//	to show metadata such as file size
-			CFDictionaryRef	imageSourceProperties = 1 == imageCount ? CGImageSourceCopyProperties(source, NULL) : NULL;
-			CFDictionaryRef	imageProperties = CGImageSourceCopyPropertiesAtIndex(source, 0, NULL);
-			NSMutableDictionary<NSString*, NSObject*>* md = [NSMutableDictionary dictionaryWithCapacity:
-				(imageSourceProperties ? CFDictionaryGetCount(imageSourceProperties) : 0) +
-				CFDictionaryGetCount(imageProperties)];
-			if(imageSourceProperties) {
-				[md addEntriesFromDictionary:(NSDictionary *)imageSourceProperties];
-				CFRelease(imageSourceProperties);
+			//	2022/10/15 if this container file only has 1 image in it then add
+			//	the properties of the container to the properties dictionary; this
+			//	allows the Inspector panel to show metadata such as file size
+			NSMutableDictionary<NSString*, NSObject*>* md;
+			{
+				CFDictionaryRef	sourceProperties = 1 == imageCount ? CGImageSourceCopyProperties(source, NULL) : NULL;
+				CFDictionaryRef	properties = CGImageSourceCopyPropertiesAtIndex(source, 0, NULL);
+				const NSUInteger capacity = CFDictionaryGetCount(properties) +
+					(sourceProperties ? CFDictionaryGetCount(sourceProperties) : 0);
+				md = [NSMutableDictionary dictionaryWithCapacity:capacity];
+				if(sourceProperties) {
+					if(md)
+						[md addEntriesFromDictionary:(NSDictionary *)sourceProperties];
+					CFRelease(sourceProperties);
+				}
+				if(md)
+					[md addEntriesFromDictionary:(NSDictionary *)properties];
+				CFRelease(properties);
 			}
-			[md addEntriesFromDictionary:(NSDictionary *)imageProperties];
-			CFRelease(imageProperties);
-			[self performSelectorOnMainThread:@selector(_setImageProperties:) withObject:md waitUntilDone:NO];
+
+			if(md)
+				[self performSelectorOnMainThread:@selector(_setImageProperties:)
+									   withObject:md
+									waitUntilDone:NO];
 
 			if(1 == imageCount) {
 				rep = PGImageSourceImageRepAtIndex(source, 0);
@@ -94,7 +103,8 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 			else rep = PGImageSourceImageRepAtIndex(source, 0);
 #endif
 		}
-		CFRelease(source);
+		if (source)
+			CFRelease(source);
 	}
 	[self performSelectorOnMainThread:@selector(_readFinishedWithImageRep:) withObject:rep waitUntilDone:NO];
 	[pool drain];

@@ -59,8 +59,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import "PGZooming.h"
 
 NSString *const PGAntialiasWhenUpscalingKey = @"PGAntialiasWhenUpscaling";
+NSString *const PGBackgroundColorSourceKey = @"PGBackgroundColorSource";	//	2023/08/17
 NSString *const PGBackgroundColorKey = @"PGBackgroundColor";
 NSString *const PGBackgroundPatternKey = @"PGBackgroundPattern";
+NSString *const PGBackgroundColorUsedInFullScreenKey = @"PGBackgroundColorUsedInFullScreen";	//	2023/08/14
 NSString *const PGMouseClickActionKey = @"PGMouseClickAction";
 NSString *const PGEscapeKeyMappingKey = @"PGEscapeKeyMapping";
 NSString *const PGDimOtherScreensKey = @"PGDimOtherScreens";
@@ -69,6 +71,7 @@ NSString *const PGImageScaleConstraintKey = @"PGImageScaleConstraint";
 NSString *const PGShowFileNameOnImageThumbnailKey = @"PGShowFileNameOnImageThumbnail";
 NSString *const PGShowCountsAndSizesOnContainerThumbnailKey = @"PGShowCountsAndSizesOnContainerThumbnail";
 
+//	TODO: work out if these can be removed
 static NSString *const PGRecentItemsKey = @"PGRecentItems2";
 static NSString *const PGRecentItemsDeprecated2Key = @"PGRecentItems"; // Deprecated after 1.3.2
 static NSString *const PGRecentItemsDeprecatedKey = @"PGRecentDocuments"; // Deprecated after 1.2.2.
@@ -110,7 +113,7 @@ static PGDocumentController *PGSharedDocumentController = nil;
 	//	[NSArchiver archivedDataWithRootObject:[NSColor blackColor]],
 		[NSKeyedArchiver archivedDataWithRootObject:[NSColor blackColor] requiringSecureCoding:YES error:&error],
 		PGBackgroundColorKey,
-		[NSNumber numberWithUnsignedInteger:PGNoPattern], PGBackgroundPatternKey,
+		[NSNumber numberWithUnsignedInteger:PGNoPattern], PGBackgroundPatternKey,	//	misnomer; should be PGBackgroundPatternTypeKey
 		[NSNumber numberWithInteger:PGNextPreviousAction], PGMouseClickActionKey,
 		[NSNumber numberWithUnsignedInteger:1], PGMaxDepthKey,
 		@NO /* no */, PGFullscreenKey,
@@ -280,6 +283,7 @@ static PGDocumentController *PGSharedDocumentController = nil;
 	}
 	return [[[PGWindowController alloc] init] autorelease];
 }
+
 @synthesize fullscreen = _fullscreen;
 - (void)setFullscreen:(BOOL)flag
 {
@@ -288,12 +292,38 @@ static PGDocumentController *PGSharedDocumentController = nil;
 	[[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithBool:flag] forKey:PGFullscreenKey];
 	[self _setFullscreen:flag];
 }
+
 - (BOOL)canToggleFullscreen
 {
 	if(_fullscreen) return YES;
 	for(PGDocument *const doc in [self documents]) if([[[doc displayController] window] attachedSheet]) return NO;
 	return YES;
 }
+
+extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
+		const NSString* const	PGUseEntireScreenWhenInFullScreenKey	=	@"PGUseEntireScreenWhenInFullScreen";
+
+- (BOOL) usesEntireScreenWhenInFullScreen
+{
+	return [NSUserDefaults.standardUserDefaults
+			boolForKey:(NSString*)PGUseEntireScreenWhenInFullScreenKey];
+}
+
+- (void)setUsesEntireScreenWhenInFullScreen:(BOOL)flag	//	2023/08/14 added
+{
+	assert(_fullscreen && _fullscreenController);
+
+	[NSUserDefaults.standardUserDefaults setBool:flag
+										  forKey:(NSString*)PGUseEntireScreenWhenInFullScreenKey];
+
+	[_fullscreenController resizeToUseEntireScreen];
+}
+
+- (BOOL)canToggleUsesEntireScreenWhenInFullScreen	//	2023/08/14
+{
+	return _fullscreen;
+}
+
 @synthesize documents = _documents;
 - (NSMenu *)scaleMenu
 {
@@ -500,7 +530,7 @@ static PGDocumentController *PGSharedDocumentController = nil;
 		NSArray*	rdia = nil;
 		if (recentItemsData) {
 			NSError* error = nil;
-			NSSet* classes = [NSSet setWithArray:@[[NSArray class], [PGResourceIdentifier class]]];
+			NSSet* classes = [NSSet setWithArray:@[NSArray.class, NSData.class, PGResourceIdentifier.class]];
 			rdia	=	[NSKeyedUnarchiver unarchivedObjectOfClasses:classes
 															fromData:recentItemsData
 															   error:&error];

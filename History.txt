@@ -1,3 +1,55 @@
+2.2.2 (2023-08-17)
+- the set of paused documents was being stored in the user defaults (preferences)
+  store, but this makes the system (Foundation framework) generate multiple
+  warnings that too much data was being stored. To silence the warnings, paused
+  documents are now stored in a separate file. The saved values will be migrated
+  from the user defaults to the new separate file when the app is first run.
+- the background color chosen in the General Preferences window was not being
+  stored in a format that could be used by the code which drew views. As a
+  result, the color was not being used to draw the display window's background.
+  Fixed.
+- as a result of fixing the previous bug, the checkerboard preference now works
+  correctly.
+- the thumbnails of the currently displayed image (and its parent folders) are
+  now drawn using the current system accent color for the background.
+- the Inspector window now has a larger default size (it was clipping some
+  property names).
+- in the Inspector window, dates are now less ambiguous: the Date/Time property
+  name is now displayed as "Date/Time (Created)", "Date/Time (Original)", and
+  "Date/Time (Digitized)".
+- in the Inspector window, date values are now displayed in a more human-readable
+  format: instead of "2023:08:12 12:34:56", the date is displayed as
+  "2023-08-12 12:34:56".
+- in the Inspector window, a value which is an ordered list of values was being
+  displayed as "(" because the list was not formatted correctly. Fixed.
+- when a window is displayed in fullscreen mode, the image was being drawn on the
+  entire screen, even if this caused the notch to obscure a part of the image.
+  Now, when in fullscreen mode, the notch is detected and the image is not drawn
+  in the area besides the notch; instead, it is drawn under the notch. This
+  behavior can be changed by using the "Use Entire Screen When In Full Screen"
+  command in the View menu; on screens which don't have a notch, this command
+  does nothing; the keyboard shortcut is option-F.
+- when an image is toggled from a normal window to a fullscreen window, the
+  background of the window is now drawn in opaque black instead of the
+  background color and pattern that is selected in the Preferences window. This
+  matches the behavior of the system Preview app.
+  This behavior cab be changed by using the "Full screen background" setting in
+  the General Preferences window.
+- in the General Preferences window, added a preference for the background color
+  source: Sequential can now use the color of the system's current appearance
+  (theme) or a custom user-chosen color.
+- if a window is showing thumbnails and is changed from fullscreen to a normal
+  window (or vice versa) before the thumbnails had been generated, the app would
+  crash because the thumbnail view was trying to access a deallocated object. Fixed.
+- when the thumbnails are displaying and you navigate to the next or previous image
+  and you reach the end of the displayed thumbnails, the list of thumbnails would
+  scroll to make the next image selected be in the center (vertically). In doing
+  so, the list of thumbnails ends up scrolling more than necessary as you navigate
+  through the images. Now, the thumbnails are scrolled so that the next thumbnail
+  is shown at the top (when navigating to the next image) or at the bottom (when
+  navigating to the previous image), which reduces the amount of scrolling that
+  occurs in the thumbnail views. There is no preference to control this behavior.
+
 2.2.1 (2023-04-30)
 - the folder count and size text would not fully display on the thumbnail if the
   name displayed above it was short. Fixed.

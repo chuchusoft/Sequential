@@ -36,7 +36,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import "PGAppKitAdditions.h"
 #import "PGFoundationAdditions.h"
 
-static NSString *const PGPausedDocumentsKey            = @"PGPausedDocuments4"; // file-ref is NSURL (not AliasHandle)
+//	2023/08/12 the paused document data blob is too large for NSUserDefaults in macOS 12 Monterey:
+//	"Sequential [User Defaults] CFPrefsPlistSource (Domain: com.SequentialX.Sequential,
+//	User: kCFPreferencesCurrentUser, ByHost: No, Container: (null), Contents Need Refresh: Yes):
+//	Attempting to store >= 4194304 bytes of data in CFPreferences/NSUserDefaults on this platform
+//	is invalid. This is a bug in Sequential or a library it uses."
+//
+//	Solution: store this data in a separate file in the Application Support folder instead of in
+//	the app's UserDefaults object.
+static NSString *const PGPausedDocumentsFileName		=	@"PausedDocuments.plist";
+//static NSString *const PGPausedDocumentsKey            = @"PGPausedDocuments4"; // file-ref is NSURL (not AliasHandle)
 #if 0
 static NSString *const PGPausedDocumentsDeprecated3Key = @"PGPausedDocuments3"; // Deprecated after 2.1.2.
 static NSString *const PGPausedDocumentsDeprecated2Key = @"PGPausedDocuments2"; // Deprecated after 1.3.2.
@@ -52,6 +61,42 @@ static OSStatus PGBookmarkControllerFlagsChanged(EventHandlerCallRef inHandlerCa
 	return noErr;
 }
 #endif
+
+static
+NSURL*
+GetBookmarksFileURL(BOOL createParentFolderIfNonExistant) {
+	NSFileManager*		fileMgr = NSFileManager.defaultManager;
+	NSArray<NSURL*>*	urls = [fileMgr URLsForDirectory:NSApplicationSupportDirectory
+											   inDomains:NSUserDomainMask];
+	if (nil == urls || 1 != urls.count)
+		return nil;
+
+	NSURL*	parentFolder = [[urls objectAtIndex:0] URLByAppendingPathComponent:NSBundle.mainBundle.bundleIdentifier
+																   isDirectory:YES];
+	if (nil == parentFolder)
+		return nil;
+	NSError*	error = nil;
+	BOOL		b = createParentFolderIfNonExistant ?
+					[fileMgr createDirectoryAtURL:parentFolder
+					  withIntermediateDirectories:NO
+									   attributes:nil
+											error:&error] : YES;
+//if (!b) NSLog(@"error %@", error);
+	if (!b) {
+		if (!error || !error.userInfo)
+			return nil;
+
+		id	ue	=	[error.userInfo objectForKey:NSUnderlyingErrorKey];
+		if (!ue || ![ue isKindOfClass:NSError.class])
+			return nil;
+
+		error	=	(NSError*) ue;
+		if (NSPOSIXErrorDomain != error.domain || EEXIST != error.code)
+			return nil;
+	}
+
+	return [parentFolder URLByAppendingPathComponent:PGPausedDocumentsFileName isDirectory:NO];
+}
 
 @interface PGBookmarkController(Private)
 
@@ -177,9 +222,21 @@ static OSStatus PGBookmarkControllerFlagsChanged(EventHandlerCallRef inHandlerCa
 	[bookmarkMenu removeItemAtIndex:[bookmarkMenu numberOfItems] - index - 1];
 	if(![_bookmarks count]) [bookmarkMenu addItem:emptyMenuItem];
 }
+
 - (void)_saveBookmarks
 {
-#if 1	//	2021/07/21 modernized
+#if 1	//	2023/08/12 now saved to a separate file instead of NSUserDefaults (because it generates too-much-data warnings)
+		NSError*	error = nil;
+		NSData*		archivedBookmarks = [NSKeyedArchiver archivedDataWithRootObject:_bookmarks
+															  requiringSecureCoding:YES
+																			  error:&error];
+		if (nil == archivedBookmarks || nil != error)
+			return;
+
+		NSURL*	url = GetBookmarksFileURL(YES);
+//NSLog(@"%@ url = %@", PGPausedDocumentsFileName, url);
+		(void) [archivedBookmarks writeToURL:url options:NSDataWritingAtomic error:&error];
+#elif 1	//	2021/07/21 modernized
 /*	{
 		NSError*	error = nil;
 		NSData* d = [NSKeyedArchiver archivedDataWithRootObject:NSUserDefaults.standardUserDefaults.dictionaryRepresentation
@@ -228,13 +285,33 @@ static OSStatus PGBookmarkControllerFlagsChanged(EventHandlerCallRef inHandlerCa
 			InstallEventHandler(GetUserFocusEventTarget(), PGBookmarkControllerFlagsChanged, 2, list, self, NULL);
 #endif
 		}
+
+#if 1	//	2023/08/12 now saved to a separate file instead of NSUserDefaults (because it generates too-much-data warnings)
+		NSURL*		url = GetBookmarksFileURL(NO);
+//NSLog(@"%@ url = %@", PGPausedDocumentsFileName, url);
+		NSError*	error = nil;
+		NSData*		bookmarksData = [NSData dataWithContentsOfURL:url options:0 error:&error];
+#else
 		NSUserDefaults *const defaults = [NSUserDefaults standardUserDefaults];
 		NSData *bookmarksData = [defaults objectForKey:PGPausedDocumentsKey];
+#endif
+
 		BOOL bookmarksDataIsFromPGPausedDocumentsKey = nil != bookmarksData;
+
+		//	2023/08/12 transfer list of paused documents from UserDefaults to separate file
+		if (!bookmarksDataIsFromPGPausedDocumentsKey) {
+			bookmarksData	=	[NSUserDefaults.standardUserDefaults objectForKey:@"PGPausedDocuments4"];
+			if (nil != bookmarksData) {
+				[NSUserDefaults.standardUserDefaults removeObjectForKey:@"PGPausedDocuments4"];
+				[NSUserDefaults.standardUserDefaults synchronize];
+			}
+		}
+
 #if 1	//	2021/07/21 modernized
 		if(bookmarksData) {
 			NSError* error = nil;
 			NSSet* classes = [NSSet setWithArray:@[[NSMutableArray class], [PGBookmark class]]];
+		//	NSSet* classes = [NSSet setWithArray:@[[NSData class], [NSMutableArray class], [PGBookmark class]]];
 			_bookmarks = [[NSKeyedUnarchiver unarchivedObjectOfClasses:classes
 															  fromData:bookmarksData
 																 error:&error] retain];

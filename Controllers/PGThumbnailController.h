@@ -44,10 +44,10 @@ NSWindowDelegate,
 PGThumbnailBrowserDataSource, PGThumbnailBrowserDelegate, PGThumbnailViewDataSource>
 {
 	@private
-	PGBezelPanel *_window;
-	PGThumbnailBrowser *_browser;
-	PGDisplayController *_displayController;
-	PGDocument *_document;
+	PGBezelPanel *_window;			//	retains; owns the reference
+	PGThumbnailBrowser *_browser;	//	references; does not own the reference
+	PGDisplayController *_displayController;	//	references; does not own the reference; backs the displayController @property
+	PGDocument *_document;			//	references; does not own the reference; backs the document @property
 	BOOL _selfRetained;
 }
 

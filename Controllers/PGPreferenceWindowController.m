@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import "PGFoundationAdditions.h"
 
 NSString *const PGPreferenceWindowControllerBackgroundPatternColorDidChangeNotification = @"PGPreferenceWindowControllerBackgroundPatternColorDidChange";
+NSString *const PGPreferenceWindowControllerBackgroundColorUsedInFullScreenDidChangeNotification = @"PGPreferenceWindowControllerBackgroundColorUsedInFullScreenDidChange";
 NSString *const PGPreferenceWindowControllerDisplayScreenDidChangeNotification          = @"PGPreferenceWindowControllerDisplayScreenDidChange";
 
 static NSString *const PGDisplayScreenIndexKey = @"PGDisplayScreenIndex";
@@ -49,6 +50,7 @@ static PGPreferenceWindowController *PGSharedPrefController = nil;
 - (NSString *)_titleForPane:(NSString *)identifier;
 - (void)_setCurrentPane:(NSString *)identifier;
 - (void)_updateSecondaryMouseActionLabel;
+- (void)_enableColorWell;
 
 @end
 
@@ -78,11 +80,38 @@ static PGPreferenceWindowController *PGSharedPrefController = nil;
 
 #pragma mark -
 
+static
+BOOL
+PreferenceIsCustomColor(void) {
+	enum ColorSource { SystemAppearance, CustomPreferenceColor };
+	NSInteger colorSource = [NSUserDefaults.standardUserDefaults integerForKey:PGBackgroundColorSourceKey];
+	assert(0 <= colorSource && colorSource <= 1);
+	return CustomPreferenceColor == colorSource;
+}
+
+- (void)_enableColorWell {
+	customColorWell.enabled	=	PreferenceIsCustomColor();
+}
+
 - (NSColor *)backgroundPatternColor
 {
+#if 1
+	NSColor* color = !PreferenceIsCustomColor() ? nil :
+		[NSUserDefaults.standardUserDefaults PG_decodeObjectOfClass:NSColor.class forKey:PGBackgroundColorKey];
+	if (nil == color)
+		color	=	NSColor.windowBackgroundColor;
+
+	NSInteger backgroundPatternType =
+		[NSUserDefaults.standardUserDefaults integerForKey:PGBackgroundPatternKey];
+	if (PGCheckerboardPattern == backgroundPatternType)
+		return [color PG_checkerboardPatternColor];
+	assert(PGNoPattern == backgroundPatternType);
+	return color;
+#else
 //	NSColor *const color = [[NSUserDefaults standardUserDefaults] PG_decodedObjectForKey:@"PGBackgroundColor"];
 	NSColor *const color = [[NSUserDefaults standardUserDefaults] PG_decodeObjectOfClass:[NSColor class] forKey:PGBackgroundColorKey];
 	return [[[NSUserDefaults standardUserDefaults] objectForKey:@"PGBackgroundPattern"] unsignedIntegerValue] == PGCheckerboardPattern ? [color PG_checkerboardPatternColor] : color;
+#endif
 }
 - (NSScreen *)displayScreen
 {
@@ -192,6 +221,7 @@ static PGPreferenceWindowController *PGSharedPrefController = nil;
 	[w center];
 	[self _updateSecondaryMouseActionLabel];
 	[self _onScreenParametersChanged];	//	[self applicationDidChangeScreenParameters:nil];	2021/07/21
+	[self _enableColorWell];	//	2023/08/17
 }
 
 #pragma mark -NSObject
@@ -209,8 +239,10 @@ static PGPreferenceWindowController *PGSharedPrefController = nil;
 		[self setDisplayScreen:screenIndex >= [screens count] ? [NSScreen PG_mainScreen] : [screens objectAtIndex:screenIndex]];
 
 		[NSApp PG_addObserver:self selector:@selector(applicationDidChangeScreenParameters:) name:NSApplicationDidChangeScreenParametersNotification];
+		[[NSUserDefaults standardUserDefaults] addObserver:self forKeyPath:PGBackgroundColorSourceKey options:kNilOptions context:self];
 		[[NSUserDefaults standardUserDefaults] addObserver:self forKeyPath:PGBackgroundColorKey options:kNilOptions context:self];
 		[[NSUserDefaults standardUserDefaults] addObserver:self forKeyPath:PGBackgroundPatternKey options:kNilOptions context:self];
+		[[NSUserDefaults standardUserDefaults] addObserver:self forKeyPath:PGBackgroundColorUsedInFullScreenKey options:kNilOptions context:self];
 		[[NSUserDefaults standardUserDefaults] addObserver:self forKeyPath:PGMouseClickActionKey options:kNilOptions context:self];
 	}
 	return self;
@@ -218,8 +250,10 @@ static PGPreferenceWindowController *PGSharedPrefController = nil;
 - (void)dealloc
 {
 	[self PG_removeObserver];
+	[[NSUserDefaults standardUserDefaults] removeObserver:self forKeyPath:PGBackgroundColorSourceKey];
 	[[NSUserDefaults standardUserDefaults] removeObserver:self forKeyPath:PGBackgroundColorKey];
 	[[NSUserDefaults standardUserDefaults] removeObserver:self forKeyPath:PGBackgroundPatternKey];
+	[[NSUserDefaults standardUserDefaults] removeObserver:self forKeyPath:PGBackgroundColorUsedInFullScreenKey];
 	[[NSUserDefaults standardUserDefaults] removeObserver:self forKeyPath:PGMouseClickActionKey];
 	[super dealloc];
 }
@@ -228,9 +262,19 @@ static PGPreferenceWindowController *PGSharedPrefController = nil;
 
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context
 {
-	if(context != self) return [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
-	if(PGEqualObjects(keyPath, PGMouseClickActionKey)) [self _updateSecondaryMouseActionLabel];
-	else [self PG_postNotificationName:PGPreferenceWindowControllerBackgroundPatternColorDidChangeNotification];
+	if(context != self)
+		return [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
+
+	if(PGEqualObjects(keyPath, PGMouseClickActionKey))
+		[self _updateSecondaryMouseActionLabel];
+	else if(PGEqualObjects(keyPath, PGBackgroundColorUsedInFullScreenKey))
+		[self PG_postNotificationName:PGPreferenceWindowControllerBackgroundColorUsedInFullScreenDidChangeNotification];
+	else {	//	PGBackgroundColorSourceKey or PGBackgroundColorKey or PGBackgroundPatternKey
+		[self PG_postNotificationName:PGPreferenceWindowControllerBackgroundPatternColorDidChangeNotification];
+
+		if(PGEqualObjects(keyPath, PGBackgroundColorSourceKey))
+			[self _enableColorWell];
+	}
 }
 
 #pragma mark -<NSApplicationDelegate>

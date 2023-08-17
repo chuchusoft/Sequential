@@ -211,6 +211,7 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 		[_window setReleasedWhenClosed:NO];
 		[_window setDelegate:self];
 		[_window setAcceptsEvents:YES];
+
 		_browser = [_window content];
 		[_browser setDelegate:self];
 		[_browser setDataSource:self];
@@ -219,9 +220,19 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 }
 - (void)dealloc
 {
+	//	Instances of this class are owned by PGDisplayController.
+//NSLog(@"PGThumbnailController -dealloc %p", self);
 	[self PG_removeObserver];
 	[_window setDelegate:nil];
 	[_window release];
+
+	//	2023/08/16 bugfix: stop thumbnail browser from accessing this
+	//	deallocated object
+	[_browser setDelegate:nil];
+	//	2023/08/16 bugfix: stop thumbnail browser and thumbnail views
+	//	from accessing this deallocated object
+	[_browser setDataSource:nil];
+
 	[super dealloc];
 }
 

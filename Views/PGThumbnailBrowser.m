@@ -120,6 +120,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 {
 	if(item && dataSource && ![dataSource thumbnailBrowser:self itemCanHaveChildren:item]) return;
 	PGThumbnailView *const thumbnailView = [[[PGThumbnailView alloc] init] autorelease];
+//NSLog(@"PGThumbnailView %p . dataSource := %p %@", thumbnailView, [self dataSource], [[self dataSource] description]);
 	[thumbnailView setDataSource:[self dataSource]];
 	[thumbnailView setDelegate:self];
 	[thumbnailView setRepresentedObject:item];

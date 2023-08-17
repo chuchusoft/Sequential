@@ -120,13 +120,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 }
 - (NSColor *)PG_patternColorWithImage:(NSImage *)image fraction:(CGFloat)fraction
 {
+	assert(image);
 	NSSize const s = [image size];
 	NSRect const r = (NSRect){NSZeroPoint, s};
 	NSImage *const pattern = [[[NSImage alloc] initWithSize:s] autorelease];
 	[pattern lockFocus];
-	[self set];
-	NSRectFill(r);
-	[image drawInRect:r fromRect:NSZeroRect operation:NSCompositingOperationSourceAtop fraction:fraction];
+		[self set];
+		NSRectFill(r);
+		[image drawInRect:r fromRect:NSZeroRect operation:NSCompositingOperationSourceAtop fraction:fraction];
 	[pattern unlockFocus];
 	return [NSColor colorWithPatternImage:pattern];
 }

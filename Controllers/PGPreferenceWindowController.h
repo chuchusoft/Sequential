@@ -24,6 +24,7 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 extern NSString *const PGPreferenceWindowControllerBackgroundPatternColorDidChangeNotification;
+extern NSString *const PGPreferenceWindowControllerBackgroundColorUsedInFullScreenDidChangeNotification;
 extern NSString *const PGPreferenceWindowControllerDisplayScreenDidChangeNotification;
 
 @interface PGPreferenceWindowController : NSWindowController
@@ -40,6 +41,8 @@ extern NSString *const PGPreferenceWindowControllerDisplayScreenDidChangeNotific
 	IBOutlet NSTextField *secondaryMouseActionLabel;
 
 	IBOutlet NSView *updateView;
+
+	IBOutlet NSColorWell *customColorWell;	//	2023/08/17 added
 }
 
 + (id)sharedPrefController;

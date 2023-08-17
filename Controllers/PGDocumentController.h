@@ -36,8 +36,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 @class PGActivityPanelController;
 
 extern NSString *const PGAntialiasWhenUpscalingKey;
+extern NSString *const PGBackgroundColorSourceKey;	//	2023/08/17
 extern NSString *const PGBackgroundColorKey;
 extern NSString *const PGBackgroundPatternKey;
+extern NSString *const PGBackgroundColorUsedInFullScreenKey;	//	2023/08/14
 extern NSString *const PGMouseClickActionKey;
 extern NSString *const PGEscapeKeyMappingKey;
 extern NSString *const PGDimOtherScreensKey;
@@ -131,6 +133,8 @@ typedef NSUInteger PGImageScaleConstraint;
 @property(readonly) PGDisplayController *displayControllerForNewDocument;
 @property(assign, nonatomic, getter = isFullscreen) BOOL fullscreen;
 @property(readonly) BOOL canToggleFullscreen;
+@property(assign, nonatomic) BOOL usesEntireScreenWhenInFullScreen;	//	2023/08/14 added
+@property(readonly) BOOL canToggleUsesEntireScreenWhenInFullScreen;	//	2023/08/14 added
 @property(readonly, copy) NSArray *documents;
 @property(readonly) NSMenu *scaleMenu;
 @property(readonly) NSSlider *scaleSlider;

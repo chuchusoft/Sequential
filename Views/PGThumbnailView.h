@@ -58,7 +58,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (void)reloadData;
 - (void)sizeToFit;
-- (void)scrollToSelectionAnchor;
+//- (void)scrollToSelectionAnchor;	2023/08/17 removed (method is now private)
 
 - (void)windowDidChangeKey:(NSNotification *)aNotif;
 - (void)systemColorsDidChange:(NSNotification *)aNotif;

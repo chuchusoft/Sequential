@@ -98,7 +98,8 @@ NSString *const PGBookmarkDidUpdateNotification = @"PGBookmarkDidUpdate";
 
 - (id)initWithCoder:(NSCoder *)aCoder
 {
-	NSSet* classes = [NSSet setWithArray:@[[PGDisplayableIdentifier class], [PGResourceIdentifier class]]];
+//	NSSet* classes = [NSSet setWithArray:@[PGDisplayableIdentifier.class, PGResourceIdentifier.class]];
+	NSSet* classes = [NSSet setWithArray:@[NSData.class, PGDisplayableIdentifier.class, PGResourceIdentifier.class]];
 	return [self initWithDocumentIdentifier:[aCoder decodeObjectOfClasses:classes forKey:@"DocumentIdentifier"]
 //	return [self initWithDocumentIdentifier:[aCoder decodeObjectOfClass:[PGResourceIdentifier class] forKey:@"DocumentIdentifier"]
 							 fileIdentifier:[aCoder decodeObjectOfClasses:classes forKey:@"FileIdentifier"]

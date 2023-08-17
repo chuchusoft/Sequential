@@ -97,6 +97,7 @@ PGClipViewDelegate, PGDocumentWindowDelegate>
 - (IBAction)hideFindPanel:(id)sender;
 
 - (IBAction)toggleFullscreen:(id)sender;
+- (IBAction)toggleEntireScreenWhenInFullScreen:(id)sender;
 - (IBAction)toggleInfo:(id)sender;
 - (IBAction)toggleThumbnails:(id)sender;
 - (IBAction)changeReadingDirection:(id)sender;

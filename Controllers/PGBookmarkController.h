@@ -34,7 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	IBOutlet NSMenu *bookmarkMenu;
 	IBOutlet NSMenuItem *emptyMenuItem;
 	BOOL _deletesBookmarks;
-	NSMutableArray *_bookmarks;
+	NSMutableArray<PGBookmark*> *_bookmarks;
 }
 
 + (id)sharedBookmarkController;
