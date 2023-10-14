@@ -292,7 +292,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 		Check other properties as well.
 	*/
-#if !defined(NDEBUG) && 0
+#if 0
 	{
 	//	id value = [dict objectForKey:(NSString *)kCGImagePropertyExifComponentsConfiguration];
 	//	if(value)
@@ -363,7 +363,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 							   error:&error];
 	NSRange		range = NSMakeRange(0, dateTime.length);
 	NSUInteger	matches = [regex numberOfMatchesInString:dateTime options:0 range:range];
-	if (1 == matches)
+	if(1 == matches)
 		dateTime = [regex stringByReplacingMatchesInString:dateTime
 												   options:0
 													 range:range
@@ -431,7 +431,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (nullable id)tableView:(NSTableView *)tableView objectValueForTableColumn:(nullable NSTableColumn *)tableColumn row:(NSInteger)row
 {//id<NSTableViewDataSource>* a = nil;
 #if 0
-	assert(tableColumn == labelColumn);
+	NSParameterAssert(tableColumn == labelColumn);
 	return _matchingLabels[row];
 #else
 	NSString *const label = [_matchingLabels objectAtIndex:row];
