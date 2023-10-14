@@ -143,6 +143,10 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 {
 	return [_dataProvider data];
 }
+- (uint64_t)dataByteSize
+{
+	return [_dataProvider dataByteSize];
+}
 - (BOOL)canGetData
 {
 	return [_dataProvider hasData];
@@ -171,6 +175,10 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 	return NSUIntegerMax;
 } */
 - (uint64_t)byteSizeAndFolderAndImageCount
+{
+	return ULONG_MAX;
+}
+- (uint64_t)byteSizeOfAllChildren
 {
 	return ULONG_MAX;
 }
@@ -459,17 +467,18 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 
 - (void)main
 {
-	//	FIXME: wrap this code in an @autorelease pool otherwise it will leak objects
-	if([self isCancelled]) return;
-	NSImageRep *const rep = [_adapter threaded_thumbnailRepWithSize:NSMakeSize(PGThumbnailSize, PGThumbnailSize)];
-	if(!rep || [self isCancelled]) return;
-	NSImage *const image = [[[NSImage alloc] initWithSize:NSMakeSize([rep pixelsWide], [rep pixelsHigh])] autorelease];
-	[image addRepresentation:rep];
-	if([self isCancelled]) return;
-	//	FIXME: need to retain the image object until the thumbnail has been set; this should be done
-	//	FIXME: synchronously (in which case, maybe a [image retain] is not needed?) by passing
-	//	FIXME: waitUntilDone:YES instead of NO
-	[_adapter performSelectorOnMainThread:@selector(setRealThumbnail:) withObject:image waitUntilDone:NO];
+	@try { @autoreleasepool {	//	2023/08/20 added exception wrapper and autorelease pool
+		if([self isCancelled]) return;
+		NSImageRep *const rep = [_adapter threaded_thumbnailRepWithSize:NSMakeSize(PGThumbnailSize, PGThumbnailSize)];
+		if(!rep || [self isCancelled]) return;
+		NSImage *const image = [[[NSImage alloc] initWithSize:NSMakeSize([rep pixelsWide], [rep pixelsHigh])] autorelease];
+		[image addRepresentation:rep];
+		if([self isCancelled]) return;
+		[_adapter performSelectorOnMainThread:@selector(setRealThumbnail:) withObject:image waitUntilDone:NO];
+	} }
+	@catch(...) {
+		// Do not rethrow exceptions.
+	}
 }
 
 #pragma mark -NSObject
@@ -484,27 +493,76 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 
 @implementation PGDataProvider(PGResourceAdapterLoading)
 
+- (NSUInteger)_matchPriorityForTypeDictionary:(NSDictionary *)dict
+							   withFourCCData:(uint8_t*)fourCCData
+{
+	//	2023/10/14 optimized to reduce I/O requests:
+	//	calls to -fourCCData occur only when necessary and only occur once
+	id o = [dict objectForKey:PGBundleTypeFourCCsKey];
+	if(o) {
+		if(0 == *fourCCData) {
+			NSData *const self_fourCCData = [self fourCCData];
+			if(self_fourCCData)
+				[self_fourCCData getBytes:fourCCData length:(NSUInteger)sizeof(uint32_t)];
+			else
+				fourCCData[3] = fourCCData[2] = fourCCData[1] = fourCCData[0] = 0xFF;
+		}
+
+		//	if an attempt to read the 4CC was done
+		if(0 != fourCCData[0] || 0 != fourCCData[1] || 0 != fourCCData[2] || 0 != fourCCData[3]) {
+			//	if the 4CC was successfully read in
+			if(0xFF != fourCCData[0] || 0xFF != fourCCData[1] || 0xFF != fourCCData[2] || 0xFF != fourCCData[3]) {
+				//	then do comparisons
+				for(NSData* d in o) {
+					if(sizeof(uint32_t) != d.length)
+						continue;
+					uint8_t bytes[4];
+					[d getBytes:bytes length:(NSUInteger)sizeof(bytes)];
+					if(0 == memcmp(fourCCData, bytes, sizeof(bytes)))
+						return 5;
+				}
+			}
+		}
+	}
+
+	o = [dict objectForKey:PGLSItemContentTypes];
+	if(o && [o containsObject:[self UTIType]]) return 4;
+
+	o = [dict objectForKey:PGCFBundleTypeMIMETypesKey];
+	if(o && [o containsObject:[self MIMEType]]) return 3;
+
+	o = [dict objectForKey:PGCFBundleTypeOSTypesKey];
+	if(o && [o containsObject:PGOSTypeToStringQuoted([self typeCode], NO)]) return 2;
+
+	o = [dict objectForKey:PGCFBundleTypeExtensionsKey];
+	if(o && [o containsObject:[[self extension] lowercaseString]]) return 1;
+
+	return 0;
+}
+
 - (NSArray *)adapterClassesForNode:(PGNode *)node
 {
 	NSParameterAssert(node);
 	NSDictionary *const types = [PGResourceAdapter typesDictionary];
 	NSMutableDictionary *const adapterByPriority = [NSMutableDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithUnsignedInteger:0], [PGResourceAdapter class], nil];
+	uint8_t fourCCData[4] = {0,0,0,0};
 	for(NSString *const classString in types) {
 		Class const class = NSClassFromString(classString);
 		if(!class) continue;
 		NSDictionary *const typeDict = [types objectForKey:classString];
-		NSUInteger const p = [self matchPriorityForTypeDictionary:typeDict];
+		NSUInteger const p = [self _matchPriorityForTypeDictionary:typeDict withFourCCData:fourCCData];
 		if(p) [adapterByPriority setObject:[NSNumber numberWithUnsignedInteger:p] forKey:(id<NSCopying>)class];
 	}
 	return [adapterByPriority keysSortedByValueUsingSelector:@selector(compare:)];
 }
+
 - (NSArray *)adaptersForNode:(PGNode *)node
 {
 	NSMutableArray *const adapters = [NSMutableArray array];
 	for(Class const class in [self adapterClassesForNode:node]) [adapters addObject:[[[class alloc] initWithNode:node dataProvider:self] autorelease]];
 	return adapters;
 }
-- (NSUInteger)matchPriorityForTypeDictionary:(NSDictionary *)dict
+/*	- (NSUInteger)matchPriorityForTypeDictionary:(NSDictionary *)dict
 {
 	if([[dict objectForKey:PGBundleTypeFourCCsKey] containsObject:[self fourCCData]]) return 5;
 	if([[dict objectForKey:PGLSItemContentTypes] containsObject:[self UTIType]]) return 4;
@@ -512,6 +570,6 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 	if([[dict objectForKey:PGCFBundleTypeOSTypesKey] containsObject:PGOSTypeToStringQuoted([self typeCode], NO)]) return 2;
 	if([[dict objectForKey:PGCFBundleTypeExtensionsKey] containsObject:[[self extension] lowercaseString]]) return 1;
 	return 0;
-}
+}	*/
 
 @end
