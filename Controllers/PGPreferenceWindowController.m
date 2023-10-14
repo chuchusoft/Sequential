@@ -34,14 +34,32 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import "PGAppKitAdditions.h"
 #import "PGFoundationAdditions.h"
 
-NSString *const PGPreferenceWindowControllerBackgroundPatternColorDidChangeNotification = @"PGPreferenceWindowControllerBackgroundPatternColorDidChange";
-NSString *const PGPreferenceWindowControllerBackgroundColorUsedInFullScreenDidChangeNotification = @"PGPreferenceWindowControllerBackgroundColorUsedInFullScreenDidChange";
-NSString *const PGPreferenceWindowControllerDisplayScreenDidChangeNotification          = @"PGPreferenceWindowControllerDisplayScreenDidChange";
+NSString *const PGPreferenceWindowControllerBackgroundPatternColorDidChangeNotification
+                = @"PGPreferenceWindowControllerBackgroundPatternColorDidChange";
+NSString *const PGPreferenceWindowControllerBackgroundColorUsedInFullScreenDidChangeNotification
+                = @"PGPreferenceWindowControllerBackgroundColorUsedInFullScreenDidChange";
+NSString *const PGPreferenceWindowControllerDisplayScreenDidChangeNotification
+                = @"PGPreferenceWindowControllerDisplayScreenDidChange";
 
 static NSString *const PGDisplayScreenIndexKey = @"PGDisplayScreenIndex";
 
 static NSString *const PGGeneralPaneIdentifier = @"PGGeneralPane";
+static NSString *const PGThumbnailPaneIdentifier = @"PGThumbnailPaneIdentifier";	//	2023/10/01 added
 static NSString *const PGNavigationPaneIdentifier = @"PGNavigationPaneIdentifier";
+
+typedef struct PreferencePaneIdentifierAndIconImageName {
+	NSString* const		identifier;
+	NSString* const		unlocalizedPaneTitle;
+	NSString* const		localizationComment;
+	NSImageName			iconImageName;
+} PreferencePaneIdentifierAndIconImageName;
+
+static PreferencePaneIdentifierAndIconImageName PGPanes[3] = {
+	{ PGGeneralPaneIdentifier, @"General", @"Title of general pref pane.", nil }	//	NSImageNamePreferencesGeneral
+,	{ PGThumbnailPaneIdentifier, @"Thumbnail", @"Title of thumbnail pref pane.", nil }	//	NSImageNameTouchBarSidebarTemplate
+,	{ PGNavigationPaneIdentifier, @"Navigation", @"Title of navigation pref pane.", nil }	//	NSImageNameFollowLinkFreestandingTemplate
+};
+#define	NUMELEMS(x)		(sizeof(x)/sizeof(x[0]))
 
 static PGPreferenceWindowController *PGSharedPrefController = nil;
 
@@ -85,7 +103,7 @@ BOOL
 PreferenceIsCustomColor(void) {
 	enum ColorSource { SystemAppearance, CustomPreferenceColor };
 	NSInteger colorSource = [NSUserDefaults.standardUserDefaults integerForKey:PGBackgroundColorSourceKey];
-	assert(0 <= colorSource && colorSource <= 1);
+	NSCAssert(0 <= colorSource && colorSource <= 1, @"colorSource");
 	return CustomPreferenceColor == colorSource;
 }
 
@@ -98,14 +116,14 @@ PreferenceIsCustomColor(void) {
 #if 1
 	NSColor* color = !PreferenceIsCustomColor() ? nil :
 		[NSUserDefaults.standardUserDefaults PG_decodeObjectOfClass:NSColor.class forKey:PGBackgroundColorKey];
-	if (nil == color)
+	if(nil == color)
 		color	=	NSColor.windowBackgroundColor;
 
 	NSInteger backgroundPatternType =
 		[NSUserDefaults.standardUserDefaults integerForKey:PGBackgroundPatternKey];
-	if (PGCheckerboardPattern == backgroundPatternType)
+	if(PGCheckerboardPattern == backgroundPatternType)
 		return [color PG_checkerboardPatternColor];
-	assert(PGNoPattern == backgroundPatternType);
+	NSAssert(PGNoPattern == backgroundPatternType, @"backgroundPatternType");
 	return color;
 #else
 //	NSColor *const color = [[NSUserDefaults standardUserDefaults] PG_decodedObjectForKey:@"PGBackgroundColor"];
@@ -129,17 +147,17 @@ PreferenceIsCustomColor(void) {
 
 - (NSString *)_titleForPane:(NSString *)identifier
 {
-	if(PGEqualObjects(identifier, PGGeneralPaneIdentifier)) {
-		return NSLocalizedString(@"General", @"Title of general pref pane.");
-	} else if(PGEqualObjects(identifier, PGNavigationPaneIdentifier)) {
-		return NSLocalizedString(@"Navigation", @"Title of navigation pref pane.");
+	for(size_t i=0; i < NUMELEMS(PGPanes); ++i) {
+		if(PGEqualObjects(identifier, PGPanes[i].identifier))
+			return NSLocalizedString(PGPanes[i].unlocalizedPaneTitle, @"");
 	}
-	return @"";
+	return [NSString string];
 }
 - (void)_setCurrentPane:(NSString *)identifier
 {
 	NSView *newView = nil;
 	if(PGEqualObjects(identifier, PGGeneralPaneIdentifier)) newView = generalView;
+	else if(PGEqualObjects(identifier, PGThumbnailPaneIdentifier)) newView = thumbnailView;
 	else if(PGEqualObjects(identifier, PGNavigationPaneIdentifier)) newView = navigationView;
 	NSAssert(newView, @"Invalid identifier.");
 	NSWindow *const w = [self window];
@@ -232,7 +250,13 @@ PreferenceIsCustomColor(void) {
 		if(PGSharedPrefController) {
 			[self release];
 			return [PGSharedPrefController retain];
-		} else PGSharedPrefController = [self retain];
+		}
+
+		PGPanes[0].iconImageName = NSImageNamePreferencesGeneral;
+		PGPanes[1].iconImageName = NSImageNameTouchBarSidebarTemplate;
+		PGPanes[2].iconImageName = NSImageNameFollowLinkFreestandingTemplate;
+
+		PGSharedPrefController = [self retain];
 
 		NSArray *const screens = [NSScreen screens];
 		NSUInteger const screenIndex = [[[NSUserDefaults standardUserDefaults] objectForKey:PGDisplayScreenIndexKey] unsignedIntegerValue];
@@ -292,16 +316,24 @@ PreferenceIsCustomColor(void) {
 	[item setTarget:self];
 	[item setAction:@selector(changePane:)];
 	[item setLabel:[self _titleForPane:ident]];
-	if(PGEqualObjects(ident, PGGeneralPaneIdentifier)) {
-		[item setImage:[NSImage imageNamed:NSImageNamePreferencesGeneral]];	//	@"Pref-General"
-	} else if(PGEqualObjects(ident, PGNavigationPaneIdentifier)) {
-		[item setImage:[NSImage imageNamed:NSImageNameAdvanced]];	//	@"Pref-Navigation"
-	}
+
+	for(size_t i=0; i < NUMELEMS(PGPanes); ++i)
+		if(PGEqualObjects(ident, PGPanes[i].identifier)) {
+			NSAssert(PGPanes[i].iconImageName, @"iconImageName is nil");
+			[item setImage:[NSImage imageNamed:PGPanes[i].iconImageName]];
+			return item;
+		}
+	NSAssert(FALSE, @"unknown identifier; could not make toolbar item");
 	return item;
 }
 - (NSArray *)toolbarDefaultItemIdentifiers:(NSToolbar*)toolbar
 {
-	return [NSArray arrayWithObjects:PGGeneralPaneIdentifier, PGNavigationPaneIdentifier, NSToolbarFlexibleSpaceItemIdentifier, nil];
+	NSMutableArray *a = [NSMutableArray arrayWithCapacity:NUMELEMS(PGPanes) + 1];
+	for(size_t i=0; i < NUMELEMS(PGPanes); ++i)
+		[a addObject:PGPanes[i].identifier];
+//	[a addObject:NSToolbarFlexibleSpaceItemIdentifier];
+	return a;
+//	return [NSArray arrayWithObjects:PGGeneralPaneIdentifier, PGNavigationPaneIdentifier, NSToolbarFlexibleSpaceItemIdentifier, nil];
 }
 - (NSArray *)toolbarAllowedItemIdentifiers:(NSToolbar*)toolbar
 {
