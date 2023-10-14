@@ -56,7 +56,9 @@ static NSString *const PGMainWindowFrameKey = @"PGMainWindowFrame";
 - (BOOL)setActiveDocument:(PGDocument *)document closeIfAppropriate:(BOOL)flag
 {
 	[[self activeDocument] storeWindowFrame:[[self window] PG_contentRect]];
-	if([super setActiveDocument:document closeIfAppropriate:flag]) return YES;
+	if([super setActiveDocument:document closeIfAppropriate:flag])
+		return YES;
+
 	NSRect frame;
 	if([[self activeDocument] getStoredWindowFrame:&frame]) {
 		[[self window] PG_setContentRect:frame];
