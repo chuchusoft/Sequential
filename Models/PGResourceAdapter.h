@@ -63,14 +63,20 @@ typedef NSInteger PGRecursionPolicy;
 @property(readonly) BOOL shouldRecursivelyCreateChildren;
 
 @property(readonly) NSData *data;
+@property(readonly) uint64_t dataByteSize;	//	2023/09/17
 @property(readonly) BOOL canGetData;
 @property(readonly) BOOL hasNodesWithData;
 
 @property(readonly) BOOL isContainer;
 @property(readonly) BOOL hasChildren;
-//@property(readonly) NSInteger childCount; // returns NSNotFound when isContainer = NO
-//@property(readonly) NSUInteger folderAndImageCount; // returns NSUIntegerMax when isContainer = NO
+
+//	the byte size, folder and image counts returned are for the *direct* children
+//	of the object that this adapter represents; children which are more than 1
+//	level deep are *not* included; use .byteSizeOfAllChildren for the byte size
+//	of all children at all levels
 @property(readonly) uint64_t byteSizeAndFolderAndImageCount; // returns ULONG_MAX when isContainer = NO
+@property(readonly) uint64_t byteSizeOfAllChildren; // returns ULONG_MAX when isContainer = NO
+
 @property(readonly) BOOL isSortedFirstViewableNodeOfFolder;
 @property(readonly) BOOL hasRealThumbnail;
 @property(readonly, getter = isResolutionIndependent) BOOL resolutionIndependent;
@@ -128,6 +134,6 @@ typedef NSInteger PGRecursionPolicy;
 
 - (NSArray *)adapterClassesForNode:(PGNode *)node;
 - (NSArray *)adaptersForNode:(PGNode *)node;
-- (NSUInteger)matchPriorityForTypeDictionary:(NSDictionary *)dict;
+//- (NSUInteger)matchPriorityForTypeDictionary:(NSDictionary *)dict;
 
 @end
