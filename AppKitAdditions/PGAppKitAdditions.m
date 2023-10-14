@@ -120,7 +120,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 }
 - (NSColor *)PG_patternColorWithImage:(NSImage *)image fraction:(CGFloat)fraction
 {
-	assert(image);
+	NSParameterAssert(image);
 	NSSize const s = [image size];
 	NSRect const r = (NSRect){NSZeroPoint, s};
 	NSImage *const pattern = [[[NSImage alloc] initWithSize:s] autorelease];
@@ -247,7 +247,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (BOOL)PG_setDesktopImageURL:(NSURL *)URL
 {
 #if 1
-	return [[NSWorkspace sharedWorkspace] setDesktopImageURL:URL forScreen:self options:[[NSWorkspace sharedWorkspace] desktopImageOptionsForScreen:self] error:NULL];
+	NSWorkspace *const ws = [NSWorkspace sharedWorkspace];
+	return [ws setDesktopImageURL:URL
+						forScreen:self
+						  options:[ws desktopImageOptionsForScreen:self]
+							error:NULL];
 #else
 	if(PGIsSnowLeopardOrLater()) return [[NSWorkspace sharedWorkspace] setDesktopImageURL:URL forScreen:self options:[[NSWorkspace sharedWorkspace] desktopImageOptionsForScreen:self] error:NULL];
 	NSParameterAssert([URL isFileURL]);
@@ -301,7 +305,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (NSRect)PG_contentRect
 {
 #if __LP64__
-	return [self contentRectForFrameRect:[self frame]]; // TODO: Make sure this works right when the window is being dragged/resized.
+	// TODO: Make sure this works correctly when the window is being dragged/resized.
+	return [self contentRectForFrameRect:[self frame]];
 #else
 	HIRect rect;
 	HIWindowGetBounds([self windowRef], kWindowContentRgn, kHICoordSpace72DPIGlobal, &rect); // Updated in realtime, unlike -frame. See http://web.archive.org/web/20100113062205/http://rentzsch.com/cocoa/nswindowFrameLies.
