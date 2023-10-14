@@ -39,7 +39,7 @@ ShouldUseEntireScreenWhenInFullScreen(void) {
 static
 CGFloat
 GetNotchHeight(NSScreen* screen) {
-	if (@available(macOS 12.0, *))
+	if(@available(macOS 12.0, *))
 		return screen.safeAreaInsets.top;
 	else
 		return 0;
@@ -50,6 +50,8 @@ NSRect
 GetSuitableFrameForScreenWithNotch(BOOL useEntireScreen, NSScreen* screen) {
 	if(nil == screen)
 		return NSZeroRect;
+
+//if(useEntireScreen) NSLog(@"screen.frame = %5.2f x %5.2f", screen.frame.size.width, screen.frame.size.height);
 
 	if(useEntireScreen)
 		return screen.frame;
@@ -65,12 +67,12 @@ GetSuitableFrameForScreenWithNotch(BOOL useEntireScreen, NSScreen* screen) {
 #pragma mark Instance Methods
 
 - (void)_allocateAndShowTheBlackHideTheNotchWindowOn:(NSScreen*)screen {
-	assert(nil == _blackHideTheNotchWindow);
+	NSParameterAssert(nil == _blackHideTheNotchWindow);
 
 	//	2023/08/14 when a notch is present, create an extra window to
 	//	"paint" the areas besides the notch as black to obscure it.
 	const CGFloat	notchHeight = GetNotchHeight(screen);
-	if (0 != notchHeight) {
+	if(0 != notchHeight) {
 		_blackHideTheNotchWindow	=	[[NSWindow alloc]
 			initWithContentRect:NSMakeRect(0, 0, screen.frame.size.width,
 											screen.frame.size.height)
@@ -102,7 +104,7 @@ GetSuitableFrameForScreenWithNotch(BOOL useEntireScreen, NSScreen* screen) {
 {
 	const BOOL	useEntireScreen = ShouldUseEntireScreenWhenInFullScreen();
 	if((self = [super initWithContentRect:GetSuitableFrameForScreenWithNotch(useEntireScreen, screen)
-								styleMask:NSWindowStyleMaskBorderless
+								styleMask:NSWindowStyleMaskFullSizeContentView // NSWindowStyleMaskBorderless
 								  backing:NSBackingStoreBuffered
 									defer:YES])) {
 		if(!useEntireScreen)
@@ -141,10 +143,10 @@ GetSuitableFrameForScreenWithNotch(BOOL useEntireScreen, NSScreen* screen) {
 	NSScreen*	screen = self.screen;
 	const BOOL	useEntireScreen = ShouldUseEntireScreenWhenInFullScreen();
 	if(useEntireScreen) {
-		assert(nil != _blackHideTheNotchWindow);
+		NSParameterAssert(nil != _blackHideTheNotchWindow);
 		[self _deallocateTheBlackHideTheNotchWindow];
 	} else {
-		assert(nil == _blackHideTheNotchWindow);
+		NSParameterAssert(nil == _blackHideTheNotchWindow);
 		[self _allocateAndShowTheBlackHideTheNotchWindowOn:screen];
 	}
 
