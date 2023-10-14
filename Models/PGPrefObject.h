@@ -44,10 +44,10 @@ enum {
 typedef NSInteger PGPatternType;
 
 enum {
-	PGConstantFactorScale = 0, // Formerly known as PGNoScale.
-	PGAutomaticScale = 1,
+	PGConstantFactorScale = 0, // "Actual Size" Formerly known as PGNoScale.
+	PGAutomaticScale = 1, // "Automatic Fit"
 	PGDeprecatedVerticalFitScale = 2, // Deprecated after 1.0.3.
-	PGViewFitScale = 3, // Fits the entire image inside the screen/window.
+	PGViewFitScale = 3, // "Fit To Window" Fits the entire image inside the screen/window.
 	PGDeprecatedActualSizeWithDPI = 4, // Depcrecated after 2.1.2.
 };
 typedef NSInteger PGImageScaleMode;
