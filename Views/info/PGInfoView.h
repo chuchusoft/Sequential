@@ -30,6 +30,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	NSString *_stringValue;
 	NSUInteger _index;
 	NSUInteger _count;
+	NSUInteger _currentFolderIndex;	//	2023/10/01 added
+	NSUInteger _currentFolderCount;	//	2023/10/01 added
 	PGRectCorner _originCorner;
 }
 
@@ -37,6 +39,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 @property(copy, nonatomic) NSString *stringValue;
 @property(assign, nonatomic) NSUInteger index;
 @property(assign, nonatomic) NSUInteger count;
+@property(assign, nonatomic) NSUInteger currentFolderIndex;	//	2023/10/01 added
+@property(assign, nonatomic) NSUInteger currentFolderCount;	//	2023/10/01 added
 @property(readonly) BOOL showsProgressBar;
 @property(assign, nonatomic) PGRectCorner originCorner;
 
