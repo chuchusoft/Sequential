@@ -621,14 +621,14 @@
 				4B2462CC2ADAC0AE00BA81EF /* _generic utility */,
 				4B2462DB2ADAC1B700BA81EF /* image */,
 				4B2462DC2ADAC1C100BA81EF /* info */,
-				0E90195B0DF55F50004B6F69 /* PGDocumentWindow.h */,
-				0E90195A0DF55F50004B6F69 /* PGDocumentWindow.m */,
-				0E1D39F20A7F24E700C542A6 /* PGFullscreenWindow.h */,
-				0E1D39F30A7F24E700C542A6 /* PGFullscreenWindow.m */,
 				0E1D3A4A0A7FA7B400C542A6 /* PGClipView.h */,
 				0E1D3A4B0A7FA7B500C542A6 /* PGClipView.m */,
+				0E90195B0DF55F50004B6F69 /* PGDocumentWindow.h */,
+				0E90195A0DF55F50004B6F69 /* PGDocumentWindow.m */,
 				0ECD9FFC0CB3961B0059C754 /* PGFindView.h */,
 				0ECD9FFD0CB3961B0059C754 /* PGFindView.m */,
+				0E1D39F20A7F24E700C542A6 /* PGFullscreenWindow.h */,
+				0E1D39F30A7F24E700C542A6 /* PGFullscreenWindow.m */,
 				4B2462DD2ADAC4CB00BA81EF /* thumbnail */,
 			);
 			path = Views;
