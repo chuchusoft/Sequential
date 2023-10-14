@@ -35,7 +35,73 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @implementation PGImageSaveAlert
 
-#pragma mark -PGImageSaveAlert
+- (BOOL)_saveNode:(id)node toDirectory:(NSURL *)dir {
+	@autoreleasepool {
+		NSData *const data = [[node resourceAdapter] data];
+		if(!data)
+			return NO;
+
+		NSURL *const url = [dir URLByAppendingPathComponent:[self saveNameForNode:node] isDirectory:NO];
+		if(![data writeToURL:url atomically:NO])
+			return NO;
+
+		id const dataProvider = [[node resourceAdapter] dataProvider];
+		NSDate *const dateModified = [dataProvider dateModified];
+		NSDate *const dateCreated = [dataProvider dateCreated];
+		if(!dateModified && !dateCreated)
+			return YES;
+
+		NSError *error = nil;
+		NSMutableDictionary *const md = [NSMutableDictionary dictionaryWithCapacity:2];
+		if(dateModified)
+			[md setObject:dateModified forKey:NSURLContentModificationDateKey];
+		if(dateCreated)
+			[md setObject:dateCreated forKey:NSURLCreationDateKey];
+		return [url setResourceValues:md error:&error];
+	}
+}
+
+- (void)_setDestination:(NSURL *)directoryURL {
+	//	step 1: set _destination
+	[_destination release];
+	{
+		NSMutableData* utf8path = directoryURL ? [[NSMutableData alloc] initWithLength:8192] : nil;
+		//	2023/09/24 using modern delegate methods (URLs) but still need to use
+		//	NSFileManager API in -outlineView:objectValueForTableColumn:byItem:
+		if(directoryURL && [directoryURL getFileSystemRepresentation:utf8path.mutableBytes maxLength:utf8path.length])
+			_destination = [[NSString alloc] initWithUTF8String:utf8path.bytes];
+		else
+			_destination = nil;
+		[utf8path release];
+	}
+
+	if(!_destination)	//	outline view requires non-nil _destination
+		return;
+
+	//	step 2: reload node outline view
+	[nodesOutline reloadData];
+
+	//	step 3: perform first-time setup
+	if(_firstTime) {
+		[nodesOutline expandItem:_rootNode expandChildren:YES];
+		_firstTime = NO;
+	}
+
+	//	step 4: perform initial selection of nodes using what the user
+	//	has selected in the active thumbnail view
+	if(!_initialSelection) return;
+	NSMutableIndexSet *const indexes = [NSMutableIndexSet indexSet];
+	for(PGNode *const node in _initialSelection) {
+		if(![[node resourceAdapter] canSaveData]) continue;
+		NSInteger const rowIndex = [nodesOutline rowForItem:node];
+		if(-1 != rowIndex) [indexes addIndex:(NSUInteger)rowIndex];
+	}
+	[nodesOutline selectRowIndexes:indexes byExtendingSelection:NO];
+	NSUInteger const firstRow = [indexes firstIndex];
+	if(NSNotFound != firstRow) [nodesOutline scrollRowToVisible:firstRow];
+	[_initialSelection release];
+	_initialSelection = nil;
+}
 
 - (id)initWithRoot:(PGNode *)root initialSelection:(NSSet *)aSet
 {
@@ -71,12 +137,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	_openPanel.directoryURL		=	_rootNode.identifier.URL.URLByDeletingLastPathComponent;
 	_openPanel.allowedFileTypes	=	nil;
 	if(window) {
-	//	[_openPanel beginSheetForDirectory:nil file:nil types:nil modalForWindow:window modalDelegate:self didEndSelector:@selector(openPanelDidEnd:returnCode:contextInfo:) contextInfo:NULL];
 		[_openPanel beginSheetModalForWindow:window completionHandler:^(NSModalResponse result) {
 			[self openPanelDidEnd:_openPanel returnCode:result contextInfo:NULL];
 		}];
 	} else {
-	//	[self openPanelDidEnd:_openPanel returnCode:[_openPanel runModalForTypes:nil] contextInfo:NULL];
 		[self openPanelDidEnd:_openPanel returnCode:[_openPanel runModal] contextInfo:NULL];
 	}
 }
@@ -94,10 +158,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 {
 	NSString *const modifiedName = [_saveNamesByNodePointer objectForKey:[NSValue valueWithNonretainedObject:node]];
 	return modifiedName ? [[modifiedName retain] autorelease] : [[node identifier] naturalDisplayName];
-}
-- (void)replaceAlertDidEnd:(NSAlert *)alert returnCode:(NSInteger)returnCode contextInfo:(void *)contextInfo
-{
-	if(NSAlertFirstButtonReturn == returnCode) _saveOnSheetClose = YES;
 }
 
 #pragma mark -NSObject
@@ -117,29 +177,57 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 #pragma mark -<NSOpenSavePanelDelegate>
 
-- (BOOL)panel:(id)sender isValidFilename:(NSString *)filename
-{
+- (BOOL)panel:(id)sender validateURL:(NSURL *)url error:(NSError **)outError {
+#if !defined(NS_BLOCK_ASSERTIONS)
+	{	//	url should be an URL to a directory
+		id value = nil;
+		NSParameterAssert(url && url.isFileURL &&
+			[url getResourceValue:&value forKey:NSURLIsDirectoryKey error:nil] &&
+			value && [value isEqual:@YES]);
+	}
+#endif
+
+	//	using [nodesOutline selectedRowIndexes] requires initialization of nodesOutline's
+	//	selection and data which might not have occurred yet so perform that init now
+	if(!_destination)
+		[self _setDestination:url];
+
 	NSUInteger existingFileCount = 0;
 	NSString *existingFilename = nil;
-	{
+	@autoreleasepool {
+		NSMutableData* utf8path = [NSMutableData dataWithLength:8192];
+
 		NSIndexSet *const rows = [nodesOutline selectedRowIndexes];
 		NSUInteger i = [rows firstIndex];
 		for(; NSNotFound != i; i = [rows indexGreaterThanIndex:i]) {
 			NSString *const name = [self saveNameForNode:[nodesOutline itemAtRow:i]];
-			if(![[NSFileManager defaultManager] fileExistsAtPath:[_destination stringByAppendingPathComponent:name]]) continue;
+
+			//	2023/09/24 modernized to using URLs but still need to use NSFileManager API so...
+			if(![url getFileSystemRepresentation:utf8path.mutableBytes maxLength:utf8path.length])
+				continue;
+
+			NSString *const path = [NSString stringWithUTF8String:utf8path.bytes];
+			if(![[NSFileManager defaultManager] fileExistsAtPath:[path stringByAppendingPathComponent:name]])
+				continue;
+
 			existingFileCount++;
 			existingFilename = name;
 		}
 	}
 	if(existingFileCount && !_saveOnSheetClose) {
 		NSAlert *const alert = [[[NSAlert alloc] init] autorelease];
-		[alert setAlertStyle:NSCriticalAlertStyle];
+		[alert setAlertStyle:NSAlertStyleCritical];
 		if(1 == existingFileCount) [alert setMessageText:[NSString stringWithFormat:NSLocalizedString(@"%@ already exists in %@. Do you want to replace it?", @"Replace file alert. The first %@ is replaced with the filename, the second is replaced with the destination name."), existingFilename, [_destination PG_displayName]]];
 		else [alert setMessageText:[NSString stringWithFormat:NSLocalizedString(@"%lu pages already exist in %@. Do you want to replace them?", @"Replace multiple files alert. %lu is replaced with a number greater than 1, %@ is replaced with the destination name."), (unsigned long)existingFileCount, [_destination PG_displayName]]];
 		[alert setInformativeText:NSLocalizedString(@"Replacing a file overwrites its current contents.", @"Informative text for replacement alerts.")];
 		[[alert addButtonWithTitle:NSLocalizedString(@"Replace", nil)] setKeyEquivalent:@""];
 		[[alert addButtonWithTitle:NSLocalizedString(@"Cancel", nil)] setKeyEquivalent:@"\r"];
-		[alert beginSheetModalForWindow:_openPanel modalDelegate:self didEndSelector:@selector(replaceAlertDidEnd:returnCode:contextInfo:) contextInfo:nil];
+		[alert beginSheetModalForWindow:_openPanel completionHandler:^(NSModalResponse returnCode) {
+			if(NSAlertFirstButtonReturn == returnCode)
+				_saveOnSheetClose = YES;
+		}];
+
+		*outError = [NSError PG_errorWithDomain:@"com.sequential" code:-1 localizedDescription:(NSString *)nil userInfo:(NSDictionary *)nil];
 		return NO;
 	}
 	NSMutableArray *const unsavedNodes = [NSMutableArray array];
@@ -148,44 +236,33 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	NSUInteger i = [rows firstIndex];
 	for(; NSNotFound != i; i = [rows indexGreaterThanIndex:i]) {
 		id const node = [nodesOutline itemAtRow:i];
-		NSData *const data = [[node resourceAdapter] data];
-		if(data && [data writeToFile:[_destination stringByAppendingPathComponent:[self saveNameForNode:node]] atomically:NO]) continue;
+		if([self _saveNode:node toDirectory:url])
+			continue;
+
 		[unsavedNodes addObject:node];
 		[unsavedRows addIndex:i];
 	}
-	if(![unsavedNodes count]) return YES;
-	[nodesOutline reloadData];
-	[nodesOutline selectRowIndexes:unsavedRows byExtendingSelection:NO];
+	if(![unsavedNodes count])
+		return YES;
+
+	if(_destination) {	//	cannot reset outline view if _destination is nil
+		[nodesOutline reloadData];
+		[nodesOutline selectRowIndexes:unsavedRows byExtendingSelection:NO];
+	}
+
 	NSAlert *const alert = [[[NSAlert alloc] init] autorelease];
 	if(1 == [unsavedNodes count]) [alert setMessageText:[NSString stringWithFormat:NSLocalizedString(@"The image %@ could not be saved to %@.", @"Single image save failure alert. The first %@ is replaced with the filename, the second is replaced with the destination name."), [self saveNameForNode:[unsavedNodes objectAtIndex:0]], [_destination PG_displayName]]];
 	else [alert setMessageText:[NSString stringWithFormat:NSLocalizedString(@"%lu images could not be saved to %@.", @"Multiple image save failure alert. %lu is replaced with the number of files, %@ is replaced with the destination name."), (unsigned long)[unsavedNodes count], [_destination PG_displayName]]];
 	[alert setInformativeText:NSLocalizedString(@"Make sure the volume is writable and has enough free space.", @"Informative text for save failure alerts.")];
 	[alert addButtonWithTitle:NSLocalizedString(@"OK", nil)];
-	[alert beginSheetModalForWindow:_openPanel modalDelegate:nil didEndSelector:NULL contextInfo:nil];
+	[alert beginSheetModalForWindow:_openPanel completionHandler:^(NSModalResponse returnCode) {}];
+
+	*outError = [NSError PG_errorWithDomain:@"com.sequential" code:-2 localizedDescription:(NSString *)nil userInfo:(NSDictionary *)nil];
 	return NO;
 }
-- (void)panel:(id)sender directoryDidChange:(NSString *)path
-{
-	[_destination release];
-	_destination = [path retain];
-	[nodesOutline reloadData];
-	if(_firstTime) {
-		[nodesOutline expandItem:_rootNode expandChildren:YES];
-		_firstTime = NO;
-	}
 
-	if(!_initialSelection) return;
-	NSMutableIndexSet *const indexes = [NSMutableIndexSet indexSet];
-	for(PGNode *const node in _initialSelection) {
-		if(![[node resourceAdapter] canSaveData]) continue;
-		NSInteger const rowIndex = [nodesOutline rowForItem:node];
-		if(-1 != rowIndex) [indexes addIndex:(NSUInteger)rowIndex];
-	}
-	[nodesOutline selectRowIndexes:indexes byExtendingSelection:NO];
-	NSUInteger const firstRow = [indexes firstIndex];
-	if(NSNotFound != firstRow) [nodesOutline scrollRowToVisible:firstRow];
-	[_initialSelection release];
-	_initialSelection = nil;
+- (void)panel:(id)sender didChangeToDirectoryURL:(nullable NSURL *)url {
+	[self _setDestination:url];
 }
 
 #pragma mark -<NSOutlineViewDataSource>
