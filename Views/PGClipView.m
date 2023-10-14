@@ -338,7 +338,9 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 	NSPoint const originalPoint = [firstEvent locationInWindow]; // Don't convert the point to our view coordinates, since we change them when scrolling.
 	NSPoint finalPoint = originalPoint; // We use CGAssociateMouseAndMouseCursorPosition() to prevent the mouse from moving during the drag, so we have to keep track of where it should reappear ourselves.
 	NSRect const availableDragRect = [self convertRect:NSInsetRect([self insetBounds], 4, 4) toView:nil];
+#if !PGMouseHiddenDraggingStyle
 	NSPoint const dragPoint = PGOffsetPointByXY(originalPoint, [self position].x, [self position].y);
+#endif
 	NSEvent *latestEvent;
 	while([(latestEvent = [[self window] nextEventMatchingMask:dragMask | NSEventMaskFromType(stopType) untilDate:[NSDate distantFuture] inMode:NSEventTrackingRunLoopMode dequeue:YES]) type] != stopType) {
 		NSPoint const latestPoint = [latestEvent locationInWindow];
@@ -346,19 +348,21 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 		   (PGNotDragging == dragMode &&
 			hypotf(originalPoint.x - latestPoint.x, originalPoint.y - latestPoint.y) >= PGClickSlopDistance)) {
 			dragMode = PGDragging;
-			if(PGMouseHiddenDraggingStyle) {
-				[NSCursor hide];
-				CGAssociateMouseAndMouseCursorPosition(false);
-			} else [[NSCursor closedHandCursor] push];
+#if PGMouseHiddenDraggingStyle
+			[NSCursor hide];
+			CGAssociateMouseAndMouseCursorPosition(false);
+#else
+			[[NSCursor closedHandCursor] push];
+#endif
 			[self PG_cancelPreviousPerformRequestsWithSelector:@selector(_beginPreliminaryDrag:) object:dragModeValue];
 		}
-		if(PGMouseHiddenDraggingStyle)
-			[self scrollBy:NSMakeSize(-[latestEvent deltaX], [latestEvent deltaY])
-				 animation:PGNoAnimation];
-		else
-			[self scrollTo:PGOffsetPointByXY(dragPoint, -latestPoint.x, -latestPoint.y)
-				 animation:PGNoAnimation];
-
+#if PGMouseHiddenDraggingStyle
+		[self scrollBy:NSMakeSize(-[latestEvent deltaX], [latestEvent deltaY])
+			 animation:PGNoAnimation];
+#else
+		[self scrollTo:PGOffsetPointByXY(dragPoint, -latestPoint.x, -latestPoint.y)
+			 animation:PGNoAnimation];
+#endif
 		finalPoint = PGPointInRect(PGOffsetPointByXY(finalPoint, [latestEvent deltaX],
 											-[latestEvent deltaY]), availableDragRect);
 	}
