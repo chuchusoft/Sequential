@@ -93,6 +93,7 @@ PGClipViewDelegate, PGDocumentWindowDelegate>
 - (IBAction)moveToTrash:(id)sender;
 
 - (IBAction)copy:(id)sender;
+- (IBAction)selectAll:(id)sender;
 - (IBAction)performFindPanelAction:(id)sender;
 - (IBAction)hideFindPanel:(id)sender;
 
@@ -138,7 +139,7 @@ PGClipViewDelegate, PGDocumentWindowDelegate>
 @property(readonly) PGDocument *activeDocument;
 @property(readonly) PGNode *activeNode;
 @property(readonly) NSWindow *windowForSheet;
-@property(readonly) NSSet *selectedNodes;
+@property(copy, nonatomic) NSSet *selectedNodes;	//	2023/10/02 was readonly
 @property(readonly) PGNode *selectedNode;
 @property(readonly) PGClipView *clipView;
 @property(readonly) PGPageLocation initialLocation;
