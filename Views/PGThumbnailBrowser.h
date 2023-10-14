@@ -46,7 +46,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (void)redisplayItem:(id)item recursively:(BOOL)flag;
 
+- (void)selectAll;
+
 @end
+
+#pragma mark -
 
 @protocol PGThumbnailBrowserDataSource <NSObject>
 
@@ -55,6 +59,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (BOOL)thumbnailBrowser:(PGThumbnailBrowser *)sender itemCanHaveChildren:(id)item;
 
 @end
+
+#pragma mark -
 
 @protocol PGThumbnailBrowserDelegate <NSObject>
 

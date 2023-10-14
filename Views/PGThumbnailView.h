@@ -52,6 +52,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (void)deselectItem:(id)item;
 - (void)toggleSelectionOfItem:(id)item;
 - (void)moveUp:(BOOL)up byExtendingSelection:(BOOL)ext;
+//- (void)selectAll;	//	2023/09/18
 
 - (NSUInteger)indexOfItemAtPoint:(NSPoint)p;
 - (NSRect)frameOfItemAtIndex:(NSUInteger)index withMargin:(BOOL)flag;
@@ -71,6 +72,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (NSArray *)itemsForThumbnailView:(PGThumbnailView *)sender;
 - (NSImage *)thumbnailView:(PGThumbnailView *)sender thumbnailForItem:(id)item;
 - (BOOL)thumbnailView:(PGThumbnailView *)sender canSelectItem:(id)item;
+- (BOOL)thumbnailView:(PGThumbnailView *)sender isContainerItem:(id)item;
+- (NSURL *)thumbnailView:(PGThumbnailView *)sender urlForItem:(id)item;	//	2023/10/14
 - (NSString *)thumbnailView:(PGThumbnailView *)sender labelForItem:(id)item;
 - (NSColor *)thumbnailView:(PGThumbnailView *)sender labelColorForItem:(id)item;
 - (NSRect)thumbnailView:(PGThumbnailView *)sender highlightRectForItem:(id)item; // A rect within {{0, 0}, {1, 1}}.
@@ -82,11 +85,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 //	upper half is folder count; lower half is image count
 //- (NSUInteger)thumbnailView:(PGThumbnailView *)sender folderAndImageDirectChildrenCountForItem:(id)item;
 - (uint64_t)thumbnailView:(PGThumbnailView *)sender byteSizeAndFolderAndImageCountOfDirectChildrenForItem:(id)item;
+- (uint64_t)thumbnailView:(PGThumbnailView *)sender byteSizeOfAllChildrenForItem:(id)item;
+- (uint64_t)thumbnailView:(PGThumbnailView *)sender byteSizeOf:(id)item;
 @end
 
 @protocol PGThumbnailViewDelegate <NSObject>
 
 @optional
 - (void)thumbnailViewSelectionDidChange:(PGThumbnailView *)sender;
+- (void)thumbnailView:(PGThumbnailView *)sender selectAllDirectChildrenOf:(id)item;	//	2023/09/18
 
 @end

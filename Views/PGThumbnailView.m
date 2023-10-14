@@ -32,11 +32,33 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import "PGAppKitAdditions.h"
 #import "PGFoundationAdditions.h"
 #import "PGGeometry.h"
-#import "PGDocumentController.h"	//	PGShowFileNameOnImageThumbnailKey PGShowCountsAndSizesOnContainerThumbnailKey
+#import "PGDocumentController.h"	//	for thumbnail userDefault keys
 
 //extern	void	Unpack2HalfUInts(NSUInteger packed, NSUInteger* upper, NSUInteger* lower);
 extern	void	Unpack_ByteSize_FolderImageCounts(uint64_t packed, uint64_t* byteSize,
 												  NSUInteger* folders, NSUInteger* images);
+
+#pragma mark -
+
+
+
+
+
+
+
+extern	NSInteger	GetThumbnailSizeFormat(void);
+
+//	extern
+NSInteger
+GetThumbnailSizeFormat(void) {
+	NSUserDefaults *sud = NSUserDefaults.standardUserDefaults;
+	NSInteger	thumbnailSizeFormat = [sud integerForKey:PGThumbnailSizeFormatKey];
+	NSCAssert(0 <= thumbnailSizeFormat && thumbnailSizeFormat <= 2, @"thumbnailSizeFormat");
+	if(thumbnailSizeFormat < 0 || thumbnailSizeFormat > 2)
+		thumbnailSizeFormat	=	0;
+	return thumbnailSizeFormat;
+}
+
 
 #define PGBackgroundHoleWidth 7.0f
 #define PGBackgroundHoleHeight 5.0f
@@ -138,11 +160,11 @@ MeasureTextInBubbleUsing(NSString *label,
 
 static
 bool	//	returns true if text will fit inside the given frameSize
-Measure2TextIn2Bubbles(NSString *label1, NSString *label2,
-	BOOL enabled, NSMutableDictionary *attributes, // NSColor *backGroundColor,
-	NSTextStorage *textStorage, NSLayoutManager *layoutManager,
-	NSTextContainer *textContainer, const NSSize frameSize,
-	const CGFloat verticalGapBetweenLabels, const CGFloat heightOfOneFontLine,
+Measure2TextIn2Bubbles(NSString *const label1, NSString *const label2,
+	BOOL const enabled, NSMutableDictionary *const attributes, // NSColor *backGroundColor,
+	NSTextStorage *const textStorage, NSLayoutManager *const layoutManager,
+	NSTextContainer *const textContainer, NSSize const frameSize,
+	CGFloat const verticalGapBetweenLabels, CGFloat const heightOfOneFontLine,
 	MeasuredText* inOutMeasuredText1, MeasuredText* inOutMeasuredText2) {
 	MeasureTextInBubbleUsing(label1, enabled, attributes, textStorage,
 		layoutManager, textContainer, frameSize, inOutMeasuredText1);
@@ -150,11 +172,11 @@ Measure2TextIn2Bubbles(NSString *label1, NSString *label2,
 	MeasureTextInBubbleUsing(label2, enabled, attributes, textStorage,
 		layoutManager, textContainer, frameSize, inOutMeasuredText2);
 
-	const CGFloat H1 = inOutMeasuredText1->textSize.height -
+	CGFloat const H1 = inOutMeasuredText1->textSize.height -
 							2 * inOutMeasuredText1->margins.dy;
-	const CGFloat H2 = inOutMeasuredText2->textSize.height -
+	CGFloat const H2 = inOutMeasuredText2->textSize.height -
 							2 * inOutMeasuredText2->margins.dy;
-	const CGFloat totalH = H1 + H2 + verticalGapBetweenLabels;
+	CGFloat const totalH = H1 + H2 + verticalGapBetweenLabels;
 
 /*	{
 		NSFont *font = [NSFont systemFontOfSize:11];
@@ -170,9 +192,9 @@ printf("dy %f a %f d %f l %f LH %f\n", dy, a, d, l, dy - d);
 
 static
 void
-DrawTextInBubbleBy(NSColor *backGroundColor, NSRect frame,
-	CGFloat dy, NSLayoutManager *layoutManager,
-	const MeasuredText* measuredText) {
+DrawTextInBubbleBy(NSColor *const backGroundColor, NSRect const frame,
+	CGFloat const dy, NSLayoutManager *const layoutManager,
+	const MeasuredText* const measuredText) {
 	NSRect const labelRect = NSIntegralRect(NSMakeRect(
 								NSMidX(frame) - measuredText->textSize.width / 2.0f,
 								NSMidY(frame) + dy,
@@ -198,9 +220,9 @@ typedef enum BubblePosition {
 
 static
 void
-DrawTextInBubbleAtPos(NSColor *backGroundColor, NSRect frame,
-	BubblePosition pos, NSLayoutManager *layoutManager,
-	const MeasuredText* measuredText) {
+DrawTextInBubbleAtPos(NSColor *const backGroundColor, NSRect const frame,
+	BubblePosition const pos, NSLayoutManager *const layoutManager,
+	const MeasuredText* const measuredText) {
 	CGFloat	dy = measuredText->textSize.height;
 	switch(pos) {
 	case BubblePositionAbove:		dy	=	-dy;	break;
@@ -214,15 +236,15 @@ DrawTextInBubbleAtPos(NSColor *backGroundColor, NSRect frame,
 
 static
 bool	//	returns true if text will fit inside the given frameSize
-DrawTextInBubble(NSString *label, NSColor *backGroundColor,
-	NSMutableDictionary *attributes, BOOL enabled, NSRect frame,
-	BubblePosition pos, NSTextStorage *textStorage,
-	NSLayoutManager *layoutManager, NSTextContainer *textContainer) {
+DrawTextInBubble(NSString *const label, NSColor *const backGroundColor,
+	NSMutableDictionary *const attributes, BOOL const enabled, NSRect const frame,
+	BubblePosition const pos, NSTextStorage *const textStorage,
+	NSLayoutManager *const layoutManager, NSTextContainer *const textContainer) {
 	MeasuredText	mt;
 	MeasureTextInBubbleUsing(label, enabled, attributes, textStorage,
 						layoutManager, textContainer, frame.size, &mt);
-	const CGFloat	totalH = mt.textSize.height - 2 * mt.margins.dy;
-	const bool		fits = totalH <= frame.size.height;
+	CGFloat const	totalH = mt.textSize.height - 2 * mt.margins.dy;
+	bool const		fits = totalH <= frame.size.height;
 	if(fits)
 		DrawTextInBubbleAtPos(backGroundColor, frame, pos,
 							  layoutManager, &mt);
@@ -230,9 +252,29 @@ DrawTextInBubble(NSString *label, NSColor *backGroundColor,
 }
 
 static
+void
+DrawSingleTextLabelIn(BOOL const drawLabelAtMidY, NSString *const label,
+	NSColor *const backGroundColor, NSMutableDictionary *const attributes,
+	BOOL const enabled, NSRect const frame, NSRect const frameWithMargin,
+	NSTextStorage *const textStorage, NSLayoutManager *const layoutManager,
+	NSTextContainer *const textContainer) {
+	BubblePosition const pos = drawLabelAtMidY ? BubblePositionMiddle : BubblePositionFrameBottom;
+	//	try various rectangles for the label to be rendered into, from the smallest to the largest
+	if(!DrawTextInBubble(label, backGroundColor, attributes, enabled, NSMakeRect(frame.origin.x + 6.0f,
+						 frame.origin.y + 4.0f, frame.size.width - 12.0f, frame.size.height - 8.0f),
+						 pos, textStorage, layoutManager, textContainer) &&
+	   !DrawTextInBubble(label, backGroundColor, attributes, enabled, frame,
+						 pos, textStorage, layoutManager, textContainer))
+		(void) DrawTextInBubble(label, backGroundColor, attributes, enabled, frameWithMargin,
+								pos, textStorage, layoutManager, textContainer);
+}
+
+#pragma mark -
+
+static
 char*
 DecimalDigitsChars(uint64_t n, int nDigits, char buf[4]) {
-	assert(nDigits > 0 && nDigits < 4);
+	NSCAssert(nDigits > 0 && nDigits < 4, @"nDigits");
 
 	uint64_t	factor	=	1u;
 	for(int i=nDigits; --i; )
@@ -245,7 +287,7 @@ DecimalDigitsChars(uint64_t n, int nDigits, char buf[4]) {
 
 		n		-=	digit * factor;
 		factor	/=	10u;
-		assert(0 != factor || 0 == i);
+		NSCAssert(0 != factor || 0 == i, @"i");
 	}
 
 	*p	=	'\0';
@@ -254,7 +296,7 @@ DecimalDigitsChars(uint64_t n, int nDigits, char buf[4]) {
 
 static
 NSString*
-MakeByteSizeStringWithUnit(uint64_t byte_unit_1, char unit, uint64_t bytes, int nDecimalDigits) {
+StringForByteSizeWithUnit(uint64_t byte_unit_1, const char* units, uint64_t bytes, int nDecimalDigits) {
 	const uint64_t	unitBytes = bytes / byte_unit_1;
 
 	if(nDecimalDigits > 0) {
@@ -263,19 +305,45 @@ MakeByteSizeStringWithUnit(uint64_t byte_unit_1, char unit, uint64_t bytes, int 
 			factor	*=	10u;
 
 		char	buf[4];
-		return [NSString stringWithFormat:@"%llu.%s %ciB", unitBytes,
-				DecimalDigitsChars((bytes - unitBytes * byte_unit_1) * factor / byte_unit_1, nDecimalDigits, buf), unit];
+		return [NSString stringWithFormat:@"%llu.%s %sB", unitBytes,
+				DecimalDigitsChars((bytes - unitBytes * byte_unit_1) * factor / byte_unit_1, nDecimalDigits, buf), units];
 	}
 
 	if(bytes < 10u * byte_unit_1)
-		return [NSString stringWithFormat:@"%llu.%llu %ciB", unitBytes, (bytes - unitBytes * byte_unit_1) * 10u / byte_unit_1, unit];
+		return [NSString stringWithFormat:@"%llu.%llu %sB", unitBytes, (bytes - unitBytes * byte_unit_1) * 10u / byte_unit_1, units];
 	else
-		return [NSString stringWithFormat:@"%llu %ciB", unitBytes, unit];
+		return [NSString stringWithFormat:@"%llu %sB", unitBytes, units];
 }
 
 static
 NSString*
-MakeByteSizeString(uint64_t bytes, int nDecimalDigits) {
+StringForByteSizeAsBaseTen(uint64_t bytes, int nDecimalDigits) {
+	static const uint64_t	kB_1	=	1000u;
+	static const uint64_t	MB_1	=	1000u * 1000u;
+	static const uint64_t	GB_1	=	1000u * 1000u * 1000u;
+	static const uint64_t	TB_1	=	1000ul * 1000ul * 1000ul * 1000ul;
+
+	if(bytes < kB_1)
+		return [NSString stringWithFormat:@"%llu B", bytes];
+
+	char	units[2] = { '?', '\0' };
+
+	if(bytes < MB_1)
+		return units[0] = 'k', StringForByteSizeWithUnit(kB_1, units, bytes, nDecimalDigits);
+
+	if(bytes < GB_1)
+		return units[0] = 'M', StringForByteSizeWithUnit(MB_1, units, bytes, nDecimalDigits);
+
+	if(bytes < TB_1)
+		return units[0] = 'G', StringForByteSizeWithUnit(GB_1, units, bytes, nDecimalDigits);
+
+//	if(bytes < PB_1)	//	peta??
+		return units[0] = 'T', StringForByteSizeWithUnit(TB_1, units, bytes, nDecimalDigits);
+}
+
+static
+NSString*
+StringForByteSizeAsBaseTwo(uint64_t bytes, int nDecimalDigits) {
 	static const uint64_t	kiB_1	=	1024u;
 	static const uint64_t	MiB_1	=	1024u * 1024u;
 	static const uint64_t	GiB_1	=	1024u * 1024u * 1024u;
@@ -284,27 +352,413 @@ MakeByteSizeString(uint64_t bytes, int nDecimalDigits) {
 	if(bytes < kiB_1)
 		return [NSString stringWithFormat:@"%llu B", bytes];
 
+	char	units[4] = { '?', 'i', '\0', '\0' };
+
 	if(bytes < MiB_1)
-		return MakeByteSizeStringWithUnit(kiB_1, 'k', bytes, nDecimalDigits);
+		return units[0] = 'k', StringForByteSizeWithUnit(kiB_1, units, bytes, nDecimalDigits);
 
 	if(bytes < GiB_1)
-		return MakeByteSizeStringWithUnit(MiB_1, 'M', bytes, nDecimalDigits);
+		return units[0] = 'M', StringForByteSizeWithUnit(MiB_1, units, bytes, nDecimalDigits);
 
 	if(bytes < TiB_1)
-		return MakeByteSizeStringWithUnit(GiB_1, 'G', bytes, nDecimalDigits);
+		return units[0] = 'G', StringForByteSizeWithUnit(GiB_1, units, bytes, nDecimalDigits);
 
 //	if(bytes < PiB_1)	//	peta??
-		return MakeByteSizeStringWithUnit(TiB_1, 'T', bytes, nDecimalDigits);
+		return units[0] = 'T', StringForByteSizeWithUnit(TiB_1, units, bytes, nDecimalDigits);
 }
 
-@implementation PGThumbnailView
+static
+NSString*
+StringForByteSizeAsBytes(uint64_t bytes) {
+	//	UINT64_MAX = 18446744073709551615ULL and is 20 digits long
+	char	s[32];	//	20 digits + 6 commas + 2 for " B" + 1 for '\0' = 29 chars
+	size_t	i = sizeof s;
 
-#pragma mark -PGThumbnailView
+	//	build string in reverse (from lowest digit to highest)
+	s[--i] = '\0';
+	s[--i] = 'B';
+	s[--i] = ' ';
+	for(unsigned groupCount = 0; ;) {
+		unsigned	mod10	=	bytes % 10ul;
+		s[--i]	=	'0' + mod10;
+		if(bytes < 10)
+			break;
+
+		bytes	/=	10u;
+
+		//	when a group of 3 digits is placed in the output buffer, prepend a ','
+		if(++groupCount == 3) {
+			s[--i]	=	',';
+			groupCount	=	0;
+		}
+	}
+	return [NSString stringWithUTF8String:s+i];
+}
+
+typedef enum SizeFormat { SizeFormatNone, SizeFormatBase10, SizeFormatBase2, SizeFormatBytes } SizeFormat;
+
+extern	NSString*	StringForByteSizeWithFormat(SizeFormat format, uint64_t bytes, int nDecimalDigits);
+
+//	extern
+NSString*
+StringForByteSizeWithFormat(SizeFormat format, uint64_t bytes, int nDecimalDigits) {
+	switch(format) {
+	case SizeFormatNone:	abort();
+	case SizeFormatBase10:	return StringForByteSizeAsBaseTen(bytes, nDecimalDigits);
+	case SizeFormatBase2:	return StringForByteSizeAsBaseTwo(bytes, nDecimalDigits);
+	case SizeFormatBytes:	return StringForByteSizeAsBytes(bytes);
+	}
+}
+
+/*	2023/09/17 this is no longer needed
+
+extern	NSString*	StringForByteSize(uint64_t bytes, int nDecimalDigits);
+
+//	extern
+NSString*
+StringForByteSize(uint64_t bytes, int nDecimalDigits) {
+	const NSUInteger	thumbnailContainerLabelType =
+		[NSUserDefaults.standardUserDefaults integerForKey:PGThumbnailContainerLabelTypeKey];
+	const int	sizeFormat 	=	thumbnailContainerLabelType & 3;
+	if(SizeFormatNone == sizeFormat)
+		return nil; // [NSString string];
+
+	return StringForByteSizeWithFormat(sizeFormat, bytes, nDecimalDigits);
+}	*/
+
+extern	NSString*	StringForImageCount(NSUInteger const imageCount);
+
+//	extern
+NSString*
+StringForImageCount(NSUInteger const imageCount) {
+//#define	STRING_IMAGE_ICON	"□"		//	WHITE SQUARE	Unicode: U+25A1, UTF-8: E2 96 A1
+#define	STRING_IMAGE_ICON	"❑"		//	LOWER RIGHT SHADOWED WHITE SQUARE	Unicode: U+2751, UTF-8: E2 9D 91
+//#define	STRING_IMAGE_ICON	"▢"		//	WHITE SQUARE WITH ROUNDED CORNERS	Unicode: U+25A2, UTF-8: E2 96 A2
+//#define	STRING_IMAGE_ICON	"🏞"	//	national park Unicode: U+1F3DE, UTF-8: F0 9F 8F 9E
+//#define	STRING_IMAGE_ICON	"🖼"	//	frame with picture	Unicode: U+1F5BC, UTF-8: F0 9F 96 BC
+	return [NSString stringWithFormat:@"%lu "STRING_IMAGE_ICON, imageCount];
+#undef STRING_IMAGE_ICON
+}
+
+/*	extern	NSMutableString*	StringForCountAndSize(BOOL const showCounts,
+								NSUInteger const folderCount, NSUInteger const imageCount,
+								SizeFormat const sizeFormat,
+								uint64_t const byteSize, int const nDecimalDigits);
+
+//	extern
+NSMutableString*
+StringForCountAndSize(BOOL const showCounts, NSUInteger const folderCount,
+	NSUInteger const imageCount, SizeFormat const sizeFormat,
+	uint64_t const byteSize, int const nDecimalDigits) {
+	NSMutableString*	s	=	[NSMutableString string]; // [[NSMutableString new] autorelease];
+#if 1
+	if(showCounts && 0 != folderCount) {
+		[s appendFormat:@"%lu 📂", folderCount];
+	}
+	if(0 != imageCount && showCounts) {
+		if(0 != s.length)
+			[s appendString:@" "];	//	[s appendString:@" │ "];
+
+//#define	STRING_IMAGE_ICON	"□"		//	WHITE SQUARE	Unicode: U+25A1, UTF-8: E2 96 A1
+#define	STRING_IMAGE_ICON	"❑"		//	LOWER RIGHT SHADOWED WHITE SQUARE	Unicode: U+2751, UTF-8: E2 9D 91
+//#define	STRING_IMAGE_ICON	"▢"		//	WHITE SQUARE WITH ROUNDED CORNERS	Unicode: U+25A2, UTF-8: E2 96 A2
+//#define	STRING_IMAGE_ICON	"🏞"	//	national park Unicode: U+1F3DE, UTF-8: F0 9F 8F 9E
+//#define	STRING_IMAGE_ICON	"🖼"	//	frame with picture	Unicode: U+1F5BC, UTF-8: F0 9F 96 BC
+		[s appendFormat:@"%lu "STRING_IMAGE_ICON, imageCount];
+	}
+
+	//	if byte size is not zero and user wants size displayed
+	//	then append it (PDFs return a zero byteSize)
+	if(0 != byteSize && SizeFormatNone != sizeFormat) {
+		if(0 != s.length)
+			[s appendString:@" "];	//	[s appendString:@" │ "];
+
+		//	if possible, display the size with as many decimal digits as
+		//	possible (with a max. of 2) on a single line
+		NSMutableString*	finalStr	=	nil;
+		for(int nDecimalDigits = 3; nDecimalDigits--; ) @autoreleasepool {
+			NSMutableString*	test	=	[NSMutableString stringWithFormat:@"%@%@",
+											 s, StringForByteSizeWithFormat(sizeFormat, byteSize, nDecimalDigits)];
+			MeasuredText	testMT;
+			//	?use frameWithMargin.size instead?
+			MeasureTextInBubbleUsing(test, enabled, attributes, textStorage, layoutManager,
+									 textContainer, frameWithMarginSize, &testMT);
+			if(testMT.textSize.height <= fontLineHeight) {
+				finalStr	=	[test retain];
+				break;
+			}
+		}
+		if(finalStr)
+			s	=	[finalStr autorelease];
+		else
+			//	if the text needs more than a single line, fall back to using
+			//	the default number of decimal digits, which is 0 digits if the
+			//	string shows more than or equal to 10 <units> or 1 digit if the
+			//	string shows less than 10 <units>, eg, 12kiB or 9.3MiB (the
+			//	default string is achieved by passing -1)
+			s	=	[NSMutableString stringWithFormat:@"%@%@",
+					 s, StringForByteSizeWithFormat(sizeFormat, byteSize, -1)];
+	} else if(0 == imageCount && SizeFormatNone != sizeFormat) {
+		if(0 != s.length)
+			[s appendString:@" "];	//	[s appendString:@" │ "];
+
+		//	this is a container which has zero images in it; instead of
+		//	showing nothing, show the total size of all of this
+		//	container's children
+		enum { DECIMAL_DIGITS = 2 };
+		s	=	[NSMutableString stringWithFormat:@"%@[%@]", s,
+				 StringForByteSizeWithFormat(sizeFormat, byteSizeOfAllChildren, DECIMAL_DIGITS)];
+	} else if(0 == s.length) {
+		if(!showCounts)
+			return;	//	nothing to draw
+
+		assert(0 == imageCount);
+		[s appendFormat:@"0 "STRING_IMAGE_ICON];
+	}
+#else
+	if(showCounts && 0 != folderCount) {
+		[s appendFormat:@"%lu 📂", folderCount];
+		if(0 != imageCount)
+			[s appendString:@" "];	//	[s appendString:@" │ "];
+	}
+	if(0 != imageCount) {
+		if(showCounts)
+//#define	STRING_IMAGE_ICON	"□"		//	WHITE SQUARE	Unicode: U+25A1, UTF-8: E2 96 A1
+#define	STRING_IMAGE_ICON	"❑"		//	LOWER RIGHT SHADOWED WHITE SQUARE	Unicode: U+2751, UTF-8: E2 9D 91
+//#define	STRING_IMAGE_ICON	"▢"		//	WHITE SQUARE WITH ROUNDED CORNERS	Unicode: U+25A2, UTF-8: E2 96 A2
+//#define	STRING_IMAGE_ICON	"🏞"	//	national park Unicode: U+1F3DE, UTF-8: F0 9F 8F 9E
+//#define	STRING_IMAGE_ICON	"🖼"	//	frame with picture	Unicode: U+1F5BC, UTF-8: F0 9F 96 BC
+			[s appendFormat:@"%lu "STRING_IMAGE_ICON" ", imageCount];
+
+		//	if byte size is not zero and user wants size displayed
+		//	then append it (PDFs return a zero byteSize)
+		if(0 != byteSize && SizeFormatNone != sizeFormat) {
+			//	if possible, display the size with as many decimal digits as
+			//	possible (with a max. of 2) on a single line
+			NSMutableString*	finalStr	=	nil;
+			for(int nDecimalDigits = 3; nDecimalDigits--; ) @autoreleasepool {
+				NSMutableString*	test	=	[NSMutableString stringWithFormat:@"%@%@",
+												 s, StringForByteSizeWithFormat(sizeFormat, byteSize, nDecimalDigits)];
+				MeasuredText	testMT;
+				//	?use frameWithMargin.size instead?
+				MeasureTextInBubbleUsing(test, enabled, attributes, textStorage, layoutManager,
+										 textContainer, frameWithMarginSize, &testMT);
+				if(testMT.textSize.height <= fontLineHeight) {
+					finalStr	=	[test retain];
+					break;
+				}
+			}
+			if(finalStr)
+				s	=	[finalStr autorelease];
+			else
+				//	if the text needs more than a single line, fall back to using
+				//	the default number of decimal digits, which is 0 digits if the
+				//	string shows more than or equal to 10 <units> or 1 digit if the
+				//	string shows less than 10 <units>, eg, 12kiB or 9.3MiB (the
+				//	default string is achieved by passing -1)
+				s	=	[NSMutableString stringWithFormat:@"%@%@",
+						 s, StringForByteSizeWithFormat(sizeFormat, byteSize, -1)];
+		}
+	} else if(SizeFormatNone != sizeFormat) {
+		if(showCounts && 0 != folderCount)
+			[s appendString:@" "];	//	[s appendString:@" │ "];
+
+		//	this is a container which has zero images in it; instead of
+		//	showing nothing, show the total size of all of this
+		//	container's children
+		enum { DECIMAL_DIGITS = 2 };
+		s	=	[NSMutableString stringWithFormat:@"%@[%@]", s,
+				 StringForByteSizeWithFormat(sizeFormat, byteSizeOfAllChildren, DECIMAL_DIGITS)];
+	}
+#endif
+	NSCAssert(0 != s.length, @"s.length");
+	return s;
+}	*/
+
+#pragma mark -
+
+//	2023/09/17 moved into separate function to enable code reuse and remove complexity
+//	from the -drawRect: method.
+static
+void
+DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const labelColor,
+
+	BOOL const showCounts, SizeFormat const sizeFormat,
+	uint64_t const byteSize, NSUInteger const folderCount, NSUInteger const imageCount,
+
+	uint64_t const byteSizeOfAllChildren,	//	ignored if value is ~0ull
+
+	BOOL const enabled, NSMutableDictionary* const attributes,
+	NSTextStorage* const textStorage, NSLayoutManager* const layoutManager,
+	NSTextContainer* const textContainer, CGFloat fontLineHeight,
+
+	NSRect const frame, NSSize const frameWithMarginSize
+) {
+	NSMutableString*	s	=	[NSMutableString string]; // [[NSMutableString new] autorelease];
+#if 1
+	if(showCounts && 0 != folderCount) {
+		[s appendFormat:@"%lu 📂", folderCount];
+	}
+	if(showCounts && 0 != imageCount) {
+		if(0 != s.length)
+			[s appendString:@" "];	//	[s appendString:@" │ "];
+
+		[s appendString:StringForImageCount(imageCount)];
+	}
+
+	//	if byte size is not zero and user wants size displayed
+	//	then append it (PDFs return a zero byteSize)
+	if(0 != byteSize && SizeFormatNone != sizeFormat) {
+		if(0 != s.length)
+			[s appendString:@" "];	//	[s appendString:@" │ "];
+
+		//	if possible, display the size with as many decimal digits as
+		//	possible (with a max. of 2) on a single line
+		NSMutableString*	finalStr	=	nil;
+		for(int nDecimalDigits = 3; nDecimalDigits--; ) @autoreleasepool {
+			NSMutableString*	test	=	[NSMutableString stringWithFormat:@"%@%@",
+											 s, StringForByteSizeWithFormat(sizeFormat, byteSize, nDecimalDigits)];
+			MeasuredText	testMT;
+			//	?use frameWithMargin.size instead?
+			MeasureTextInBubbleUsing(test, enabled, attributes, textStorage, layoutManager,
+									 textContainer, frameWithMarginSize, &testMT);
+			if(testMT.textSize.height <= fontLineHeight) {
+				finalStr	=	[test retain];
+				break;
+			}
+		}
+		if(finalStr)
+			s	=	[finalStr autorelease];
+		else
+			//	if the text needs more than a single line, fall back to using
+			//	the default number of decimal digits, which is 0 digits if the
+			//	string shows more than or equal to 10 <units> or 1 digit if the
+			//	string shows less than 10 <units>, eg, 12kiB or 9.3MiB (the
+			//	default string is achieved by passing -1)
+			s	=	[NSMutableString stringWithFormat:@"%@%@",
+					 s, StringForByteSizeWithFormat(sizeFormat, byteSize, -1)];
+	} else if(SizeFormatNone != sizeFormat && ~0ull != byteSizeOfAllChildren) {
+		if(0 != s.length)
+			[s appendString:@" "];	//	[s appendString:@" │ "];
+
+		//	this is a container which has zero images in it; instead of
+		//	showing nothing, show the total size of all of this
+		//	container's children
+		enum { DECIMAL_DIGITS = 2 };
+		s	=	[NSMutableString stringWithFormat:@"%@[%@]", s,
+				 StringForByteSizeWithFormat(sizeFormat, byteSizeOfAllChildren, DECIMAL_DIGITS)];
+	} else if(0 == s.length) {
+		if(!showCounts)
+			return;	//	nothing to draw
+
+		assert(0 == imageCount);
+	//	[s appendFormat:@"0 "STRING_IMAGE_ICON];
+		[s appendString:StringForImageCount(0)];
+	}
+#else
+	if(showCounts && 0 != folderCount) {
+		[s appendFormat:@"%lu 📂", folderCount];
+		if(0 != imageCount)
+			[s appendString:@" "];	//	[s appendString:@" │ "];
+	}
+	if(0 != imageCount) {
+		if(showCounts)
+//#define	STRING_IMAGE_ICON	"□"		//	WHITE SQUARE	Unicode: U+25A1, UTF-8: E2 96 A1
+#define	STRING_IMAGE_ICON	"❑"		//	LOWER RIGHT SHADOWED WHITE SQUARE	Unicode: U+2751, UTF-8: E2 9D 91
+//#define	STRING_IMAGE_ICON	"▢"		//	WHITE SQUARE WITH ROUNDED CORNERS	Unicode: U+25A2, UTF-8: E2 96 A2
+//#define	STRING_IMAGE_ICON	"🏞"	//	national park Unicode: U+1F3DE, UTF-8: F0 9F 8F 9E
+//#define	STRING_IMAGE_ICON	"🖼"	//	frame with picture	Unicode: U+1F5BC, UTF-8: F0 9F 96 BC
+			[s appendFormat:@"%lu "STRING_IMAGE_ICON" ", imageCount];
+
+		//	if byte size is not zero and user wants size displayed
+		//	then append it (PDFs return a zero byteSize)
+		if(0 != byteSize && SizeFormatNone != sizeFormat) {
+			//	if possible, display the size with as many decimal digits as
+			//	possible (with a max. of 2) on a single line
+			NSMutableString*	finalStr	=	nil;
+			for(int nDecimalDigits = 3; nDecimalDigits--; ) @autoreleasepool {
+				NSMutableString*	test	=	[NSMutableString stringWithFormat:@"%@%@",
+												 s, StringForByteSizeWithFormat(sizeFormat, byteSize, nDecimalDigits)];
+				MeasuredText	testMT;
+				//	?use frameWithMargin.size instead?
+				MeasureTextInBubbleUsing(test, enabled, attributes, textStorage, layoutManager,
+										 textContainer, frameWithMarginSize, &testMT);
+				if(testMT.textSize.height <= fontLineHeight) {
+					finalStr	=	[test retain];
+					break;
+				}
+			}
+			if(finalStr)
+				s	=	[finalStr autorelease];
+			else
+				//	if the text needs more than a single line, fall back to using
+				//	the default number of decimal digits, which is 0 digits if the
+				//	string shows more than or equal to 10 <units> or 1 digit if the
+				//	string shows less than 10 <units>, eg, 12kiB or 9.3MiB (the
+				//	default string is achieved by passing -1)
+				s	=	[NSMutableString stringWithFormat:@"%@%@",
+						 s, StringForByteSizeWithFormat(sizeFormat, byteSize, -1)];
+		}
+	} else if(SizeFormatNone != sizeFormat) {
+		if(showCounts && 0 != folderCount)
+			[s appendString:@" "];	//	[s appendString:@" │ "];
+
+		//	this is a container which has zero images in it; instead of
+		//	showing nothing, show the total size of all of this
+		//	container's children
+		enum { DECIMAL_DIGITS = 2 };
+		s	=	[NSMutableString stringWithFormat:@"%@[%@]", s,
+				 StringForByteSizeWithFormat(sizeFormat, byteSizeOfAllChildren, DECIMAL_DIGITS)];
+	}
+#endif
+	NSCAssert(0 != s.length, @"s.length");
+
+	MeasuredText	lowerMT;
+	MeasuredText	upperMT;
+#define UPPER_LOWER_GAP 2.0f
+	//	try various rectangles for the label and metadata to be rendered into,
+	//	from the smallest to the largest
+	if(!Measure2TextIn2Bubbles(s, label, enabled, attributes, textStorage,
+								layoutManager, textContainer,
+								NSMakeSize(frame.size.width - 12.0f,
+										   frame.size.height - 8.0f),
+								UPPER_LOWER_GAP, fontLineHeight, &lowerMT, &upperMT) &&
+		!Measure2TextIn2Bubbles(s, label, enabled, attributes, textStorage,
+								layoutManager, textContainer, frame.size,
+								UPPER_LOWER_GAP, fontLineHeight, &lowerMT, &upperMT))
+		(void) Measure2TextIn2Bubbles(s, label, enabled, attributes, textStorage,
+									  layoutManager, textContainer, frameWithMarginSize,
+									  UPPER_LOWER_GAP, fontLineHeight, &lowerMT, &upperMT);
+
+	//	now ready to draw into the smallest bubble possible...
+	CGFloat const upperH = upperMT.textSize.height - 2 * upperMT.margins.dy;
+	CGFloat const lowerH = lowerMT.textSize.height - 2 * lowerMT.margins.dy;
+	CGFloat const totalH = upperH + lowerH + UPPER_LOWER_GAP;
+	CGFloat const halfFrameHeight = frame.size.height * 0.5f;
+#define BOTTOM_GAP 8.0f
+	CGFloat dy = drawAtMidY ? totalH * -0.5f : halfFrameHeight - totalH - BOTTOM_GAP;
+//	if(-halfFrameHeight + BOTTOM_GAP < dy)	//	is there enough space to shift the bubbles down?
+	if(BOTTOM_GAP - halfFrameHeight < dy)	//	is there enough space to shift the bubbles down?
+#define BUBBLE_DOWN_SHIFT 8.0f
+		dy	+=	BUBBLE_DOWN_SHIFT;
+
+	//	always draw item name first because its rectangle is vertically larger than the metadata's rect
+	DrawTextInBubbleBy(labelColor, frame, dy, layoutManager, &upperMT);
+
+	//	need to reset layoutManager and textContainer before drawing metadata (lower) string
+	//	(no need to reset textContainer.containerSize because its rect is smaller than label's rect)
+	MeasureTextInBubble(s, enabled, attributes, textStorage, layoutManager, textContainer, &lowerMT);
+	DrawTextInBubbleBy(labelColor, frame, dy + upperH + UPPER_LOWER_GAP, layoutManager, &lowerMT);
+}
+
+#pragma mark -
+
+@implementation PGThumbnailView
 
 - (void)_invalidate:(NSSet*)items {
 	for(id const item in items) {
 		NSUInteger const i = [_items indexOfObjectIdenticalTo:item];
-		assert(NSNotFound != i);
+		NSAssert(NSNotFound != i, @"i");
 		NSRect const r = [self frameOfItemAtIndex:i withMargin:YES];
 		[self setNeedsDisplayInRect:r];
 	}
@@ -321,6 +775,79 @@ MakeByteSizeString(uint64_t bytes, int nDecimalDigits) {
 	[self setNeedsDisplay:YES];
 }
 @synthesize items = _items;
+
+#pragma mark - private selection methods
+
+- (void)_selectItemsFrom:(NSUInteger)first to:(NSUInteger)last {
+	NSParameterAssert(NSNotFound != first);
+	NSParameterAssert(NSNotFound != last);
+	NSArray *const items = [_items subarrayWithRange:last < first ?
+							NSMakeRange(last, first-last) : NSMakeRange(first, 1+last-first)];
+	id<NSFastEnumeration> itemsEnumerator = last < first ?
+		(id<NSFastEnumeration>)items.reverseObjectEnumerator : (id<NSFastEnumeration>)items;
+#if 1	//	optimized
+	NSRect lastItemFrame = NSZeroRect;
+#endif
+	for(id const item in itemsEnumerator) {
+		if([_selection containsObject:item]) {
+			NSRect const itemFrame = [self frameOfItemAtIndex:[_items indexOfObjectIdenticalTo:item] withMargin:YES];
+		//	[self setNeedsDisplayInRect:itemFrame];
+			lastItemFrame = itemFrame;
+			continue;
+		}
+		if(![self.dataSource thumbnailView:self canSelectItem:item])
+			continue;
+#if 1	//	optimized
+		//	containers (any kind of folder) are not selected ==> only select viewable items
+		if([self.dataSource thumbnailView:self isContainerItem:item])
+			continue;
+
+		[_selection addObject:item];
+		_selectionAnchor = item;
+		NSRect const itemFrame = [self frameOfItemAtIndex:[_items indexOfObjectIdenticalTo:item] withMargin:YES];
+	//	[self setNeedsDisplayInRect:itemFrame];
+		lastItemFrame = itemFrame;	//	[self PG_scrollRectToVisible:itemFrame type:PGScrollLeastToRect];
+#else
+		[self selectItem:item byExtendingSelection:YES]; // NB: this call mutates _selectionAnchor
+#endif
+	}
+
+#if 1	//	optimized
+	if(!NSEqualRects(lastItemFrame, NSZeroRect)) {
+		[self PG_scrollRectToVisible:lastItemFrame type:PGScrollLeastToRect];
+		self.needsDisplay = YES;
+	}
+
+	[[self delegate] thumbnailViewSelectionDidChange:self];
+#else
+#endif
+}
+- (void)_selectAllDirectChildrenOf:(id)item {
+	//	first, perform default action of selecting the item
+	[self selectItem:item byExtendingSelection:NO];
+
+	//	if the item is a container then select all of its direct children
+	uint64_t const byteSizeAndFolderAndImageCount = [self.dataSource thumbnailView:self
+								byteSizeAndFolderAndImageCountOfDirectChildrenForItem:item];
+	if(byteSizeAndFolderAndImageCount != ULONG_MAX && byteSizeAndFolderAndImageCount != 0) {
+		//	this is a container of some kind: tell thumbnail browser to select all direct
+		//	children of item (which are shown in the next column to the right of this column)
+		[[self delegate] thumbnailView:self selectAllDirectChildrenOf:item];
+	//	[self selectItemsFrom:si to:i];
+	/*	uint64_t	byteSize;
+		NSUInteger	folderCount = 0, imageCount = 0;
+		Unpack_ByteSize_FolderImageCounts(byteSizeAndFolderAndImageCount, &byteSize,
+										  &folderCount, &imageCount);
+		if(0 != imageCount) {
+			//	select all direct children
+			{}
+			return;
+		}	*/
+	}
+}
+
+#pragma mark - public selection methods
+
 @synthesize selection = _selection;
 - (void)setSelection:(NSSet *)items
 {
@@ -341,14 +868,14 @@ MakeByteSizeString(uint64_t bytes, int nDecimalDigits) {
 	}
 
 	PGScrollToRectType scrollToRect = PGScrollCenterToRect;	//	default is scroll to center
-	if (1 == _selection.count && 1 == items.count) {
+	if(1 == _selection.count && 1 == items.count) {
 		//	regardless of the selection direction, PGScrollMostToRect is the correct scrollTo value
 		scrollToRect	=	PGScrollMostToRect;
 	/*	NSUInteger const oldI = [_items indexOfObjectIdenticalTo:[_selection anyObject]];
-		assert(NSNotFound != oldI);
+		NSAssert(NSNotFound != oldI, @"oldI");
 		NSUInteger const newI = [_items indexOfObjectIdenticalTo:[items anyObject]];
-		assert(NSNotFound != newI);
-		assert(newI != oldI);
+		NSAssert(NSNotFound != newI, @"newI");
+		NSAssert(newI != oldI, @"newI oldI");
 		scrollToRect	=	newI > oldI ? PGScrollMostToRect : PGScrollMostToRect;	*/
 	}
 
@@ -396,7 +923,7 @@ MakeByteSizeString(uint64_t bytes, int nDecimalDigits) {
 	if(!count) return;
 	if(!_selectionAnchor) return [self selectItem:up ? [_items lastObject] : [_items objectAtIndex:0] byExtendingSelection:NO];
 	NSUInteger const i = [_items indexOfObjectIdenticalTo:_selectionAnchor];
-	NSParameterAssert(NSNotFound != i);
+	NSAssert(NSNotFound != i, @"i");
 	NSArray *const items = [_items subarrayWithRange:up ? NSMakeRange(0, i) : NSMakeRange(i + 1, count - i - 1)];
 	for(id const item in up ? (id<NSFastEnumeration>)[items reverseObjectEnumerator] : (id<NSFastEnumeration>)items) {
 		if(![[self dataSource] thumbnailView:self canSelectItem:item]) continue;
@@ -405,6 +932,15 @@ MakeByteSizeString(uint64_t bytes, int nDecimalDigits) {
 		break;
 	}
 }
+/* - (void)selectAll {
+	//	2023/09/18 option-clicking selects the item's direct children;
+	//	this method implements the select-all-direct-children
+	NSUInteger const count = [_items count];
+	if(0 == count)
+		return;
+
+	[self _selectItemsFrom:count to:0];
+} */
 
 #pragma mark -
 
@@ -527,14 +1063,13 @@ MakeByteSizeString(uint64_t bytes, int nDecimalDigits) {
 												 object:nil];
 
 		//	2022/10/15
-		[NSUserDefaults.standardUserDefaults addObserver:self
-											  forKeyPath:PGShowFileNameOnImageThumbnailKey
-												 options:kNilOptions
-												 context:NULL];
-		[NSUserDefaults.standardUserDefaults addObserver:self
-											  forKeyPath:PGShowCountsAndSizesOnContainerThumbnailKey
-												 options:kNilOptions
-												 context:NULL];
+		NSUserDefaults *sud = NSUserDefaults.standardUserDefaults;
+		[sud addObserver:self forKeyPath:PGShowThumbnailImageNameKey options:kNilOptions context:NULL];
+		[sud addObserver:self forKeyPath:PGShowThumbnailImageSizeKey options:kNilOptions context:NULL];
+		[sud addObserver:self forKeyPath:PGShowThumbnailContainerNameKey options:kNilOptions context:NULL];
+		[sud addObserver:self forKeyPath:PGShowThumbnailContainerChildCountKey options:kNilOptions context:NULL];
+		[sud addObserver:self forKeyPath:PGShowThumbnailContainerChildSizeTotalKey options:kNilOptions context:NULL];
+		[sud addObserver:self forKeyPath:PGThumbnailSizeFormatKey options:kNilOptions context:NULL];
 	}
 	return self;
 }
@@ -574,8 +1109,13 @@ MakeByteSizeString(uint64_t bytes, int nDecimalDigits) {
 	[shadow setShadowBlurRadius:4.0f];
 	[shadow set];
 
-	const BOOL	showCountsAndSizesOnContainerThumbnail =
-		[NSUserDefaults.standardUserDefaults boolForKey:PGShowCountsAndSizesOnContainerThumbnailKey];
+	NSUserDefaults *sud = NSUserDefaults.standardUserDefaults;
+	BOOL const	showThumbnailImageName = [sud boolForKey:PGShowThumbnailImageNameKey];
+	BOOL const	showThumbnailImageSize = [sud boolForKey:PGShowThumbnailImageSizeKey];
+	BOOL const	showThumbnailContainerName = [sud boolForKey:PGShowThumbnailContainerNameKey];
+	BOOL const	showThumbnailContainerChildCount = [sud boolForKey:PGShowThumbnailContainerChildCountKey];
+	BOOL const	showThumbnailContainerChildSizeTotal = [sud boolForKey:PGShowThumbnailContainerChildSizeTotalKey];
+	NSInteger const	thumbnailSizeFormat = GetThumbnailSizeFormat();
 	NSUInteger i = 0;
 	for(; i < [_items count]; i++) {
 		NSRect const frameWithMargin = [self frameOfItemAtIndex:i withMargin:YES];
@@ -626,9 +1166,12 @@ MakeByteSizeString(uint64_t bytes, int nDecimalDigits) {
 			[shadow set];
 		}
 
-		NSString *const label = [[self dataSource] thumbnailView:self labelForItem:item];
-		NSColor *const labelColor = [[self dataSource] thumbnailView:self labelColorForItem:item];
-		if(label) {
+	//	BOOL const hasRealThumbnail = [self.dataSource thumbnailView:self shouldRotateThumbnailForItem:item];
+		BOOL const isContainer = [self.dataSource thumbnailView:self isContainerItem:item];
+		BOOL const willDrawText = !isContainer // || hasRealThumbnail
+			? showThumbnailImageName || showThumbnailImageSize	//	images and non-containers
+			: showThumbnailContainerName || showThumbnailContainerChildCount || showThumbnailContainerChildSizeTotal;
+		if(willDrawText) {
 			[nilShadow set];
 			static NSMutableDictionary *attributes = nil;
 			static CGFloat fontLineHeight = 0;
@@ -672,122 +1215,85 @@ MakeByteSizeString(uint64_t bytes, int nDecimalDigits) {
 
 #if 1	//	v5: 2 bubbles, no need for localized strings, can work on 10.14 (does not rely on 11.x APIs),
 		//	and supports text bubble fitting into the smallest rectangle possible
-			uint64_t const byteSizeAndFolderAndImageCount = [self.dataSource thumbnailView:self
-									   byteSizeAndFolderAndImageCountOfDirectChildrenForItem:item];
-			if(!showCountsAndSizesOnContainerThumbnail ||
-			   byteSizeAndFolderAndImageCount == ULONG_MAX ||
-			   0 == byteSizeAndFolderAndImageCount) {
-				BOOL hasRealThumbnail = [self.dataSource thumbnailView:self shouldRotateThumbnailForItem:item];
-//frameWithMargin.size;//NSMakeSize(PGThumbnailSize - 12.0f, PGThumbnailSize - 8.0f);
-				//	try various rectangles for the label to be rendered into, from the smallest to the largest
-				if(!DrawTextInBubble(label, labelColor, attributes, enabled, NSMakeRect(frame.origin.x + 6.0f,
-									 frame.origin.y + 4.0f, frame.size.width - 12.0f, frame.size.height - 8.0f),
-									 hasRealThumbnail ? BubblePositionFrameBottom : BubblePositionMiddle,
-									 textStorage, layoutManager, textContainer) &&
-				   !DrawTextInBubble(label, labelColor, attributes, enabled, frame,
-									 hasRealThumbnail ? BubblePositionFrameBottom : BubblePositionMiddle,
-									 textStorage, layoutManager, textContainer))
-					(void) DrawTextInBubble(label, labelColor, attributes, enabled, frameWithMargin,
-											hasRealThumbnail ? BubblePositionFrameBottom : BubblePositionMiddle,
-											textStorage, layoutManager, textContainer);
-			/*	if(hasRealThumbnail) {	//	image
-					/ *	if there is room underneath the thumbnail to display the file name, do so
-					MeasuredText	theMT;
-					MeasureTextInBubble(label, enabled, attributes, textStorage, layoutManager, textContainer, &theMT);
-
-					NSString* s = [NSString stringWithFormat:@"th_space %5.2f    mt_height %5.2f",
-								   frame.size.height - thumbnailRect.size.height, theMT.size.height];
-					DrawTextInBubble(s, labelColor, attributes, enabled, frame, BubblePositionFrameBottom,
-									 textStorage, layoutManager, textContainer);
-				}	*/
-			/*	if(!hasRealThumbnail) {	//	folder
-					DrawTextInBubble(label, labelColor, attributes, enabled, frame, BubblePositionMiddle,
-									 textStorage, layoutManager, textContainer);	*/
+			NSColor *const labelColor = [[self dataSource] thumbnailView:self labelColorForItem:item];
+			if(!isContainer /* || hasRealThumbnail */) {
+				NSAssert(showThumbnailImageName || showThumbnailImageSize, @"");
+				NSString *const label = showThumbnailImageName ?
+										[[self dataSource] thumbnailView:self labelForItem:item] : nil;
+				uint64_t const byteSize = showThumbnailImageSize ?
+											[self.dataSource thumbnailView:self byteSizeOf:item] : 0ull;
+				//	image or non-container non-image (in a folder, archive, etc.)
+				if(showThumbnailImageName && showThumbnailImageSize) {
+					if(0 != byteSize)
+						DrawUpperAndLower(NO, label, labelColor, NO /* showCounts */,
+							showThumbnailImageSize ? (SizeFormat) (1 + thumbnailSizeFormat) : SizeFormatNone,
+							byteSize, 0, 0, ~0ull,
+							enabled, attributes, textStorage, layoutManager, textContainer, fontLineHeight,
+							frame, frameWithMargin.size);
+					else
+						DrawSingleTextLabelIn(NO, label, labelColor, attributes,
+							enabled, frame, frameWithMargin, textStorage, layoutManager, textContainer);
+				} else if(showThumbnailImageName)
+					DrawSingleTextLabelIn(NO, label, labelColor, attributes,
+						enabled, frame, frameWithMargin, textStorage, layoutManager, textContainer);
+				else if(showThumbnailImageSize) {
+					enum { DECIMAL_DIGITS = 2 };
+					DrawSingleTextLabelIn(NO,
+						StringForByteSizeWithFormat((SizeFormat) (1 + thumbnailSizeFormat), byteSize, DECIMAL_DIGITS),
+						labelColor, attributes, enabled, frame, frameWithMargin,
+						textStorage, layoutManager, textContainer);
+				}
+			} else if(!showThumbnailContainerChildCount && !showThumbnailContainerChildSizeTotal) {
+				//	folders/containers which only show a name
+				NSAssert(showThumbnailContainerName && !showThumbnailContainerChildCount &&
+						!showThumbnailContainerChildSizeTotal, @"name-only");
+				NSString *const	label = [[self dataSource] thumbnailView:self labelForItem:item];
+				DrawSingleTextLabelIn(YES, label, labelColor, attributes, enabled, frame,
+										frameWithMargin, textStorage, layoutManager, textContainer);
 			} else {
-				uint64_t	byteSize;
-				NSUInteger	folderCount = 0, imageCount = 0;
-				Unpack_ByteSize_FolderImageCounts(byteSizeAndFolderAndImageCount, &byteSize,
+				//	folders/containers which show an image count and/or size (and maybe a name)
+				NSString *const	label = showThumbnailContainerName ?
+										[[self dataSource] thumbnailView:self labelForItem:item] : nil;
+				SizeFormat const	sizeFormat = showThumbnailContainerChildSizeTotal ?
+													(SizeFormat) (1 + thumbnailSizeFormat) : SizeFormatNone;
+				uint64_t const	byteSizeAndFolderAndImageCount = [self.dataSource thumbnailView:self
+										  byteSizeAndFolderAndImageCountOfDirectChildrenForItem:item];
+				uint64_t		byteSizeDirectChildren;
+				NSUInteger		folderCount = 0, imageCount = 0;
+				Unpack_ByteSize_FolderImageCounts(byteSizeAndFolderAndImageCount, &byteSizeDirectChildren,
 												  &folderCount, &imageCount);
-				NSMutableString*	s = [NSMutableString string]; // [[NSMutableString new] autorelease];
-				if(0 != folderCount) {
-					[s appendFormat:@"%lu 📂", folderCount];
-				}
-				if(0 != imageCount) {
-					if(0 != folderCount)
-						[s appendString:@" "];	//	[s appendString:@" │ "];
 
-//#define	STRING_IMAGE_ICON	"□"		//	WHITE SQUARE	Unicode: U+25A1, UTF-8: E2 96 A1
-#define	STRING_IMAGE_ICON	"❑"		//	LOWER RIGHT SHADOWED WHITE SQUARE	Unicode: U+2751, UTF-8: E2 9D 91
-//#define	STRING_IMAGE_ICON	"▢"		//	WHITE SQUARE WITH ROUNDED CORNERS	Unicode: U+25A2, UTF-8: E2 96 A2
-//#define	STRING_IMAGE_ICON	"🏞"	//	national park Unicode: U+1F3DE, UTF-8: F0 9F 8F 9E
-//#define	STRING_IMAGE_ICON	"🖼"	//	frame with picture	Unicode: U+1F5BC, UTF-8: F0 9F 96 BC
-					[s appendFormat:@"%lu "STRING_IMAGE_ICON" ", imageCount];
+				NSURL *const	url = [self.dataSource thumbnailView:self urlForItem:item];
+				//	"!url && 0 == byteSizeDirectChildren" is a heuristic to detect a PDF file
+				if(!url && 0 == byteSizeDirectChildren) {
+					DrawUpperAndLower(YES, showThumbnailContainerName ? label : [NSString string],
+						labelColor, showThumbnailContainerChildCount, sizeFormat,
+						byteSizeDirectChildren, folderCount, imageCount,
 
-					//	if byte size is not zero then append it (PDFs return a zero byteSize)
-					if(0 != byteSize) {
-						//	if possible, display the size with as many decimal digits as
-						//	possible (with a max. of 2) on a single line
-						NSMutableString*	finalStr	=	nil;
-						for(int nDecimalDigits = 3; nDecimalDigits--; ) @autoreleasepool {
-							NSMutableString*	test	=	[NSMutableString stringWithFormat:@"%@%@",
-															 s, MakeByteSizeString(byteSize, nDecimalDigits)];
-							MeasuredText	testMT;
-							//	?use frameWithMargin.size instead?
-							MeasureTextInBubbleUsing(test, enabled, attributes, textStorage, layoutManager,
-													 textContainer, frameWithMargin.size, &testMT);
-							if(testMT.textSize.height <= fontLineHeight) {
-								finalStr	=	[test retain];
-								break;
-							}
-						}
-						if(finalStr)
-							s	=	[finalStr autorelease];
-						else
-							//	if the text needs more than a single line, fall back to using
-							//	the default number of decimal digits, which is 0 digits if the
-							//	string shows more than or equal to 10 <units> or 1 digit if the
-							//	string shows less than 10 <units>, eg, 12kiB or 9.3MiB (the
-							//	default string is achieved by passing -1)
-							s	=	[NSMutableString stringWithFormat:@"%@%@",
-									 s, MakeByteSizeString(byteSize, -1)];
-					}
-				}
-				assert(0 != s.length);
+						//	show byte size of PDF file as "[123MB]"
+						showThumbnailContainerChildSizeTotal ?
+							[self.dataSource thumbnailView:self byteSizeOf:item] : ~0ull,
 
-				MeasuredText	lowerMT;
-				MeasuredText	upperMT;
-#define UPPER_LOWER_GAP 2.0f
-				//	try various rectangles for the label and metadata to be rendered into,
-				//	from the smallest to the largest
-				if (!Measure2TextIn2Bubbles(s, label, enabled, attributes, textStorage,
-											layoutManager, textContainer,
-											NSMakeSize(frame.size.width - 12.0f,
-													   frame.size.height - 8.0f),
-											UPPER_LOWER_GAP, fontLineHeight, &lowerMT, &upperMT) &&
-					!Measure2TextIn2Bubbles(s, label, enabled, attributes, textStorage,
-											layoutManager, textContainer, frame.size,
-											UPPER_LOWER_GAP, fontLineHeight, &lowerMT, &upperMT))
-					(void) Measure2TextIn2Bubbles(s, label, enabled, attributes, textStorage,
-												  layoutManager, textContainer, frameWithMargin.size,
-												  UPPER_LOWER_GAP, fontLineHeight, &lowerMT, &upperMT);
+						enabled, attributes, textStorage, layoutManager, textContainer, fontLineHeight,
+						frame, frameWithMargin.size);
+				} else
+			/*	id				value = nil;
+				if(url && url.isFileURL &&
+					[url getResourceValue:&value forKey:NSURLIsDirectoryKey error:nil] &&
+					value && [value isEqual:@NO])
+					continue;	*/
 
-				//	now ready to draw into the smallest bubble possible...
-				const CGFloat upperH = upperMT.textSize.height - 2 * upperMT.margins.dy;
-				const CGFloat lowerH = lowerMT.textSize.height - 2 * lowerMT.margins.dy;
-				const CGFloat totalH = upperH + lowerH + UPPER_LOWER_GAP;
-				CGFloat dy = totalH * -0.5f;
-#define BOTTOM_GAP 8.0f
-				if((frame.size.height * -0.5f) + BOTTOM_GAP < dy)	//	is there enough space to shift the bubbles down?
-#define BUBBLE_DOWN_SHIFT 8.0f
-					dy	+=	BUBBLE_DOWN_SHIFT;
+					DrawUpperAndLower(YES, showThumbnailContainerName ? label : [NSString string],
+						labelColor, showThumbnailContainerChildCount, sizeFormat,
+						byteSizeDirectChildren, folderCount, imageCount,
 
-				//	always draw folder name first because its rectangle is vertically larger than the metadata's rect
-				DrawTextInBubbleBy(labelColor, frame, dy, layoutManager, &upperMT);
+						//	if 0 direct children and showThumbnailContainerChildSizeTotal then calculate
+						//	the value for byteSizeOfAllChildren else pass ~0ull
+						0 == imageCount && showThumbnailContainerChildSizeTotal ?
+							[self.dataSource thumbnailView:self byteSizeOfAllChildrenForItem:item] : ~0ull,
 
-				//	need to reset layoutManager and textContainer before drawing metadata (lower) string
-				//	(no need to reset textContainer.containerSize because its rect is smaller than label's rect)
-				MeasureTextInBubble(s, enabled, attributes, textStorage, layoutManager, textContainer, &lowerMT);
-				DrawTextInBubbleBy(labelColor, frame, dy + upperH + UPPER_LOWER_GAP, layoutManager, &lowerMT);
+						enabled, attributes, textStorage, layoutManager, textContainer, fontLineHeight,
+						frame, frameWithMargin.size);
 			}
 #elif 1	//	v4: 2 bubbles, no need for localized strings, can work on 10.14 (does not rely on 11.x APIs)
 			NSUInteger const folderAndImageCount = [self.dataSource thumbnailView:self
@@ -806,7 +1312,7 @@ MakeByteSizeString(uint64_t bytes, int nDecimalDigits) {
 						[s appendString:@"  "];
 					[s appendFormat:@"🖼 %lu", imageCount];
 				}
-				assert(0 != s.length);
+				NSAssert(0 != s.length, @"s.length");
 
 				MeasuredText	lowerMT, upperMT;
 				MeasureTextInBubble(s, enabled, attributes, textStorage, layoutManager, textContainer, &lowerMT);
@@ -864,18 +1370,21 @@ MakeByteSizeString(uint64_t bytes, int nDecimalDigits) {
 			[layoutManager drawGlyphsForGlyphRange:glyphRange atPoint:labelRect.origin];
 #endif
 			[shadow set];
-		} else if(labelColor) {
-			NSRect const labelRect = NSMakeRect(NSMaxX(frame) - 16.0f, round(MAX(NSMaxY(thumbnailRect) - 16.0f, NSMidY(thumbnailRect) - 6.0f)), 12.0f, 12.0f);
-			[NSGraphicsContext saveGraphicsState];
-			CGContextBeginTransparencyLayerWithRect(context, NSRectToCGRect(NSInsetRect(labelRect, -5.0f, -5.0f)), NULL);
-			NSBezierPath *const labelDot = [NSBezierPath bezierPathWithOvalInRect:labelRect];
-			[labelColor set];
-			[labelDot fill];
-			[[NSColor whiteColor] set];
-			[labelDot setLineWidth:2.0f];
-			[labelDot stroke];
-			CGContextEndTransparencyLayer(context);
-			[NSGraphicsContext restoreGraphicsState];
+		} else {
+			NSColor *const labelColor = [[self dataSource] thumbnailView:self labelColorForItem:item];
+			if(labelColor) {
+				NSRect const labelRect = NSMakeRect(NSMaxX(frame) - 16.0f, round(MAX(NSMaxY(thumbnailRect) - 16.0f, NSMidY(thumbnailRect) - 6.0f)), 12.0f, 12.0f);
+				[NSGraphicsContext saveGraphicsState];
+				CGContextBeginTransparencyLayerWithRect(context, NSRectToCGRect(NSInsetRect(labelRect, -5.0f, -5.0f)), NULL);
+				NSBezierPath *const labelDot = [NSBezierPath bezierPathWithOvalInRect:labelRect];
+				[labelColor set];
+				[labelDot fill];
+				[[NSColor whiteColor] set];
+				[labelDot setLineWidth:2.0f];
+				[labelDot stroke];
+				CGContextEndTransparencyLayer(context);
+				[NSGraphicsContext restoreGraphicsState];
+			}
 		}
 	}
 	[nilShadow set];
@@ -922,11 +1431,20 @@ MakeByteSizeString(uint64_t bytes, int nDecimalDigits) {
 }
 - (IBAction)selectAll:(id)sender
 {
+#if 1
+	//	2023/09/18 optimized version
+	NSUInteger const count = [_items count];
+	if(0 == count)
+		return;
+
+	[self _selectItemsFrom:count to:0];
+#else
 	NSMutableSet *const selection = [NSMutableSet set];
 	for(id const item in _items)
 		if([[self dataSource] thumbnailView:self canSelectItem:item])
 			[selection addObject:item];
 	[self setSelection:selection];
+#endif
 }
 
 #pragma mark -
@@ -952,9 +1470,31 @@ MakeByteSizeString(uint64_t bytes, int nDecimalDigits) {
 {
 	NSPoint const p = [anEvent PG_locationInView:self];
 	NSUInteger const i = [self indexOfItemAtPoint:p];
-	id const item = [self mouse:p inRect:[self bounds]] && i < [_items count] ? [_items objectAtIndex:i] : nil;
-	if([anEvent modifierFlags] & (NSEventModifierFlagShift | NSEventModifierFlagCommand)) [self toggleSelectionOfItem:item];
-	else [self selectItem:item byExtendingSelection:NO];
+	BOOL const validItemHit = i < _items.count;
+	id const item = ([self mouse:p inRect:[self bounds]] && validItemHit) ? [_items objectAtIndex:i] : nil;
+
+	//	2023/09/06 shift-clicking now extends the selection;
+	//	cmd-clicking still adds/removes a single item to/from the selection
+	if(anEvent.modifierFlags & NSEventModifierFlagCommand) [self toggleSelectionOfItem:item];
+	else if(validItemHit && _selectionAnchor && (anEvent.modifierFlags & NSEventModifierFlagShift)) {
+		NSUInteger const si = [_items indexOfObjectIdenticalTo:_selectionAnchor];
+#if 1
+		[self _selectItemsFrom:si to:i];
+#else
+		NSAssert(NSNotFound != si, @"si");
+		NSArray *const items = [_items subarrayWithRange:i < si ? NSMakeRange(i, si-i) : NSMakeRange(si, 1+i-si)];
+		for(id const item in i < si ? (id<NSFastEnumeration>)items.reverseObjectEnumerator : (id<NSFastEnumeration>)items) {
+			if(![self.dataSource thumbnailView:self canSelectItem:item]) continue;
+			if([_selection containsObject:item]) continue;
+			[self selectItem:item byExtendingSelection:YES]; // NB: this call mutates _selectionAnchor
+		}
+#endif
+	} else if(validItemHit && _selectionAnchor && (anEvent.modifierFlags & NSEventModifierFlagOption)) {
+		//	2023/09/18 option-clicking selects the item's direct children
+		[self _selectAllDirectChildrenOf:item];
+	} else [self selectItem:item byExtendingSelection:NO];
+//	if([anEvent modifierFlags] & (NSEventModifierFlagShift | NSEventModifierFlagCommand)) [self toggleSelectionOfItem:item];
+//	else [self selectItem:item byExtendingSelection:NO];
 }
 - (void)keyDown:(NSEvent *)anEvent
 {
@@ -967,8 +1507,13 @@ MakeByteSizeString(uint64_t bytes, int nDecimalDigits) {
 - (void)dealloc
 {
 	//	2022/10/15
-	[NSUserDefaults.standardUserDefaults removeObserver:self forKeyPath:PGShowFileNameOnImageThumbnailKey];
-	[NSUserDefaults.standardUserDefaults removeObserver:self forKeyPath:PGShowCountsAndSizesOnContainerThumbnailKey];
+	NSUserDefaults *sud = NSUserDefaults.standardUserDefaults;
+	[sud removeObserver:self forKeyPath:PGShowThumbnailImageNameKey];
+	[sud removeObserver:self forKeyPath:PGShowThumbnailImageSizeKey];
+	[sud removeObserver:self forKeyPath:PGShowThumbnailContainerNameKey];
+	[sud removeObserver:self forKeyPath:PGShowThumbnailContainerChildCountKey];
+	[sud removeObserver:self forKeyPath:PGShowThumbnailContainerChildSizeTotalKey];
+	[sud removeObserver:self forKeyPath:PGThumbnailSizeFormatKey];
 
 	[self PG_removeObserver];
 	[representedObject release];
@@ -985,8 +1530,12 @@ MakeByteSizeString(uint64_t bytes, int nDecimalDigits) {
 						change:(NSDictionary *)change
 					   context:(void *)context
 {
-	if(PGEqualObjects(keyPath, PGShowFileNameOnImageThumbnailKey) ||
-	   PGEqualObjects(keyPath, PGShowCountsAndSizesOnContainerThumbnailKey))
+	if(PGEqualObjects(keyPath, PGShowThumbnailImageNameKey) ||
+	   PGEqualObjects(keyPath, PGShowThumbnailImageSizeKey) ||
+	   PGEqualObjects(keyPath, PGShowThumbnailContainerNameKey) ||
+	   PGEqualObjects(keyPath, PGShowThumbnailContainerChildCountKey) ||
+	   PGEqualObjects(keyPath, PGShowThumbnailContainerChildSizeTotalKey) ||
+	   PGEqualObjects(keyPath, PGThumbnailSizeFormatKey))
 		self.needsDisplay	=	YES;
 	else
 		[super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
@@ -994,6 +1543,7 @@ MakeByteSizeString(uint64_t bytes, int nDecimalDigits) {
 
 @end
 
+#pragma mark -
 @implementation NSObject(PGThumbnailViewDataSource)
 
 - (NSArray *)itemsForThumbnailView:(PGThumbnailView *)sender
@@ -1032,6 +1582,7 @@ MakeByteSizeString(uint64_t bytes, int nDecimalDigits) {
 
 @end
 
+#pragma mark -
 @implementation NSObject(PGThumbnailViewDelegate)
 
 - (void)thumbnailViewSelectionDidChange:(PGThumbnailView *)sender {}

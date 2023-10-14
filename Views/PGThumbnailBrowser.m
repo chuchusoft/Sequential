@@ -72,7 +72,25 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 	NSMutableArray *const path = [NSMutableArray array];
 	id obj = [aSet anyObject];
-	while((obj = [[self dataSource] thumbnailBrowser:self parentOfItem:obj])) [path insertObject:obj atIndex:0];
+	while((obj = [[self dataSource] thumbnailBrowser:self parentOfItem:obj]))
+		[path insertObject:obj atIndex:0];
+
+	//	2023/09/25 special case: if the selection is a single container
+	//	then the thumbnail view showing the container's contents is removed
+	//	from the array of views displayed, which does not match the
+	//	behavior of clicking on a single container (which displays the
+	//	container's contents in a thumbnail view), so handle this special
+	//	case by appending the container to the path, which will trigger
+	//	the correct display in the following code; the code to restore
+	//	the selection below also needs to handle this special case.
+	BOOL singleContainerIsSelected = NO;
+	if(1 == aSet.count) {
+		obj = [aSet anyObject];
+		if([[self dataSource] thumbnailBrowser:self itemCanHaveChildren:obj]) {
+			[path insertObject:obj atIndex:0];
+			singleContainerIsSelected = YES;
+		}
+	}
 
 	NSUInteger i = 0;
 	for(; i < [path count]; i++) {
@@ -89,14 +107,48 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 	PGThumbnailView *const lastView = [self viewAtIndex:i];
 	[self removeColumnsAfterView:lastView];
-	if([lastView representedObject] == [path lastObject]) [lastView setSelection:aSet];
+	if(singleContainerIsSelected) {
+		//	2023/09/25 special case: need to set selection in 2nd-last
+		//	thumbnail view instead of the last thumbnail view
+		NSAssert(i > 0, @"i");
+		[[self viewAtIndex:i-1] setSelection:aSet];
+	} else if([lastView representedObject] == [path lastObject])
+		[lastView setSelection:aSet];
 
 	--_updateCount;
 	if(!_updateCount) {
 		[[self window] makeFirstResponder:[[self views] lastObject]];
 		[[self delegate] thumbnailBrowser:self numberOfColumnsDidChangeFrom:initialNumberOfColumns];
 	}
-	if([self numberOfColumns] > initialNumberOfColumns) [self scrollToLastColumnAnimate:YES];
+	if([self numberOfColumns] > initialNumberOfColumns)
+		[self scrollToLastColumnAnimate:YES];
+
+	//	2023/10/02 bugfix: delegate was not being invoked
+	[[self delegate] thumbnailBrowserSelectionDidChange:self];
+}
+
+//	2023/09/24 select all siblings of the currently selected node(s)
+//	or all children if the selected node is a container
+- (void)selectAll {
+	//	if the last thumbnail view has selected nodes
+	//	then select all viewable siblings in that thumbnail view
+	PGThumbnailView *const lastView = [[self views] lastObject];
+	NSSet *const selection = [lastView selection];
+	if([selection count]) {
+		[lastView selectAll:self];
+		return;
+	}
+
+	//	if the last thumbnail view has no selection then get its rep-obj
+	//	and select of its direct children (which are viewable)
+	id const item = [lastView representedObject];
+	if(item) {
+		//	if views.count is N then last thumbnail view is at index N-1
+		//	and its rep-obj is displayed in the thumbnail view at index N-2
+		NSParameterAssert([[self views] indexOfObject:lastView] == [[self views] count] - 1);
+		PGThumbnailView *thumbnailView = [[self views] objectAtIndex:[[self views] count] - 2];
+		[self thumbnailView:thumbnailView selectAllDirectChildrenOf:item];
+	}
 }
 
 #pragma mark -
@@ -114,7 +166,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	}
 }
 
-#pragma mark -PGThumbnailBrowser(Private)
+#pragma mark - PGThumbnailBrowser(Private)
 
 - (void)_addColumnWithItem:(id)item
 {
@@ -130,7 +182,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[self addColumnWithView:thumbnailView];
 }
 
-#pragma mark -PGColumnView
+#pragma mark - PGColumnView
 
 - (void)insertColumnWithView:(NSView *)aView atIndex:(NSUInteger)index
 {
@@ -145,7 +197,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	if(!_updateCount) [[self delegate] thumbnailBrowser:self numberOfColumnsDidChangeFrom:columns];
 }
 
-#pragma mark -NSResponder
+#pragma mark - NSResponder
 
 - (IBAction)moveLeft:(id)sender
 {
@@ -164,14 +216,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	if([items count] && ![[view selection] count]) [view selectItem:[items objectAtIndex:0] byExtendingSelection:NO];
 }
 
-#pragma mark -<PGThumbnailViewDelegate>
+#pragma mark - <PGThumbnailViewDelegate>
 
 - (void)thumbnailViewSelectionDidChange:(PGThumbnailView *)sender
 {
 	if(_updateCount) return;
 	NSSet *const newSelection = [sender selection];
 	id const selectedItem = [newSelection anyObject];
-	if([newSelection count] != 1 || (dataSource && ![dataSource thumbnailBrowser:self itemCanHaveChildren:selectedItem])) {
+	if([newSelection count] != 1 ||
+		(dataSource && ![dataSource thumbnailBrowser:self itemCanHaveChildren:selectedItem])) {
 		[self removeColumnsAfterView:sender];
 		[[self delegate] thumbnailBrowserSelectionDidChange:self];
 		return;
@@ -186,13 +239,29 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		[nextView setRepresentedObject:selectedItem];
 		[nextView reloadData];
 		[self scrollToTopOfColumnWithView:nextView];
-	} else [self _addColumnWithItem:selectedItem];
+	} else
+		[self _addColumnWithItem:selectedItem];
 	[self scrollToLastColumnAnimate:YES];
 	[[self delegate] thumbnailBrowserSelectionDidChange:self];
 }
 
+- (void)thumbnailView:(PGThumbnailView *)sender selectAllDirectChildrenOf:(id)item {
+	//	2023/09/18 implements selecting all of a container's children when option-clicked
+	NSParameterAssert(dataSource && [dataSource thumbnailBrowser:self itemCanHaveChildren:item]);
+
+	NSArray *const views = [self views];
+	NSUInteger const col = [views indexOfObjectIdenticalTo:sender];
+	NSParameterAssert(NSNotFound != col);
+	NSParameterAssert(col + 1 < [views count]);
+	PGThumbnailView *const nextView = [views objectAtIndex:col + 1];
+	NSParameterAssert(nextView);
+	NSParameterAssert([nextView representedObject] == item);
+	[nextView selectAll:nil];
+}
+
 @end
 
+#pragma mark -
 @implementation NSObject(PGThumbnailBrowserDataSource)
 
 - (id)thumbnailBrowser:(PGThumbnailBrowser *)sender parentOfItem:(id)item
