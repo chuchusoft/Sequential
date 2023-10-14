@@ -48,15 +48,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #define PGProgressKnobSize (PGProgressBarHeight - 2.0f)
 #define PGCornerRadius (PGProgressBarBorder + PGProgressBarRadius)
 
+#pragma mark -
 @implementation PGInfoView
-
-#pragma mark -PGInfoView
 
 - (NSAttributedString *)attributedStringValue
 {
 	NSMutableParagraphStyle *const style = [[[NSParagraphStyle defaultParagraphStyle] mutableCopy] autorelease];
 	[style setAlignment:NSTextAlignmentCenter];
 	[style setLineBreakMode:NSLineBreakByTruncatingMiddle];
+#if 1
+	return [[[NSAttributedString alloc] initWithString:self.stringValue attributes:@{
+		NSFontAttributeName: [NSFont labelFontOfSize:0.0f],
+		NSForegroundColorAttributeName: NSColor.whiteColor,
+		NSParagraphStyleAttributeName: style,
+	}] autorelease];
+#else
 	if(![self showsProgressBar]) [style setAlignment:NSTextAlignmentCenter];
 	NSString *const string = PGGraphicalProgressBarStyle ? [self stringValue] : [NSString stringWithFormat:@"%@ (%lu/%lu)", [self stringValue], (unsigned long)[self index] + 1, (unsigned long)[self count]];
 	return [[[NSAttributedString alloc] initWithString:string attributes:[NSDictionary dictionaryWithObjectsAndKeys:
@@ -64,6 +70,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		[NSColor whiteColor], NSForegroundColorAttributeName,
 		style, NSParagraphStyleAttributeName,
 		nil]] autorelease];
+#endif
 }
 - (NSString *)stringValue
 {
@@ -94,13 +101,29 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	if(!showedProgressBar != ![self showsProgressBar]) [self PG_postNotificationName:PGBezelPanelFrameShouldChangeNotification];
 	else [self setNeedsDisplay:YES];
 }
+
+@synthesize currentFolderIndex = _currentFolderIndex;	//	2023/10/01 added
+- (void)setCurrentFolderIndex:(NSUInteger)anInt
+{
+	if(anInt == _currentFolderIndex) return;
+	_currentFolderIndex = anInt;
+	[self setNeedsDisplay:YES];
+}
+@synthesize currentFolderCount = _currentFolderCount;	//	2023/10/01 added
+- (void)setCurrentFolderCount:(NSUInteger)anInt
+{
+	if(anInt == _currentFolderCount) return;
+	_currentFolderCount = anInt;
+	[self setNeedsDisplay:YES];
+}
+
 - (BOOL)showsProgressBar
 {
 	return PGGraphicalProgressBarStyle && [self count] > 1;
 }
 @synthesize originCorner = _originCorner;
 
-#pragma mark -NSView
+#pragma mark - NSView
 
 - (BOOL)isFlipped
 {
@@ -113,12 +136,30 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[[NSColor PG_bezelBackgroundColor] set];
 	[bezel fill];
 	if([self showsProgressBar]) {
-		[[NSColor PG_bezelForegroundColor] set];
 		CGFloat const origin = [self originCorner] == PGMaxXMinYCorner ? NSMaxX(b) - 1.0f - PGProgressBarBorder : PGProgressBarBorder;
-		NSBezierPath *const progressBarOutline = [NSBezierPath PG_bezierPathWithRoundRect:NSMakeRect(([self originCorner] == PGMinXMinYCorner ? 0.5f + origin : 0.5f + origin - PGProgressBarWidth), 0.5f + PGProgressBarBorder, PGProgressBarWidth, PGProgressBarHeight) cornerRadius:PGProgressBarRadius];
+		NSRect progressBarRect = NSMakeRect(
+			[self originCorner] == PGMinXMinYCorner ? 0.5f + origin : 0.5f + origin - PGProgressBarWidth,
+			0.5f + PGProgressBarBorder, PGProgressBarWidth, PGProgressBarHeight);
+		NSBezierPath *const progressBarOutline = [NSBezierPath PG_bezierPathWithRoundRect:progressBarRect
+																			 cornerRadius:PGProgressBarRadius];
 
+		//	2023/10/01 show the display progress within a single folder/container as a bar
+		if(0 != _currentFolderCount) {
+			progressBarRect.size.width = PGProgressBarWidth * _currentFolderIndex / (_currentFolderCount - 1);
+			//	fill the background only when it is at least PGProgressBarRadius
+			//	points wide otherwise it looks like an "inverted pill"
+			if(progressBarRect.size.width >= PGProgressBarRadius) {
+				NSBezierPath *const folderProgress = [NSBezierPath PG_bezierPathWithRoundRect:progressBarRect
+																				 cornerRadius:PGProgressBarRadius];
+				[[NSColor selectedContentBackgroundColor] set];
+				[folderProgress fill];
+			}
+		}
+
+		[[NSColor PG_bezelForegroundColor] set];
 		NSUInteger const maxValue = [self count] - 1;
-		CGFloat x = round(((CGFloat)MIN([self index], maxValue) / maxValue) * (PGProgressBarWidth - PGProgressBarHeight) + PGProgressBarHeight / 2.0f);
+		CGFloat x = round(((CGFloat)MIN([self index], maxValue) / maxValue) * (PGProgressBarWidth - PGProgressBarHeight) +
+							PGProgressBarHeight / 2.0f);
 		if([self originCorner] == PGMaxXMinYCorner) x = -x + origin;
 		else x = x + origin;
 
@@ -141,7 +182,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[[self attributedStringValue] drawInRect:NSMakeRect(NSMinX(b) + PGPaddingSize + PGTextHorzPadding + textOffset, NSMinY(b) + PGTextBottomPadding, NSWidth(b) - PGTotalPaddingSize - PGTextTotalHorzPadding - progressBarWidth, NSHeight(b) - PGTextTotalVertPadding)];
 }
 
-#pragma mark -NSObject
+#pragma mark - NSObject
 
 - (void)dealloc
 {
@@ -149,7 +190,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[super dealloc];
 }
 
-#pragma mark -<PGBezelPanelContentView>
+#pragma mark - <PGBezelPanelContentView>
 
 - (NSRect)bezelPanel:(PGBezelPanel *)sender frameForContentRect:(NSRect)aRect scale:(CGFloat)scaleFactor
 {
