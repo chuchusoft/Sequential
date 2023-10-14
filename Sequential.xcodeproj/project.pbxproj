@@ -144,6 +144,7 @@
 		0EF5431E0DC128B600905391 /* PGNode.m in Sources */ = {isa = PBXBuildFile; fileRef = 0EF5431D0DC128B600905391 /* PGNode.m */; };
 		0EF543240DC1291600905391 /* PGFolderAdapter.m in Sources */ = {isa = PBXBuildFile; fileRef = 0EF543230DC1291600905391 /* PGFolderAdapter.m */; };
 		0EF9B2550FA348F700B7E16A /* PGIconTextFieldCell.m in Sources */ = {isa = PBXBuildFile; fileRef = 0EF9B2540FA348F700B7E16A /* PGIconTextFieldCell.m */; };
+		4B2462E02ADAC51700BA81EF /* PGThumbnailInfoView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4B2462DE2ADAC51700BA81EF /* PGThumbnailInfoView.m */; };
 		4BEC932729152136009B5F59 /* libUniversalDetector.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F1601B8926D2C8380012FD2B /* libUniversalDetector.a */; };
 		8D15AC310486D014006FF6A4 /* PGDocument.m in Sources */ = {isa = PBXBuildFile; fileRef = 2A37F4ACFDCFA73011CA2CEA /* PGDocument.m */; settings = {ATTRIBUTES = (); }; };
 		8D15AC320486D014006FF6A4 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 2A37F4B0FDCFA73011CA2CEA /* main.m */; settings = {ATTRIBUTES = (); }; };
@@ -485,7 +486,6 @@
 		0E9012A40DF22636004B6F69 /* Mirror-White.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Mirror-White.png"; sourceTree = "<group>"; };
 		0E90163B0DF435AB004B6F69 /* PGPreferenceWindowController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PGPreferenceWindowController.h; sourceTree = "<group>"; };
 		0E90163C0DF435AB004B6F69 /* PGPreferenceWindowController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PGPreferenceWindowController.m; sourceTree = "<group>"; };
-		0E9016A90DF44A7E004B6F69 /* PGColorWell.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PGColorWell.h; sourceTree = "<group>"; };
 		0E9016AA0DF44A7E004B6F69 /* PGColorWell.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PGColorWell.m; sourceTree = "<group>"; };
 		0E90195A0DF55F50004B6F69 /* PGDocumentWindow.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PGDocumentWindow.m; sourceTree = "<group>"; };
 		0E90195B0DF55F50004B6F69 /* PGDocumentWindow.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PGDocumentWindow.h; sourceTree = "<group>"; };
@@ -575,6 +575,9 @@
 		2A37F4ACFDCFA73011CA2CEA /* PGDocument.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PGDocument.m; sourceTree = "<group>"; };
 		2A37F4AEFDCFA73011CA2CEA /* PGDocument.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PGDocument.h; sourceTree = "<group>"; };
 		2A37F4B0FDCFA73011CA2CEA /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
+		4B2462DA2ADAC15C00BA81EF /* PGColorWell.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PGColorWell.h; sourceTree = "<group>"; };
+		4B2462DE2ADAC51700BA81EF /* PGThumbnailInfoView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PGThumbnailInfoView.m; sourceTree = "<group>"; };
+		4B2462DF2ADAC51700BA81EF /* PGThumbnailInfoView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PGThumbnailInfoView.h; sourceTree = "<group>"; };
 		4BC63F6D291628360099C1FF /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		8D15AC360486D014006FF6A4 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		8D15AC370486D014006FF6A4 /* Sequential.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Sequential.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -615,42 +618,18 @@
 		0E1D37350A7E1A5200C542A6 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				4B2462CC2ADAC0AE00BA81EF /* _generic utility */,
+				4B2462DB2ADAC1B700BA81EF /* image */,
+				4B2462DC2ADAC1C100BA81EF /* info */,
 				0E90195B0DF55F50004B6F69 /* PGDocumentWindow.h */,
 				0E90195A0DF55F50004B6F69 /* PGDocumentWindow.m */,
 				0E1D39F20A7F24E700C542A6 /* PGFullscreenWindow.h */,
 				0E1D39F30A7F24E700C542A6 /* PGFullscreenWindow.m */,
 				0E1D3A4A0A7FA7B400C542A6 /* PGClipView.h */,
 				0E1D3A4B0A7FA7B500C542A6 /* PGClipView.m */,
-				0EA89C9C0BD540E60077BEEE /* PGImageView.h */,
-				0EA89C9D0BD540E60077BEEE /* PGImageView.m */,
-				0E9016A90DF44A7E004B6F69 /* PGColorWell.h */,
-				0E9016AA0DF44A7E004B6F69 /* PGColorWell.m */,
-				0E04E98C0C23BA7100078EC2 /* PGBezelPanel.h */,
-				0E04E98D0C23BA7100078EC2 /* PGBezelPanel.m */,
-				0E04EBCC0C253BB000078EC2 /* PGAlertView.h */,
-				0E04EBCD0C253BB000078EC2 /* PGAlertView.m */,
-				0E04EBCE0C253BB000078EC2 /* PGInfoView.h */,
-				0E04EBCF0C253BB000078EC2 /* PGInfoView.m */,
 				0ECD9FFC0CB3961B0059C754 /* PGFindView.h */,
 				0ECD9FFD0CB3961B0059C754 /* PGFindView.m */,
-				0EDB9A740EA1896400B7342A /* PGColumnView.h */,
-				0EDB9A750EA1896400B7342A /* PGColumnView.m */,
-				0EDB9A770EA1899300B7342A /* PGThumbnailBrowser.h */,
-				0EDB9A780EA1899300B7342A /* PGThumbnailBrowser.m */,
-				0EDB9BFD0EA1E27D00B7342A /* PGThumbnailView.h */,
-				0EDB9BFE0EA1E27D00B7342A /* PGThumbnailView.m */,
-				0E7D74440C9ED641004AA269 /* PGDragHighlightView.h */,
-				0E7D74450C9ED641004AA269 /* PGDragHighlightView.m */,
-				0E2D08770DD2B4F800EC128A /* PGRoundedBackgroundView.h */,
-				0E2D08780DD2B4F800EC128A /* PGRoundedBackgroundView.m */,
-				0EC33E3D0E29B0A700450CF8 /* PGProgressIndicatorCell.h */,
-				0EC33E3E0E29B0A700450CF8 /* PGProgressIndicatorCell.m */,
-				0E255BA50E3A9D2E00EDF04C /* PGTimerButton.h */,
-				0E255BA60E3A9D2E00EDF04C /* PGTimerButton.m */,
-				0EF9B2530FA348F700B7E16A /* PGIconTextFieldCell.h */,
-				0EF9B2540FA348F700B7E16A /* PGIconTextFieldCell.m */,
-				0E20FDB810967449007EE24A /* PGOrientationMenuItemCell.h */,
-				0E20FDB910967449007EE24A /* PGOrientationMenuItemCell.m */,
+				4B2462DD2ADAC4CB00BA81EF /* thumbnail */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -909,6 +888,64 @@
 				1058C7A8FEA54F5311CA2CBB /* Other Frameworks */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		4B2462CC2ADAC0AE00BA81EF /* _generic utility */ = {
+			isa = PBXGroup;
+			children = (
+				0E04EBCC0C253BB000078EC2 /* PGAlertView.h */,
+				0E04EBCD0C253BB000078EC2 /* PGAlertView.m */,
+				0E04E98C0C23BA7100078EC2 /* PGBezelPanel.h */,
+				0E04E98D0C23BA7100078EC2 /* PGBezelPanel.m */,
+				4B2462DA2ADAC15C00BA81EF /* PGColorWell.h */,
+				0E9016AA0DF44A7E004B6F69 /* PGColorWell.m */,
+				0E7D74440C9ED641004AA269 /* PGDragHighlightView.h */,
+				0E7D74450C9ED641004AA269 /* PGDragHighlightView.m */,
+				0EF9B2530FA348F700B7E16A /* PGIconTextFieldCell.h */,
+				0EF9B2540FA348F700B7E16A /* PGIconTextFieldCell.m */,
+				0E20FDB810967449007EE24A /* PGOrientationMenuItemCell.h */,
+				0E20FDB910967449007EE24A /* PGOrientationMenuItemCell.m */,
+				0EC33E3D0E29B0A700450CF8 /* PGProgressIndicatorCell.h */,
+				0EC33E3E0E29B0A700450CF8 /* PGProgressIndicatorCell.m */,
+				0E2D08770DD2B4F800EC128A /* PGRoundedBackgroundView.h */,
+				0E2D08780DD2B4F800EC128A /* PGRoundedBackgroundView.m */,
+				0E255BA50E3A9D2E00EDF04C /* PGTimerButton.h */,
+				0E255BA60E3A9D2E00EDF04C /* PGTimerButton.m */,
+			);
+			path = "_generic utility";
+			sourceTree = "<group>";
+		};
+		4B2462DB2ADAC1B700BA81EF /* image */ = {
+			isa = PBXGroup;
+			children = (
+				0EA89C9C0BD540E60077BEEE /* PGImageView.h */,
+				0EA89C9D0BD540E60077BEEE /* PGImageView.m */,
+			);
+			path = image;
+			sourceTree = "<group>";
+		};
+		4B2462DC2ADAC1C100BA81EF /* info */ = {
+			isa = PBXGroup;
+			children = (
+				0E04EBCE0C253BB000078EC2 /* PGInfoView.h */,
+				0E04EBCF0C253BB000078EC2 /* PGInfoView.m */,
+			);
+			path = info;
+			sourceTree = "<group>";
+		};
+		4B2462DD2ADAC4CB00BA81EF /* thumbnail */ = {
+			isa = PBXGroup;
+			children = (
+				0EDB9A740EA1896400B7342A /* PGColumnView.h */,
+				0EDB9A750EA1896400B7342A /* PGColumnView.m */,
+				0EDB9A770EA1899300B7342A /* PGThumbnailBrowser.h */,
+				0EDB9A780EA1899300B7342A /* PGThumbnailBrowser.m */,
+				4B2462DF2ADAC51700BA81EF /* PGThumbnailInfoView.h */,
+				4B2462DE2ADAC51700BA81EF /* PGThumbnailInfoView.m */,
+				0EDB9BFD0EA1E27D00B7342A /* PGThumbnailView.h */,
+				0EDB9BFE0EA1E27D00B7342A /* PGThumbnailView.m */,
+			);
+			path = thumbnail;
 			sourceTree = "<group>";
 		};
 		F1601B7F26D2C8380012FD2B /* Products */ = {
@@ -1288,6 +1325,7 @@
 				0ECA9B681136CEF600BAFF5E /* PGDataProvider.m in Sources */,
 				B581795C121490A60041F0F4 /* PGXMLAdapter.m in Sources */,
 				F1CA6DDB26BA587100ECE823 /* only_for_linking_cpp_dylib.cpp in Sources */,
+				4B2462E02ADAC51700BA81EF /* PGThumbnailInfoView.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
