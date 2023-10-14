@@ -69,8 +69,10 @@ static void PGTimerCallback(CFRunLoopTimerRef timer, PGTimerContextObject *conte
 	CFTimeInterval const repeatInterval = PGRepeatOnInterval & opts ? interval : 0.0f;
 	NSTimer *const timer = [(NSTimer *)CFRunLoopTimerCreate(kCFAllocatorDefault, CFDateGetAbsoluteTime((CFDateRef)(date ? date : [NSDate dateWithTimeIntervalSinceNow:interval])), repeatInterval, kNilOptions, 0, (CFRunLoopTimerCallBack)PGTimerCallback, &context) autorelease];
 	[[NSRunLoop currentRunLoop] addTimer:timer forMode:mode];
-	if(!PGTimersByNonretainedObjectValue) PGTimersByNonretainedObjectValue = (NSMutableDictionary *)CFDictionaryCreateMutable(kCFAllocatorDefault, 0, NULL, &kCFTypeDictionaryValueCallBacks);
-	[NSMutableDictionary dictionary];
+	if(!PGTimersByNonretainedObjectValue)
+		PGTimersByNonretainedObjectValue = (NSMutableDictionary *)CFDictionaryCreateMutable(
+											kCFAllocatorDefault, 0, NULL, &kCFTypeDictionaryValueCallBacks);
+//	[NSMutableDictionary dictionary];
 	NSMutableArray *timers = [PGTimersByNonretainedObjectValue objectForKey:self];
 	if(!timers) {
 		timers = [NSMutableArray array];
