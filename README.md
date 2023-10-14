@@ -1,4 +1,4 @@
-# Sequential 2.2.2 (2023-08-17).
+# Sequential 2.3.0 (2023-10-15).
 
 Sequential is an image and comic viewer for macOS.
 
@@ -7,6 +7,9 @@ these formats: ZIP CBZ RAR CBR 7z.
 
 This is a modernized build of Sequential for Intel and Apple Silicon Macs
 running 10.14 (Intel) or 11.4 (Apple Silicon) or later.
+
+To see the release notes for this version, please read the
+[History](History.txt) file.
 
 The last build came out in 2010 so this program needed some work to get it
 to build and run on modern Macs. Several bugs have been fixed and some
