@@ -665,7 +665,7 @@ CA
                     </connections>
                 </button>
             </subviews>
-            <point key="canvasLocation" x="508" y="122"/>
+            <point key="canvasLocation" x="301" y="38"/>
         </customView>
     </objects>
     <resources>
