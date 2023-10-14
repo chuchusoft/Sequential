@@ -46,9 +46,14 @@ PGThumbnailBrowserDataSource, PGThumbnailBrowserDelegate, PGThumbnailViewDataSou
 	@private
 	PGBezelPanel *_window;			//	retains; owns the reference
 	PGThumbnailBrowser *_browser;	//	references; does not own the reference
+
 	PGDisplayController *_displayController;	//	references; does not own the reference; backs the displayController @property
 	PGDocument *_document;			//	references; does not own the reference; backs the document @property
+
 	BOOL _selfRetained;
+
+	PGBezelPanel *_infoWindow;		//	retains; owns the reference; 2023/10/02 added
+	NSView *_infoView;	//	references; does not own the reference; 2023/10/02 added [PGThumbnailInfoView]
 }
 
 + (BOOL)canShowThumbnailsForDocument:(PGDocument *)aDoc;
@@ -57,8 +62,9 @@ PGThumbnailBrowserDataSource, PGThumbnailBrowserDelegate, PGThumbnailViewDataSou
 @property(assign, nonatomic) PGDisplayController *displayController;
 @property(assign, nonatomic) PGDocument *document;
 @property(readonly) PGInset contentInset;
-@property(readonly) NSSet *selectedNodes;
+@property(copy, nonatomic) NSSet *selectedNodes;	//	2023/10/02 was readonly
 
+- (void)selectAll;
 - (void)display;
 - (void)fadeOut;
 
