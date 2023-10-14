@@ -35,18 +35,33 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 @class PGTimerPanelController;
 @class PGActivityPanelController;
 
-extern NSString *const PGAntialiasWhenUpscalingKey;
+//	general prefs pane
 extern NSString *const PGBackgroundColorSourceKey;	//	2023/08/17
 extern NSString *const PGBackgroundColorKey;
 extern NSString *const PGBackgroundPatternKey;
 extern NSString *const PGBackgroundColorUsedInFullScreenKey;	//	2023/08/14
-extern NSString *const PGMouseClickActionKey;
+
+extern NSString *const PGAntialiasWhenUpscalingKey;
+extern NSString *const PGImageScaleConstraintKey;
+
 extern NSString *const PGEscapeKeyMappingKey;
 extern NSString *const PGDimOtherScreensKey;
+
+//	thumbnail prefs pane
+extern NSString *const PGShowThumbnailImageNameKey;	//	2023/10/01 added
+extern NSString *const PGShowThumbnailImageSizeKey;	//	2023/10/01 added
+extern NSString *const PGShowThumbnailContainerNameKey;	//	2023/10/01 added
+extern NSString *const PGShowThumbnailContainerChildCountKey;	//	2023/10/01 added
+extern NSString *const PGShowThumbnailContainerChildSizeTotalKey;	//	2023/10/01 added
+extern NSString *const PGThumbnailSizeFormatKey;	//	2023/10/01 added
+
+//extern NSString *const PGShowFileNameOnImageThumbnailKey;	//	2022/10/15 added; 2023/10/01 removed
+//extern NSString *const PGShowCountsAndSizesOnContainerThumbnailKey;	//	2022/10/15 added; 2023/09/11 removed
+//extern NSString *const PGThumbnailContainerLabelTypeKey;	//	2023/09/11
+
+//	navigation prefs pane
+extern NSString *const PGMouseClickActionKey;
 extern NSString *const PGBackwardsInitialLocationKey;
-extern NSString *const PGImageScaleConstraintKey;
-extern NSString *const PGShowFileNameOnImageThumbnailKey;	//	2022/10/15
-extern NSString *const PGShowCountsAndSizesOnContainerThumbnailKey;	//	2022/10/15
 
 enum {
 	PGNextPreviousAction = 0,
