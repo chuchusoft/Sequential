@@ -501,18 +501,13 @@ OSType PGOSTypeFromString(NSString *str)
 	if(!data)
 		return nil;
 
-	#if 1
 	NSError* error = nil;
 	id decodedObj = [NSKeyedUnarchiver unarchivedObjectOfClass:class fromData:data error:&error];
-		#if !defined(NDEBUG)
-	if (nil == decodedObj && nil != error)
-		NSLog(@"-PG_decodeObjectOfClass: decode(%@) ==> error %@",
-				[data description], [error description]);
-		#endif
+	if(nil == decodedObj)
+		NSLog(@"in [NSUserDefaults PG_decodeObjectOfClass:forKey:%@, [NSKeyedUnarchiver unarchivedObjectOfClass:%@ fromData:%@] ==> error %@",
+				defaultName, NSStringFromClass(class), [data description], [error description]);
+
 	return decodedObj;
-	#else
-	return [NSUnarchiver unarchiveObjectWithData:data];
-	#endif
 }
 #else
 - (id)PG_decodedObjectForKey:(NSString *)defaultName
