@@ -38,9 +38,9 @@ NSUInteger
 Pack2HalfUInts(NSUInteger upper, NSUInteger lower) // folderAndImageCount
 {
 	enum : NSUInteger { HALF_UINT_BIT_SHIFT_COUNT = sizeof(NSUInteger) * 8u / 2u };
-	assert(upper < ((NSUInteger) 1u << HALF_UINT_BIT_SHIFT_COUNT));
+	NSCAssert(upper < ((NSUInteger) 1u << HALF_UINT_BIT_SHIFT_COUNT), @"upper");
 	upper	<<=	HALF_UINT_BIT_SHIFT_COUNT;
-	assert(lower < ((NSUInteger) 1u << HALF_UINT_BIT_SHIFT_COUNT));
+	NSCAssert(lower < ((NSUInteger) 1u << HALF_UINT_BIT_SHIFT_COUNT), @"lower");
 	upper	|=	lower;
 	return upper;
 }
@@ -58,9 +58,9 @@ Pack_ByteSize_FolderImageCounts(uint64_t byteSize, NSUInteger folders, NSUIntege
 	static_assert(sizeof(byteSize) >= sizeof(folders), "");
 	static_assert(sizeof(byteSize) >= sizeof(images), "");
 	enum : NSUInteger { BYTE_SIZE_BIT_COUNT = 36, FOLDER_BIT_COUNT = 10, IMAGE_BIT_COUNT = 18 };
-	assert(byteSize < (1ull << BYTE_SIZE_BIT_COUNT));	//	36 bits: 64G = 68,719,476,736
-	assert(folders  < (1ull << FOLDER_BIT_COUNT));		//	10 bits: 1k = 1024
-	assert(images   < (1ull << IMAGE_BIT_COUNT));		//	18 bits: 256k = 262144
+	NSCAssert(byteSize < (1ull << BYTE_SIZE_BIT_COUNT), @"byteSize");	//	36 bits: 64G = 68,719,476,736
+	NSCAssert(folders  < (1ull << FOLDER_BIT_COUNT), @"folders");		//	10 bits: 1k = 1024
+	NSCAssert(images   < (1ull << IMAGE_BIT_COUNT), @"images");			//	18 bits: 256k = 262144
 	if(byteSize >= (1ull << BYTE_SIZE_BIT_COUNT) ||
 	   folders  >= (1ull << FOLDER_BIT_COUNT) ||
 	   images   >= (1ull << IMAGE_BIT_COUNT))
@@ -125,6 +125,26 @@ Unpack_ByteSize_FolderImageCounts(uint64_t packed, uint64_t* byteSize,
 	*byteSize	=	tmp;
 }
 
+static
+uint64_t
+CalculateByteSizeAllChildren(NSArray<PGNode*>* children) {
+	uint64_t	byteSize	=	0;
+	for(PGNode *const child in children) {
+//NSLog(@"\t%@: isContainer %u", child.identifier.displayName, child.resourceAdapter.isContainer);
+        if(child.resourceAdapter.isContainer) {    //    will this be TRUE for PDF files?
+			NSCAssert([child.resourceAdapter isKindOfClass:PGContainerAdapter.class],
+						@"child.resourceAdapter is not a PGContainerAdapter instance");
+			byteSize	+=	CalculateByteSizeAllChildren(((PGContainerAdapter*)child.resourceAdapter).unsortedChildren);
+		} else {
+			//	2023/09/23 total now includes the non-viewable files like
+			//	text or video or line art files
+			byteSize	+=	child.dataProvider.dataByteSize;
+		//	byteSize	+=	child.dataProvider.dataLength.unsignedLongValue;
+		}
+	}
+	return byteSize;
+}
+
 #pragma mark -
 
 NSString *const PGMaxDepthKey = @"PGMaxDepth";
@@ -171,8 +191,11 @@ NSString *const PGMaxDepthKey = @"PGMaxDepth";
 		[[self document] noteNode:[self node] willRemoveNodes:removedChildren];
 		[removedChildren makeObjectsPerformSelector:@selector(detachFromTree)];
 	}
+
 	[_unsortedChildren release];
 	_unsortedChildren = [anArray copy];
+	_byteSizeAllChildren	=	~0ull;	//	invalidate cached value
+
 	_unsortedOrder = anOrder;
 	[_sortedChildren release];
 	_sortedChildren = nil;
@@ -180,16 +203,20 @@ NSString *const PGMaxDepthKey = @"PGMaxDepth";
 	[[self document] noteSortedChildrenDidChange];
 
 //NSLog(@">>> %@ >>>", self.node.identifier.displayName);
-	_byteSize		=	0;
-	_folderCount	=	_imageCount	=	0;
+	_byteSizeDirectChildren	=	0;
+	_folderCount			=	_imageCount	=	0;
 	for(PGNode *const child in anArray) {
 //NSLog(@"\t%@: isContainer %u", child.identifier.displayName, child.resourceAdapter.isContainer);
         if(child.resourceAdapter.isContainer)    //    will this be TRUE for PDF files?
             ++_folderCount;
-		else if(child.isViewable) {   //  child.resourceAdapter.canGenerateRealThumbnail
-            ++_imageCount;
+		else {
+			//	2023/09/23 total now includes the non-viewable files like
+			//	text or video or line art files
+			_byteSizeDirectChildren	+=	child.dataProvider.dataByteSize;
+		//	_byteSizeDirectChildren	+=	child.dataProvider.dataLength.unsignedLongValue;
 
-			_byteSize	+=	child.dataProvider.dataLength.unsignedLongValue;
+			if(child.isViewable)
+				++_imageCount;
 		}
 	}
 //NSLog(@"<<< %@ <<<", self.node.identifier.displayName);
@@ -244,6 +271,14 @@ NSString *const PGMaxDepthKey = @"PGMaxDepth";
 	_sortedChildren = nil;
 	[[self document] noteSortedChildrenDidChange];
 }
+- (uint64_t)byteSizeOfAllChildren {
+	if(~0ull != _byteSizeAllChildren)
+		return _byteSizeAllChildren;	//	return cached value
+
+	uint64_t	byteSize	=	CalculateByteSizeAllChildren(_unsortedChildren);
+	_byteSizeAllChildren	=	byteSize;	//	set cached value
+	return byteSize;
+}
 
 #pragma mark -PGResourceAdapter
 
@@ -255,6 +290,13 @@ NSString *const PGMaxDepthKey = @"PGMaxDepth";
 
 #pragma mark -NSObject
 
+- (id)init
+{
+	if(self = [super init]) {
+		_byteSizeAllChildren	=	~0ull;
+	}
+	return self;
+}
 - (void)dealloc
 {
 	[_unsortedChildren makeObjectsPerformSelector:@selector(detachFromTree)];
@@ -300,7 +342,7 @@ NSString *const PGMaxDepthKey = @"PGMaxDepth";
 } */
 - (uint64_t)byteSizeAndFolderAndImageCount
 {
-	return Pack_ByteSize_FolderImageCounts(_byteSize, _folderCount, _imageCount);
+	return Pack_ByteSize_FolderImageCounts(_byteSizeDirectChildren, _folderCount, _imageCount);
 }
 
 - (BOOL)hasSavableChildren
