@@ -34,15 +34,16 @@ extern NSString *const PGPreferenceWindowControllerDisplayScreenDidChangeNotific
 {
 	@private
 	IBOutlet NSView *generalView;
+	IBOutlet NSColorWell *customColorWell;	//	2023/08/17 added
 	IBOutlet NSPopUpButton *screensPopUp;
 	NSScreen *_displayScreen;
+
+	IBOutlet NSView *thumbnailView;	//	2023/10/01 added
 
 	IBOutlet NSView *navigationView;
 	IBOutlet NSTextField *secondaryMouseActionLabel;
 
 	IBOutlet NSView *updateView;
-
-	IBOutlet NSColorWell *customColorWell;	//	2023/08/17 added
 }
 
 + (id)sharedPrefController;
