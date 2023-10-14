@@ -92,9 +92,9 @@ StringAtDepth(NSInteger depth) {
 	return [@"\t\t\t\t\t" substringToIndex:depth];
 } */
 
-@implementation PGArchiveAdapter
+#pragma mark -
 
-#pragma mark -PGArchiveAdapter
+@implementation PGArchiveAdapter
 
 //	returns an array containing the child nodes which represent all objects
 //	that are direct children of the given path
@@ -365,6 +365,8 @@ StringAtDepth(NSInteger depth) {
 
 @end
 
+#pragma mark -
+
 @implementation PGDataProvider(PGArchiveDataProvider)
 
 - (XADArchive *)archive
@@ -373,25 +375,26 @@ StringAtDepth(NSInteger depth) {
 }
 - (int)entry
 {
-	return 0;
+	return 0;	//	2023/09/10 this should probably be -1 because 0 is a valid entry index
 }
 
 @end
 
-@implementation PGArchiveDataProvider
+#pragma mark -
 
-#pragma mark -PGArchiveDataProvider
+@implementation PGArchiveDataProvider
 
 - (id)initWithArchive:(XADArchive *)archive entry:(int)entry;
 {
 	if((self = [super init])) {
 		_archive = [archive retain];
 		_entry = entry;
+		NSParameterAssert(nil != archive);
 	}
 	return self;
 }
 
-#pragma mark -PGDataProvider
+#pragma mark PGDataProvider
 
 - (NSData *)data
 {
@@ -400,10 +403,27 @@ StringAtDepth(NSInteger depth) {
 	}
 	return nil;
 }
+- (uint64_t)dataByteSize
+{
+	@synchronized(_archive) {
+		off_t const value = [_archive representativeSizeOfEntry:_entry];
+		NSParameterAssert(value >= 0);	//	the following cast should be safe
+		return (uint64_t) value;	//	cast signed 64-bit int to unsigned 64-bit int
+	}
+	return 0;
+}
+- (NSDate *)dateModified
+{	//	2023/09/17 added to implement sorting by date modified in archives
+	@synchronized(_archive) {
+		return [[_archive attributesOfEntry:_entry] objectForKey:NSFileModificationDate];
+	}
+	return nil;
+}
 - (NSDate *)dateCreated
 {
 	@synchronized(_archive) {
-		return [[_archive attributesOfEntry:_entry] objectForKey:XADCreationDateKey];
+		//	2023/09/18 bugfix: was using XADCreationDateKey instead of NSFileCreationDate
+		return [[_archive attributesOfEntry:_entry] objectForKey:NSFileCreationDate];
 	}
 	return nil;
 }
@@ -427,19 +447,31 @@ StringAtDepth(NSInteger depth) {
 
 #pragma mark -
 
+- (BOOL)hasData
+{
+	//	2023/09/10 [PGDataProvider hasData] invokes [self data] which is
+	//	time-expensive when dealing with zip archives (and creates objects
+	//	that have no purpose and will just get reclaimed by the autorelease
+	//	pool). However, assuming that this instance is created to model an
+	//	archive entry, then it should have data so avoid the need to create
+	//	a NSData instance and just return YES.
+	//	TODO: is it always correct to return true? Are there times when it should be NO?
+	return YES;
+}
+
 - (NSData *)fourCCData
 {
 	return nil; // Too slow.
 }
-- (NSNumber *)dataLength
-{
+/* - (NSNumber *)dataLength
+{	2023/09/17 deprecated
 	@synchronized(_archive) {
 		return [NSNumber numberWithLongLong:[_archive representativeSizeOfEntry:_entry]];
 	}
 	return nil;
-}
+} */
 
-#pragma mark -PGDataProvider(PGArchiveDataProvider)
+#pragma mark PGDataProvider(PGArchiveDataProvider)
 
 - (XADArchive *)archive
 {
@@ -450,7 +482,7 @@ StringAtDepth(NSInteger depth) {
 	return _entry;
 }
 
-#pragma mark -PGDataProvider(PGResourceAdapterLoading)
+#pragma mark PGDataProvider(PGResourceAdapterLoading)
 
 - (NSArray *)adapterClassesForNode:(PGNode *)node
 {
@@ -460,7 +492,7 @@ StringAtDepth(NSInteger depth) {
 	return [super adapterClassesForNode:node];
 }
 
-#pragma mark -NSObject
+#pragma mark NSObject
 
 - (void)dealloc
 {
@@ -470,9 +502,11 @@ StringAtDepth(NSInteger depth) {
 
 @end
 
+#pragma mark -
+
 @implementation PGFolderDataProvider
 
-#pragma mark -PGDataProvider
+#pragma mark PGDataProvider
 
 - (OSType)typeCode
 {
@@ -487,6 +521,8 @@ StringAtDepth(NSInteger depth) {
 }
 
 @end
+
+#pragma mark -
 
 @implementation XADArchive(PGAdditions)
 
