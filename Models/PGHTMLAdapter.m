@@ -74,23 +74,27 @@ NSString *const PGDOMDocumentKey = @"PGDOMDocument";
 	if(!data)
 		return [[self node] fallbackFromFailedAdapter:self];
 #if 1
-	WKPreferences* preferences = [WKPreferences new];
-	preferences.javaEnabled = NO;
-	preferences.plugInsEnabled = NO;
-	preferences.javaScriptEnabled = NO;
-	preferences.javaScriptCanOpenWindowsAutomatically = NO;
-//	preferences.loadsImagesAutomatically = NO;
-	if (@available(macOS 10.15, *))
-		preferences.fraudulentWebsiteWarningEnabled = NO;
-	preferences.tabFocusesLinks = NO;
-	if (@available(macOS 11.3, *))
-		preferences.textInteractionEnabled = NO;
+	{
+		WKPreferences* preferences = [WKPreferences new];
+		preferences.javaEnabled = NO;
+		preferences.plugInsEnabled = NO;
+		preferences.javaScriptEnabled = NO;
+		preferences.javaScriptCanOpenWindowsAutomatically = NO;
+	//	preferences.loadsImagesAutomatically = NO;
+		if(@available(macOS 10.15, *))
+			preferences.fraudulentWebsiteWarningEnabled = NO;
+		preferences.tabFocusesLinks = NO;
+		if(@available(macOS 11.3, *))
+			preferences.textInteractionEnabled = NO;
 
-	WKWebViewConfiguration* webViewConfiguration = [WKWebViewConfiguration new];
-	webViewConfiguration.preferences = preferences;
-	[webViewConfiguration release];
-	_webView = [[WKWebView alloc] initWithFrame:NSZeroRect configuration:webViewConfiguration];
-	[preferences release];
+		{
+			WKWebViewConfiguration* webViewConfiguration = [WKWebViewConfiguration new];
+			webViewConfiguration.preferences = preferences;
+			_webView = [[WKWebView alloc] initWithFrame:NSZeroRect configuration:webViewConfiguration];
+			[webViewConfiguration release];
+		}
+		[preferences release];
+	}
 	_webView.navigationDelegate = self;
 
 	NSURLResponse *const response = [dp response];
@@ -151,7 +155,7 @@ NSString *const PGDOMDocumentKey = @"PGDOMDocument";
 					   context:(void *)context {
 	if([keyPath isEqual:@"title"]) {
 		WKWebView* webView = (WKWebView*) object;
-		assert([webView isKindOfClass:[WKWebView class]]);
+		NSParameterAssert([webView isKindOfClass:[WKWebView class]]);
 		[self.node.identifier setCustomDisplayName:webView.title];
 	}
 }
