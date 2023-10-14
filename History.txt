@@ -1,3 +1,64 @@
+2.3.0 (2023-10-15)
+- when in fullscreen mode with thumbnails displaying, the app would crash when
+  multiple archive/PDF documents were opened because it was trying to perform
+  thumbnail updates using the wrong document's data. Fixed. Similar bugs were
+  fixed if you switched active documents while in fullscreen mode with the
+  thumbnails showing, as well as showing/hiding the thumbnails while in
+  fullscreen mode.
+- added support for several modern image file types: webp, heic, heif.
+- shift-clicking in the thumbnail list now extends the selection (instead of
+  adding the clicked-on item to the selection and nothing else).
+- option-clicking a container in the thumbnail list (such as a folder or
+  archive) now selects all of that container's (direct) children.
+- closing and switching between opened ZIP archives (via cmd-`) is now faster.
+- moved the thumbnail preferences to their own pane named Thumbnail.
+- files and containers can showing names and/or sizes (set in the Thumbnail
+  pane of the Preferences window).
+- containers in the thumbnail list can now show sizes in base 2, base 10, or
+  in bytes (set in the Thumbnail pane of the Preferences window).
+- in the thumbnail list, folders which have no images in them but which have
+  folders that do contain images in them will now show the total size (if
+  enabled in the preferences) of all of the images inside that folder with the
+  total displayed inside square brackets, e.g., [123.45MB].
+- the modification date for entries in an archive was not made available for
+  sorting, etc. Fixed.
+- the creation date for entries in an archive was not being correctly accessed.
+  Fixed.
+- an error dialog was presented when images were attempted to be saved to the
+  folder offered in the Save dialog (ie, when a different folder is not
+  navigated to). Fixed.
+- when images are saved from an archive to a folder, the saved image files now
+  have their creation and modification dates set to the value that is stored in
+  the archive (if any).
+- if a single folder is selected without any image being selected, changing the
+  sort ordering would cause the thumbnail view of the folder's contents to be
+  removed from the list of thumbnail views, which is different behavior from
+  when a single folder is clicked (the contents are shown). Fixed: the contents
+  are now shown after the sort is completed.
+- when thumbnails are displayed, the Select All command now selects all siblings
+  of any selected images. If a folder is selected, the Select All command selects
+  all of its direct children. Only viewable images are selected; folders and
+  non-viewable files are not selected.
+- revealing an image in an archive will now select the archive file in the
+  Finder instead of attempting to open the archive file itself.
+- the Info window is now drawn with a background bar which indicates the display
+  progress within the currently displayed folder/container; the bar is drawn in
+  the system background highlight color.
+- when more than 1 image is selected, the selection's count and total size is
+  displayed in a small information window shown at the top of the thumbnail list
+  view which has the selected images. The format of the size is the format
+  selected in the Thumbnail pane of the Preferences window.
+- when switching from normal window to a Sequential fullscreen window (not to
+  be confused with a macOS system fullscreen window) and vice versa, the set of
+  selected images in the thumbnail view is now preserved (it was being lost in
+  previous versions). However, if the other open documents have multiple
+  selected images, their selection will be lost (only the active image will
+  become selected) - it's due to the way Sequential performs transitions to and
+  from its fullscreen mode.
+- the thumbnail of a PDF file now displays the PDF's byte size if that option
+  is enabled in the Preferences.
+- added .JFIF (.jfif) to the list of supported image file extensions
+
 2.2.2 (2023-08-17)
 - the set of paused documents was being stored in the user defaults (preferences)
   store, but this makes the system (Foundation framework) generate multiple
@@ -33,11 +94,11 @@
   background of the window is now drawn in opaque black instead of the
   background color and pattern that is selected in the Preferences window. This
   matches the behavior of the system Preview app.
-  This behavior cab be changed by using the "Full screen background" setting in
+  This behavior can be changed by using the "Full screen background" setting in
   the General Preferences window.
 - in the General Preferences window, added a preference for the background color
   source: Sequential can now use the color of the system's current appearance
-  (theme) or a custom user-chosen color.
+  (theme) or a custom color chosen by the user.
 - if a window is showing thumbnails and is changed from fullscreen to a normal
   window (or vice versa) before the thumbnails had been generated, the app would
   crash because the thumbnail view was trying to access a deallocated object. Fixed.
