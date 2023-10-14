@@ -103,7 +103,7 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 			else rep = PGImageSourceImageRepAtIndex(source, 0);
 #endif
 		}
-		if (source)
+		if(source)
 			CFRelease(source);
 	}
 	[self performSelectorOnMainThread:@selector(_readFinishedWithImageRep:) withObject:rep waitUntilDone:NO];
