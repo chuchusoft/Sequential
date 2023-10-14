@@ -101,6 +101,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 {
 	return nil;
 }
+- (uint64_t)dataByteSize
+{
+	@autoreleasepool {
+		NSData *const fullData = [self data];
+		if(!fullData)
+			return 0;
+		return (uint64_t) [fullData length];	//	widening cast so OK
+	}
+}
 - (NSDate *)dateModified
 {
 	return nil;
@@ -138,14 +147,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[pool drain];
 	return hasData;
 }
-- (NSNumber *)dataLength
-{
+/* - (NSNumber *)dataLength
+{	2023/09/17 deprecated
 	NSAutoreleasePool *const pool = [[NSAutoreleasePool alloc] init];
 	NSData *const fullData = [self data];
 	NSUInteger const size = [fullData length];
 	[pool drain];
 	return [NSNumber numberWithUnsignedInteger:size];
-}
+} */
 - (NSData *)fourCCData
 {
 	NSAutoreleasePool *const pool = [[NSAutoreleasePool alloc] init];
@@ -177,7 +186,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	if(kind) return kind;
 #if 1
 	CFStringRef desc = UTTypeCopyDescription((CFStringRef) [self UTIType]);
-	if (desc)
+	if(desc)
 		return [(NSString*)desc autorelease];
 #else
 	if(noErr == LSCopyKindStringForTypeInfo(kLSUnknownType, kLSUnknownCreator, (CFStringRef)[self extension], (CFStringRef *)&kind)) return [kind autorelease];
@@ -242,7 +251,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 }
 - (NSData *)data
 {
-	return [[[NSData alloc] initWithContentsOfURL:[_identifier URL] options:NSMappedRead | NSUncachedRead error:NULL] autorelease];
+	return [[[NSData alloc] initWithContentsOfURL:[_identifier URL]
+										  options:NSDataReadingMapped | NSDataReadingUncached
+											error:NULL] autorelease];
+}
+- (uint64_t)dataByteSize
+{
+	return (uint64_t) [[self valueForFMAttributeName:NSFileSize] unsignedLongValue];
 }
 
 #pragma mark -
@@ -283,21 +298,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 {
 	return PGEqualObjects([self valueForFMAttributeName:NSFileType], NSFileTypeRegular);
 }
-- (NSNumber *)dataLength
-{
+/* - (NSNumber *)dataLength
+{	2023/09/17 deprecated
 	return [self valueForFMAttributeName:NSFileSize];
-}
+} */
 - (NSImage *)icon
 {
 	return [[NSWorkspace sharedWorkspace] iconForFile:[[_identifier URL] path]];
 }
 - (NSString *)kindString
 {
-//	return [self valueForLSAttributeName:kLSItemDisplayKind];
 	NSString* uniformTypeIdentifier = [self UTIType];
-	assert(uniformTypeIdentifier);
+	NSParameterAssert(uniformTypeIdentifier);
 	CFStringRef desc = UTTypeCopyDescription((CFStringRef) uniformTypeIdentifier);
-	assert(desc);
+	NSParameterAssert(desc);
 	return [(NSString *)desc autorelease];
 }
 
