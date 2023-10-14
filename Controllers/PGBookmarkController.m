@@ -68,12 +68,12 @@ GetBookmarksFileURL(BOOL createParentFolderIfNonExistant) {
 	NSFileManager*		fileMgr = NSFileManager.defaultManager;
 	NSArray<NSURL*>*	urls = [fileMgr URLsForDirectory:NSApplicationSupportDirectory
 											   inDomains:NSUserDomainMask];
-	if (nil == urls || 1 != urls.count)
+	if(nil == urls || 1 != urls.count)
 		return nil;
 
 	NSURL*	parentFolder = [[urls objectAtIndex:0] URLByAppendingPathComponent:NSBundle.mainBundle.bundleIdentifier
 																   isDirectory:YES];
-	if (nil == parentFolder)
+	if(nil == parentFolder)
 		return nil;
 	NSError*	error = nil;
 	BOOL		b = createParentFolderIfNonExistant ?
@@ -81,17 +81,17 @@ GetBookmarksFileURL(BOOL createParentFolderIfNonExistant) {
 					  withIntermediateDirectories:NO
 									   attributes:nil
 											error:&error] : YES;
-//if (!b) NSLog(@"error %@", error);
-	if (!b) {
-		if (!error || !error.userInfo)
+//if(!b) NSLog(@"error %@", error);
+	if(!b) {
+		if(!error || !error.userInfo)
 			return nil;
 
 		id	ue	=	[error.userInfo objectForKey:NSUnderlyingErrorKey];
-		if (!ue || ![ue isKindOfClass:NSError.class])
+		if(!ue || ![ue isKindOfClass:NSError.class])
 			return nil;
 
 		error	=	(NSError*) ue;
-		if (NSPOSIXErrorDomain != error.domain || EEXIST != error.code)
+		if(NSPOSIXErrorDomain != error.domain || EEXIST != error.code)
 			return nil;
 	}
 
@@ -230,7 +230,7 @@ GetBookmarksFileURL(BOOL createParentFolderIfNonExistant) {
 		NSData*		archivedBookmarks = [NSKeyedArchiver archivedDataWithRootObject:_bookmarks
 															  requiringSecureCoding:YES
 																			  error:&error];
-		if (nil == archivedBookmarks || nil != error)
+		if(nil == archivedBookmarks || nil != error)
 			return;
 
 		NSURL*	url = GetBookmarksFileURL(YES);
@@ -299,9 +299,9 @@ GetBookmarksFileURL(BOOL createParentFolderIfNonExistant) {
 		BOOL bookmarksDataIsFromPGPausedDocumentsKey = nil != bookmarksData;
 
 		//	2023/08/12 transfer list of paused documents from UserDefaults to separate file
-		if (!bookmarksDataIsFromPGPausedDocumentsKey) {
+		if(!bookmarksDataIsFromPGPausedDocumentsKey) {
 			bookmarksData	=	[NSUserDefaults.standardUserDefaults objectForKey:@"PGPausedDocuments4"];
-			if (nil != bookmarksData) {
+			if(nil != bookmarksData) {
 				[NSUserDefaults.standardUserDefaults removeObjectForKey:@"PGPausedDocuments4"];
 				[NSUserDefaults.standardUserDefaults synchronize];
 			}
@@ -334,7 +334,7 @@ GetBookmarksFileURL(BOOL createParentFolderIfNonExistant) {
 		_bookmarks = bookmarksData ? [[NSKeyedUnarchiver unarchiveObjectWithData:bookmarksData] retain] : [[NSMutableArray alloc] init];
 #endif
 
-		assert([_bookmarks isKindOfClass:[NSMutableArray class]]);
+		NSParameterAssert([_bookmarks isKindOfClass:[NSMutableArray class]]);
 		if(!bookmarksDataIsFromPGPausedDocumentsKey)
 			[self _saveBookmarks];
 	}
