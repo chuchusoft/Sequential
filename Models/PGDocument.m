@@ -102,7 +102,8 @@ NSString *const PGDocumentUpdateRecursivelyKey = @"PGDocumentUpdateRecursively";
 - (void)setDisplayController:(PGDisplayController *)controller
 {
 	if(controller == _displayController) return;
-	if([_displayController activeDocument] == self) [_displayController setActiveDocument:nil closeIfAppropriate:YES];
+	if([_displayController activeDocument] == self)
+		[_displayController setActiveDocument:nil closeIfAppropriate:YES];
 	[_displayController release];
 	_displayController = [controller retain];
 	[_displayController setActiveDocument:self closeIfAppropriate:NO];
@@ -185,9 +186,10 @@ NSString *const PGDocumentUpdateRecursivelyKey = @"PGDocumentUpdateRecursively";
 }
 - (void)close
 {
-	[[PGDocumentController sharedDocumentController] noteNewRecentDocument:self];
+	PGDocumentController *dc = [PGDocumentController sharedDocumentController];
+	[dc noteNewRecentDocument:self];
 	[self setDisplayController:nil];
-	[[PGDocumentController sharedDocumentController] removeDocument:self];
+	[dc removeDocument:self];
 }
 - (void)openBookmark:(PGBookmark *)aBookmark
 {
