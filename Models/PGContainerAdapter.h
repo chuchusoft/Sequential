@@ -36,7 +36,7 @@ extern NSString *const PGMaxDepthKey;
 	NSArray<PGNode*> *_sortedChildren;
 	NSArray<PGNode*> *_unsortedChildren;
 	PGSortOrder _unsortedOrder;
-	uint64_t _byteSize;
+	uint64_t _byteSizeDirectChildren, _byteSizeAllChildren;
 	NSUInteger _folderCount, _imageCount;
 }
 
@@ -49,7 +49,11 @@ extern NSString *const PGMaxDepthKey;
 
 - (PGNode *)childForIdentifier:(PGResourceIdentifier *)anIdent;
 - (NSUInteger)viewableIndexOfChild:(PGNode *)aNode;
-- (PGNode *)outwardSearchForward:(BOOL)forward fromChild:(PGNode *)start inclusive:(BOOL)inclusive withSelector:(SEL)sel context:(id)context;
+- (PGNode *)outwardSearchForward:(BOOL)forward
+					   fromChild:(PGNode *)start
+					   inclusive:(BOOL)inclusive
+					withSelector:(SEL)sel
+						 context:(id)context;
 /* The selector 'sel' should have one of the following forms:
 - (PGNode *)selector;
 - (PGNode *)selectorForward:(BOOL)flag;
@@ -57,6 +61,8 @@ extern NSString *const PGMaxDepthKey;
 - (PGNode *)selectorForward:(BOOL)flag withContext:(id)context ignored:(id)nil1; */
 
 - (void)noteChildValueForCurrentSortOrderDidChange:(PGNode *)child;
+
+- (uint64_t)byteSizeOfAllChildren;
 
 @end
 
