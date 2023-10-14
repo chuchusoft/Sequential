@@ -461,7 +461,6 @@
 		0E4793920DF15FD90083B7CA /* PGAttachments.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PGAttachments.m; sourceTree = "<group>"; };
 		0E4794280DF182C40083B7CA /* Silhouette-Black.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Silhouette-Black.png"; sourceTree = "<group>"; };
 		0E47942A0DF1832E0083B7CA /* Silhouette-White.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Silhouette-White.png"; sourceTree = "<group>"; };
-		0E47C3BF0B963DD30060E8A8 /* Sequential_Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = Sequential_Prefix.pch; sourceTree = "<group>"; };
 		0E5035400DDBBF070067FF6A /* Cursor-Hand-Pointing.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Cursor-Hand-Pointing.png"; sourceTree = "<group>"; };
 		0E56B8DB0E24918C00987F57 /* PGActivityPanelController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PGActivityPanelController.h; sourceTree = "<group>"; };
 		0E56B8DC0E24918C00987F57 /* PGActivityPanelController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PGActivityPanelController.m; sourceTree = "<group>"; };
@@ -805,7 +804,6 @@
 			isa = PBXGroup;
 			children = (
 				2A37F4B0FDCFA73011CA2CEA /* main.m */,
-				0E47C3BF0B963DD30060E8A8 /* Sequential_Prefix.pch */,
 				0E4793910DF15FD90083B7CA /* PGAttachments.h */,
 				0E4793920DF15FD90083B7CA /* PGAttachments.m */,
 				0E246BBB108880F800C30936 /* PGDebug.h */,
