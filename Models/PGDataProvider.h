@@ -32,6 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 // TODO: Add -fileName/-displayableName/-attributedString properties.
 
 @property(readonly) NSData *data;
+@property(readonly) uint64_t dataByteSize;	//	2023/09/17
 @property(readonly) NSDate *dateModified;
 @property(readonly) NSDate *dateCreated;
 
@@ -44,7 +45,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 @property(readonly) NSString *kindString;
 @property(readonly) BOOL hasData;
 @property(readonly) NSData *fourCCData;
-@property(readonly) NSNumber *dataLength;
+//@property(readonly) NSNumber *dataLength;	//	2023/09/17 deprecated; use dataByteSize instead
 
 @end
 
