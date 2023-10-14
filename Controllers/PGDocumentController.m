@@ -58,18 +58,31 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import "PGLocalizing.h"
 #import "PGZooming.h"
 
+//	general prefs pane
 NSString *const PGAntialiasWhenUpscalingKey = @"PGAntialiasWhenUpscaling";
 NSString *const PGBackgroundColorSourceKey = @"PGBackgroundColorSource";	//	2023/08/17
 NSString *const PGBackgroundColorKey = @"PGBackgroundColor";
 NSString *const PGBackgroundPatternKey = @"PGBackgroundPattern";
 NSString *const PGBackgroundColorUsedInFullScreenKey = @"PGBackgroundColorUsedInFullScreen";	//	2023/08/14
-NSString *const PGMouseClickActionKey = @"PGMouseClickAction";
 NSString *const PGEscapeKeyMappingKey = @"PGEscapeKeyMapping";
 NSString *const PGDimOtherScreensKey = @"PGDimOtherScreens";
-NSString *const PGBackwardsInitialLocationKey = @"PGBackwardsInitialLocation";
 NSString *const PGImageScaleConstraintKey = @"PGImageScaleConstraint";
-NSString *const PGShowFileNameOnImageThumbnailKey = @"PGShowFileNameOnImageThumbnail";
-NSString *const PGShowCountsAndSizesOnContainerThumbnailKey = @"PGShowCountsAndSizesOnContainerThumbnail";
+
+//	thumbnail prefs pane
+NSString *const PGShowThumbnailImageNameKey = @"PGShowThumbnailImageName";	//	2023/10/01 added
+NSString *const PGShowThumbnailImageSizeKey = @"PGShowThumbnailImageSize";	//	2023/10/01 added
+NSString *const PGShowThumbnailContainerNameKey = @"PGShowThumbnailContainerName";	//	2023/10/01 added
+NSString *const PGShowThumbnailContainerChildCountKey = @"PGShowThumbnailContainerChildCount";	//	2023/10/01 added
+NSString *const PGShowThumbnailContainerChildSizeTotalKey = @"PGShowThumbnailContainerChildSizeTotal";	//	2023/10/01 added
+NSString *const PGThumbnailSizeFormatKey = @"PGThumbnailSizeFormat";	//	2023/10/01 added
+
+NSString *const deprecated_PGShowFileNameOnImageThumbnailKey = @"PGShowFileNameOnImageThumbnail";	//	2023/10/01 deprecated/removed
+static NSString* const deprecated_PGShowCountsAndSizesOnContainerThumbnailKey = @"PGShowCountsAndSizesOnContainerThumbnail";	//	2023/09/11 deprecated/removed
+//NSString *const PGThumbnailContainerLabelTypeKey = @"PGThumbnailContainerLabelType";	//	2023/09/11
+
+//	navigation prefs pane
+NSString *const PGMouseClickActionKey = @"PGMouseClickAction";
+NSString *const PGBackwardsInitialLocationKey = @"PGBackwardsInitialLocation";
 
 //	TODO: work out if these can be removed
 static NSString *const PGRecentItemsKey = @"PGRecentItems2";
@@ -107,23 +120,48 @@ static PGDocumentController *PGSharedDocumentController = nil;
 		return;
 //	NSNumber *const yes = [NSNumber numberWithBool:YES], *no = [NSNumber numberWithBool:NO];
 	NSUserDefaults *const d = [NSUserDefaults standardUserDefaults];
-	NSError* error = nil;
+	NSError *error = nil;
+	NSData *archivedBlackColor = [NSKeyedArchiver
+									archivedDataWithRootObject:NSColor.blackColor
+									requiringSecureCoding:YES error:&error];
 	[d registerDefaults:[NSDictionary dictionaryWithObjectsAndKeys:
 		@YES /* yes */, PGAntialiasWhenUpscalingKey,
-	//	[NSArchiver archivedDataWithRootObject:[NSColor blackColor]],
-		[NSKeyedArchiver archivedDataWithRootObject:[NSColor blackColor] requiringSecureCoding:YES error:&error],
-		PGBackgroundColorKey,
+		archivedBlackColor, PGBackgroundColorKey,
 		[NSNumber numberWithUnsignedInteger:PGNoPattern], PGBackgroundPatternKey,	//	misnomer; should be PGBackgroundPatternTypeKey
 		[NSNumber numberWithInteger:PGNextPreviousAction], PGMouseClickActionKey,
 		[NSNumber numberWithUnsignedInteger:1], PGMaxDepthKey,
-		@NO /* no */, PGFullscreenKey,
+		@NO, PGFullscreenKey,
 		[NSNumber numberWithInteger:PGFullscreenMapping], PGEscapeKeyMappingKey,
-		@NO /* no */, PGDimOtherScreensKey,
+		@NO, PGDimOtherScreensKey,
 		[NSNumber numberWithInteger:PGEndLocation], PGBackwardsInitialLocationKey,
 		[NSNumber numberWithUnsignedInteger:PGScaleFreely], PGImageScaleConstraintKey,
-		@NO, PGShowFileNameOnImageThumbnailKey,
-		@NO, PGShowCountsAndSizesOnContainerThumbnailKey,
+
+		@NO, PGShowThumbnailImageNameKey,
+		@NO, PGShowThumbnailImageSizeKey,
+
+		@YES, PGShowThumbnailContainerNameKey,
+		@NO, PGShowThumbnailContainerChildCountKey,
+		@NO, PGShowThumbnailContainerChildSizeTotalKey,
+
+		[NSNumber numberWithUnsignedInteger:0], PGThumbnailSizeFormatKey,
 		nil]];
+
+	//	2023/10/01 transition value of the old PGShowFileNameOnImageThumbnail
+	//	default to the new PGShowThumbnailImageName default
+	id o = [d objectForKey:deprecated_PGShowFileNameOnImageThumbnailKey];
+	if(o) {
+		[d setBool:[o boolValue] forKey:PGShowThumbnailImageNameKey];
+	}
+
+	//	2023/09/11 transition value of the old PGShowCountsAndSizesOnContainerThumbnail
+	//	default to the new PGThumbnailContainerLabelType default
+	o = [d objectForKey:deprecated_PGShowCountsAndSizesOnContainerThumbnailKey];
+	if(o) {
+		BOOL b = [o boolValue];
+		[d setBool:b forKey:PGShowThumbnailContainerChildCountKey];
+		[d setBool:b forKey:PGShowThumbnailContainerChildSizeTotalKey];
+		[d removeObjectForKey:deprecated_PGShowCountsAndSizesOnContainerThumbnailKey];
+	}
 }
 
 #pragma mark -PGDocumentController
@@ -152,7 +190,7 @@ static PGDocumentController *PGSharedDocumentController = nil;
 	[openPanel setAllowsMultipleSelection:YES];
 	NSURL *const URL = [[[self currentDocument] rootIdentifier] URL];
 #if 1
-	if (URL.isFileURL)
+	if(URL.isFileURL)
 		openPanel.directoryURL		=	URL.URLByDeletingLastPathComponent;
 	openPanel.allowedFileTypes	=	[PGResourceAdapter supportedFileTypes];
 	NSModalResponse	response	=	[openPanel runModal];
@@ -278,7 +316,8 @@ static PGDocumentController *PGSharedDocumentController = nil;
 - (PGDisplayController *)displayControllerForNewDocument
 {
 	if(self.fullscreen) {
-		if(!_fullscreenController) _fullscreenController = [[PGFullscreenController alloc] init];
+		if(!_fullscreenController)
+			_fullscreenController = [[PGFullscreenController alloc] init];
 		return _fullscreenController;
 	}
 	return [[[PGWindowController alloc] init] autorelease];
@@ -311,7 +350,8 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 
 - (void)setUsesEntireScreenWhenInFullScreen:(BOOL)flag	//	2023/08/14 added
 {
-	assert(_fullscreen && _fullscreenController);
+	NSParameterAssert(_fullscreen);
+	NSParameterAssert(_fullscreenController);
 
 	[NSUserDefaults.standardUserDefaults setBool:flag
 										  forKey:(NSString*)PGUseEntireScreenWhenInFullScreenKey];
@@ -345,7 +385,7 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 {
 #if 1
 	for(NSRunningApplication *const oneApp in [[NSWorkspace sharedWorkspace] runningApplications])
-		if ([oneApp.bundleIdentifier isEqual:PGPathFinderBundleID])
+		if([oneApp.bundleIdentifier isEqual:PGPathFinderBundleID])
 			return YES;
 #else
 	for(NSDictionary *const dict in [[NSWorkspace sharedWorkspace] launchedApplications])
@@ -445,7 +485,7 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 //	[[NSUserDefaults standardUserDefaults] setObject:[NSKeyedArchiver archivedDataWithRootObject:_recentDocumentIdentifiers] forKey:PGRecentItemsKey];
 	NSError* error = nil;
 	NSData* archivedData = [NSKeyedArchiver archivedDataWithRootObject:_recentDocumentIdentifiers requiringSecureCoding:YES error:&error];
-	if (error)
+	if(error)
 		return;
 
 	[[NSUserDefaults standardUserDefaults] setObject:archivedData forKey:PGRecentItemsKey];
@@ -461,34 +501,139 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 {
 	if(flag == _inFullscreen) return;
 //	NSDisableScreenUpdates();	2021/07/21 deprecated
+
+	//	2023/10/14 there is a known issue when entering or leaving fullscreen mode:
+	//	if document A has multiple items selected and document B has multiple items
+	//	selected then entering/exiting fullscreen will preserve the selection of
+	//	whichever document is the active/frontmost document when the transition
+	//	occurs, but the selection of the other document(s) will be lost and only the
+	//	active node of the other documents ends up selected.
+
+/*	//	The solution is probably to use a dictionary of sets where the key is the
+	//	PGDocument instance and the value is the NSSet of that document's selection.
+
+	//	Unfortunately, this idea does not work: it causes the wrong nodes to be
+	//	selected in the wrong doc. Here's the code which doesn't work.
+
+	NSArray<__kindof NSDocument *> *const docs = [self documents];
+	CFMutableDictionaryRef selections = CFDictionaryCreateMutable(
+						kCFAllocatorDefault, docs.count, NULL, NULL);
+	for(PGDocument *const doc in docs) {
+		NSSet *const selectedNodes = doc.displayController.selectedNodes;
+		if(selectedNodes)
+			CFDictionaryAddValue(selections, doc, [[selectedNodes retain] autorelease]);
+	}
+
 	if(!flag) {
 		_inFullscreen = flag;
+
+		NSAssert(_fullscreenController, @"_fullscreenController");
 		[_fullscreenController prepareToExitFullscreen];
-		NSMutableArray *const docs = [[[self documents] mutableCopy] autorelease];
+
+		NSMutableArray *const mutDocs = [[docs mutableCopy] autorelease];
 		PGDocument *const currentDoc = [_fullscreenController activeDocument];
 		if(currentDoc) {
-			[docs removeObjectIdenticalTo:currentDoc];
-			[docs addObject:currentDoc];
+			[mutDocs removeObjectIdenticalTo:currentDoc];
+			[mutDocs addObject:currentDoc];
 		}
-		for(PGDocument *const doc in docs) {
-			[doc setDisplayController:[self displayControllerForNewDocument]];
-			[[doc displayController] showWindow:self];
+		for(PGDocument *const doc in mutDocs) {
+			PGDisplayController *const dc = [self displayControllerForNewDocument];
+			[doc setDisplayController:dc];
+			[dc showWindow:self];
+
+			//	2023/10/02 sets the selection in the new controller,
+			//	ie, restores selection
+			NSSet *selectedNodes = CFDictionaryGetValue(selections, doc);
+			if(selectedNodes && currentDoc == doc)
+				dc.selectedNodes = selectedNodes;
 		}
+
 		[[_fullscreenController window] close];
 		[_fullscreenController release];
 		_fullscreenController = nil;
-	} else if([[self documents] count] && self.fullscreen) {
+	} else if([docs count] && self.fullscreen) {
 		_inFullscreen = flag;
 		PGDocument *const currentDoc = [self currentDocument];
 		_fullscreenController = [[PGFullscreenController alloc] init];
-		for(PGDocument *const doc in [self documents]) {
+		for(PGDocument *const doc in docs) {
 			PGDisplayController *const oldController = [doc displayController];
 			if(!oldController) continue;
+
 			[doc setDisplayController:_fullscreenController];
 			[[oldController window] close];
 		}
 		[_fullscreenController setActiveDocument:currentDoc closeIfAppropriate:NO];
 		[_fullscreenController showWindow:self];
+
+		//	2023/10/02 sets the selection in the new controller, ie,
+		//	restores selection
+		for(PGDocument *const doc in docs) {
+			NSSet *selectedNodes = CFDictionaryGetValue(selections, doc);
+			if(!selectedNodes)
+				continue;
+
+			if(doc == currentDoc) {
+				NSAssert(doc.displayController == _fullscreenController, @"dc");
+				_fullscreenController.selectedNodes = selectedNodes;
+			} else
+				doc.displayController.selectedNodes = selectedNodes;
+		}
+	}
+	CFRelease(selections);
+ */
+
+	NSArray<__kindof NSDocument *> *const docs = [self documents];
+	NSSet *selectedNodes = nil;	//	2023/10/02
+
+	if(!flag) {
+		_inFullscreen = flag;
+
+		NSAssert(_fullscreenController, @"_fullscreenController");
+		[_fullscreenController prepareToExitFullscreen];
+		selectedNodes = _fullscreenController.selectedNodes;
+
+		NSMutableArray *const mutDocs = [[docs mutableCopy] autorelease];
+		PGDocument *const currentDoc = [_fullscreenController activeDocument];
+		if(currentDoc) {
+			[mutDocs removeObjectIdenticalTo:currentDoc];
+			[mutDocs addObject:currentDoc];
+		}
+		for(PGDocument *const doc in mutDocs) {
+			PGDisplayController *const dc = [self displayControllerForNewDocument];
+			[doc setDisplayController:dc];
+			[dc showWindow:self];
+
+			//	2023/10/02 sets the selection in the new controller,
+			//	ie, restores selection
+			if(selectedNodes && currentDoc == doc)
+				dc.selectedNodes = selectedNodes;
+		}
+		[[_fullscreenController window] close];
+		[_fullscreenController release];
+		_fullscreenController = nil;
+	} else if([docs count] && self.fullscreen) {
+		_inFullscreen = flag;
+		PGDocument *const currentDoc = [self currentDocument];
+		_fullscreenController = [[PGFullscreenController alloc] init];
+		for(PGDocument *const doc in docs) {
+			PGDisplayController *const oldController = [doc displayController];
+			if(!oldController) continue;
+
+			//	2023/10/02 get the selected nodes from the (old) thumbnail
+			//	browser before it is lost
+			if(nil == selectedNodes && currentDoc == doc)
+				selectedNodes = [[oldController.selectedNodes retain] autorelease];
+
+			[doc setDisplayController:_fullscreenController];
+			[[oldController window] close];
+		}
+		[_fullscreenController setActiveDocument:currentDoc closeIfAppropriate:NO];
+		[_fullscreenController showWindow:self];
+
+		//	2023/10/02 sets the selection in the new controller, ie,
+		//	restores selection
+		if(selectedNodes)
+			_fullscreenController.selectedNodes = selectedNodes;
 	}
 //	NSEnableScreenUpdates();	2021/07/21 deprecated
 }
@@ -504,10 +649,12 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 
 - (BOOL)performKeyEquivalent:(NSEvent *)anEvent
 {
-	if(!([anEvent modifierFlags] & (NSEventModifierFlagCommand | NSEventModifierFlagShift | NSEventModifierFlagOption))) switch([anEvent keyCode]) {
+	if(!([anEvent modifierFlags] & (NSEventModifierFlagCommand | NSEventModifierFlagShift | NSEventModifierFlagOption)))
+		switch([anEvent keyCode]) {
 		case PGKeyEscape: [self performEscapeKeyAction]; break;
 		case PGKeyQ: [NSApp terminate:self]; return YES;
-	}
+		}
+
 	return NO;
 }
 
@@ -528,7 +675,7 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 		}
 #if 1
 		NSArray*	rdia = nil;
-		if (recentItemsData) {
+		if(recentItemsData) {
 			NSError* error = nil;
 			NSSet* classes = [NSSet setWithArray:@[NSArray.class, NSData.class, PGResourceIdentifier.class]];
 			rdia	=	[NSKeyedUnarchiver unarchivedObjectOfClasses:classes
