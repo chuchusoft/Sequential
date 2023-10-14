@@ -107,16 +107,25 @@ static CFMutableSetRef PGActiveSubscriptions = nil;
 + (void)threaded_sendFileEvents
 {
 	for(;;) {
-		NSAutoreleasePool *const pool = [[NSAutoreleasePool alloc] init];
-		struct kevent ev;
-		(void)kevent(PGKQueue, NULL, 0, &ev, 1, NULL);
-		[self performSelectorOnMainThread:@selector(mainThread_sendFileEvent:) withObject:[NSDictionary dictionaryWithObjectsAndKeys:
-			[NSValue valueWithNonretainedObject:(PGLeafSubscription *)ev.udata], PGLeafSubscriptionValueKey,
-			[NSNumber numberWithUnsignedInt:ev.fflags], PGLeafSubscriptionFlagsKey,
-			nil] waitUntilDone:NO];
-		[pool release];
+		@autoreleasepool {
+			struct kevent ev;
+			(void)kevent(PGKQueue, NULL, 0, &ev, 1, NULL);
+
+			//	The original API documentation (pre-ARC) states "the
+			//	-performSelector:onThread:withObject:waitUntilDone: method retains the receiver
+			//	and the arg parameter until after the selector is performed."
+//	<https://web.archive.org/web/20111006112505/http://developer.apple.com/library/ios/#documentation/Cocoa/Reference/Foundation/Classes/NSObject_Class/Reference/Reference.html>
+			//	As such, this code should not cause the dictionary to be invalid
+			//	when it is accessed in the main thread in -mainThread_sendFileEvent:
+			[self performSelectorOnMainThread:@selector(mainThread_sendFileEvent:)
+								   withObject:[NSDictionary dictionaryWithObjectsAndKeys:
+				[NSValue valueWithNonretainedObject:(PGLeafSubscription *)ev.udata], PGLeafSubscriptionValueKey,
+				[NSNumber numberWithUnsignedInt:ev.fflags], PGLeafSubscriptionFlagsKey, nil]
+								waitUntilDone:NO];
+		}
 	}
 }
+
 + (void)mainThread_sendFileEvent:(NSDictionary *)info
 {
 	PGSubscription *const subscription = [[info objectForKey:PGLeafSubscriptionValueKey] nonretainedObjectValue];
