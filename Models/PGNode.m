@@ -38,6 +38,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import "PGAppKitAdditions.h"
 #import "PGFoundationAdditions.h"
 
+static
+NSComparisonResult
+CompareByteSize(uint64_t a, uint64_t b) {
+	if(a == b)	return NSOrderedSame;
+	if(a < b)	return NSOrderedAscending;
+	return NSOrderedDescending;
+}
+
 NSString *const PGNodeLoadingDidProgressNotification = @"PGNodeLoadingDidProgress";
 NSString *const PGNodeReadyForViewingNotification    = @"PGNodeReadyForViewing";
 
@@ -220,7 +228,8 @@ enum {
 		case PGUnsorted:           return NSOrderedSame;
 		case PGSortByDateModified: r = [[dp1 dateModified] compare:[dp2 dateModified]]; break;
 		case PGSortByDateCreated:  r = [[dp1 dateCreated] compare:[dp2 dateCreated]]; break;
-		case PGSortBySize:         r = [[dp1 dataLength] compare:[dp2 dataLength]]; break;
+		case PGSortBySize:         r = CompareByteSize([dp1 dataByteSize], [dp2 dataByteSize]); break;
+	//	case PGSortBySize:         r = [[dp1 dataLength] compare:[dp2 dataLength]]; break;
 		case PGSortByKind:         r = [[dp1 kindString] compare:[dp2 kindString]]; break;
 		case PGSortShuffle:        return random() & 1 ? NSOrderedAscending : NSOrderedDescending;
 	}
@@ -236,6 +245,37 @@ enum {
 		}
 		wrote = YES;
 	}
+#if 1
+	//	2023/09/10 the original code is time- and space- expensive if the caller does
+	//	not provide a NSPasteboard instance. When one is provided, the NSData instance
+	//	must be created, but if one is not provided, avoid the creation of the NSData
+	//	instance. This improves overall performance when anything involving the
+	//	Services menu occurs, as well as when updating the menu items in the menu bar.
+	NSData* data = nil;
+	if([types containsObject:NSPasteboardTypeRTFD]) {
+		if(pboard) {
+			data = [[self resourceAdapter] data];
+
+			[pboard addTypes:[NSArray arrayWithObject:NSPasteboardTypeRTFD] owner:nil];
+			NSFileWrapper *const wrapper = [[[NSFileWrapper alloc] initRegularFileWithContents:data] autorelease];
+			[wrapper setPreferredFilename:[[self identifier] displayName]];
+			NSAttributedString *const string = [NSAttributedString attributedStringWithAttachment:[[[NSTextAttachment alloc] initWithFileWrapper:wrapper] autorelease]];
+			//	2021/07/21 cannot pass nil to -RTFDFileWrapperFromRange::documentAttributes:
+			//	for the documentAttributes: parameter
+			[pboard setData:[string RTFDFromRange:NSMakeRange(0, [string length]) documentAttributes:@{NSDocumentTypeDocumentAttribute:@"some doc type"}] forType:NSPasteboardTypeRTFD];
+		}
+		wrote = YES;
+	}
+	if([types containsObject:NSFileContentsPboardType]) {
+		if(pboard) {
+			if(!data) data = [[self resourceAdapter] data];
+
+			[pboard addTypes:[NSArray arrayWithObject:NSFileContentsPboardType] owner:nil];
+			[pboard setData:data forType:NSFileContentsPboardType];
+		}
+		wrote = YES;
+	}
+#else
 	NSData *const data = [[self resourceAdapter] canGetData] ? [[self resourceAdapter] data] : nil;
 	if(data) {
 		if([types containsObject:NSPasteboardTypeRTFD]) {
@@ -256,6 +296,7 @@ enum {
 			wrote = YES;
 		}
 	}
+#endif
 	return wrote;
 }
 - (void)addToMenu:(NSMenu *)menu flatten:(BOOL)flatten
@@ -339,7 +380,8 @@ enum {
 	switch(PGSortOrderMask & [[self document] sortOrder]) {
 		case PGSortByDateModified: date = [dp dateModified]; break;
 		case PGSortByDateCreated:  date = [dp dateCreated]; break;
-		case PGSortBySize: info = [[dp dataLength] PG_bytesAsLocalizedString]; break;
+		case PGSortBySize: info = [[NSNumber numberWithUnsignedLongLong:[dp dataByteSize]] PG_bytesAsLocalizedString]; break;
+	//	case PGSortBySize: info = [[dp dataLength] PG_bytesAsLocalizedString]; break;
 		case PGSortByKind: info = [dp kindString]; break;
 	}
 	if(date && !info) info = [date PG_localizedStringWithDateStyle:kCFDateFormatterShortStyle timeStyle:kCFDateFormatterShortStyle];
