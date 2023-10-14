@@ -76,6 +76,8 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	return NSMakeSize(MIN(MAX(min.width, size.width), max.width), MIN(MAX(min.height, size.height), max.height));
 }
 
+#pragma mark -
+
 @interface PGDisplayController(Private)
 
 - (void)_setClipViewBackground;
@@ -93,16 +95,16 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 
 @end
 
-@implementation PGDisplayController
+#pragma mark -
 
-#pragma mark +PGDisplayController
+@implementation PGDisplayController
 
 + (NSArray *)pasteboardTypes
 {
 	return [NSArray PG_arrayWithContentsOfArrays:[PGNode pasteboardTypes], [PGImageView pasteboardTypes], nil];
 }
 
-#pragma mark +NSObject
+#pragma mark - NSObject
 
 + (void)initialize
 {
@@ -113,7 +115,7 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	return [NSUserDefaultsController sharedUserDefaultsController];
 }
 
-#pragma mark -PGDisplayController
+#pragma mark - PGDisplayController
 
 - (IBAction)reveal:(id)sender
 {
@@ -127,7 +129,11 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 		//	if([[NSWorkspace sharedWorkspace] selectFile:path inFileViewerRootedAtPath:nil]) return;
 			NSString*	rootPath = [NSString stringWithUTF8String:
 									self.activeDocument.rootIdentifier.URL.fileSystemRepresentation];
-			if([[NSWorkspace sharedWorkspace] selectFile:path inFileViewerRootedAtPath:rootPath])
+			if(!path) {
+				//	2023/09/28 revealing an image in an archive will select the archive file
+				if([[NSWorkspace sharedWorkspace] selectFile:rootPath inFileViewerRootedAtPath:[NSString string]])
+					return;
+			} else if([[NSWorkspace sharedWorkspace] selectFile:path inFileViewerRootedAtPath:rootPath])
 				return;
 		}
 	}
@@ -183,7 +189,7 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 #if 1
 		[NSWorkspace.sharedWorkspace recycleURLs:@[node.identifier.URL]
 							   completionHandler:^(NSDictionary<NSURL*,NSURL*>* newURLs, NSError* error) {
-			if (!error)
+			if(!error)
 				movedAnything = YES;
 		}];
 #else
@@ -200,6 +206,9 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 - (IBAction)copy:(id)sender
 {
 	if(![self writeSelectionToPasteboard:[NSPasteboard generalPasteboard] types:[[self class] pasteboardTypes]]) NSBeep();
+}
+- (IBAction)selectAll:(id)sender {
+	[_thumbnailController selectAll];
 }
 - (IBAction)performFindPanelAction:(id)sender
 {
@@ -228,7 +237,8 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 
 - (IBAction)toggleFullscreen:(id)sender
 {
-	[[PGDocumentController sharedDocumentController] setFullscreen:![PGDocumentController sharedDocumentController].fullscreen];
+	PGDocumentController *const dc = PGDocumentController.sharedDocumentController;
+	dc.fullscreen = !dc.fullscreen;
 
 	//	2023/08/14 the background color now depends on whether the view's window
 	//	is in fullscreen mode so the background color must be updated:
@@ -237,8 +247,8 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 
 - (IBAction)toggleEntireScreenWhenInFullScreen:(id)sender	//	2023/08/14 added
 {
-	PGDocumentController*	dc = PGDocumentController.sharedDocumentController;
-	dc.usesEntireScreenWhenInFullScreen	=	!dc.usesEntireScreenWhenInFullScreen;
+	PGDocumentController *const dc = PGDocumentController.sharedDocumentController;
+	dc.usesEntireScreenWhenInFullScreen = !dc.usesEntireScreenWhenInFullScreen;
 }
 
 - (IBAction)toggleInfo:(id)sender
@@ -419,6 +429,10 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	if([thumbnailSelection count]) return thumbnailSelection;
 	return [self activeNode] ? [NSSet setWithObject:[self activeNode]] : [NSSet set];
 }
+- (void)setSelectedNodes:(NSSet *)selectedNodes {	//	2023/10/02 was readonly
+	_thumbnailController.selectedNodes = selectedNodes;
+}
+
 - (PGNode *)selectedNode
 {
 	NSSet *const selectedNodes = [self selectedNodes];
@@ -506,6 +520,30 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 		[_activeDocument PG_removeObserver:self name:PGPrefObjectImageScaleDidChangeNotification];
 		[_activeDocument PG_removeObserver:self name:PGPrefObjectAnimatesImagesDidChangeNotification];
 		[_activeDocument PG_removeObserver:self name:PGPrefObjectTimerIntervalDidChangeNotification];
+
+		//	2023/08/21 bugfix: the fullscreen controller is *shared* so it's possible to
+		//	invoke this method on the shared instance which already has many member variables
+		//	initialized. In particular, the thumbnail controller can already exist, which
+		//	causes any call to -setActiveNode:forward: to send a notification which calls
+		//	back to a notification receiver in the thumbnail browser/view which in turn
+		//	operates on invalid data which crashes the app.
+		//	The exact circumstances which cause the crash are:
+		//	[1] open an archive with images
+		//	[2] enter full screen mode
+		//	[3] display thumbnails
+		//	[4] in the Finder, drag and drop another archive with images onto the app
+		//	[5] the app tries to set up the new document controller using the *shared*
+		//		fullscreen controller, resulting in a notification about the active node
+		//		changing being sent to the *existing* thumbnail browser (a member of the
+		//		thumbnail controller in the fullscreen controller); that thumbnail browser
+		//		still has state that references the first archive and not the archive
+		//		being opened, so it fails to find an object and crashes when it accesses
+		//		invalid memory.
+		//	Solution: release the _thumbnailController.
+		if(_thumbnailController) {
+			[_thumbnailController release];
+			_thumbnailController	=	nil;	//	2023/08/21 required to be nil
+		}
 	}
 	if(flag && !document && _activeDocument) {
 		_activeDocument = nil;
@@ -529,6 +567,7 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	[_activeDocument PG_addObserver:self selector:@selector(documentTimerIntervalDidChange:) name:PGPrefObjectTimerIntervalDidChangeNotification];
 	[self setTimerRunning:NO];
 	if(_activeDocument) {
+		NSParameterAssert(nil == _thumbnailController);	//	2023/08/21 required to be nil
 	//	NSDisableScreenUpdates();	2021/07/21 deprecated
 		PGNode *node;
 		PGImageView *view;
@@ -802,9 +841,12 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 		[_thumbnailController setDisplayController:self];
 		[self thumbnailControllerContentInsetDidChange:nil];
 	//	NSEnableScreenUpdates();	2021/07/21 deprecated
-		[_thumbnailController PG_addObserver:self selector:@selector(thumbnailControllerContentInsetDidChange:) name:PGThumbnailControllerContentInsetDidChangeNotification];
+		[_thumbnailController PG_addObserver:self
+									selector:@selector(thumbnailControllerContentInsetDidChange:)
+										name:PGThumbnailControllerContentInsetDidChangeNotification];
 	} else {
-		[_thumbnailController PG_removeObserver:self name:PGThumbnailControllerContentInsetDidChangeNotification];
+		[_thumbnailController PG_removeObserver:self
+										   name:PGThumbnailControllerContentInsetDidChangeNotification];
 		[_thumbnailController fadeOut];
 		[_thumbnailController release];
 		_thumbnailController = nil;
@@ -877,17 +919,17 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 
 - (void)prefControllerBackgroundColorUsedInFullScreenDidChange:(NSNotification *)aNotif;
 {
-	if (PGDocumentController.sharedDocumentController.fullscreen)
+	if(PGDocumentController.sharedDocumentController.fullscreen)
 		[self _setClipViewBackground];	//	updates only when in fullscreen mode
 }
 
-#pragma mark -PGDisplayController(Private)
+#pragma mark - PGDisplayController(Private)
 
 - (void)_setClipViewBackground {
 	//	2023/08/14 added this method to enable the background color to depend on
 	//	whether the view's window is in fullscreen mode and whether user wants it
 	//	used in fullscreen mode.
-	if (PGDocumentController.sharedDocumentController.fullscreen &&
+	if(PGDocumentController.sharedDocumentController.fullscreen &&
 		![NSUserDefaults.standardUserDefaults boolForKey:PGBackgroundColorUsedInFullScreenKey])
 		[clipView setBackgroundColor:NSColor.blackColor];
 	else
@@ -913,7 +955,20 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	_activeNode = [aNode retain];
 	[self _updateNodeIndex];
 	[self _updateInfoPanelText];
-	[self PG_postNotificationName:PGDisplayControllerActiveNodeDidChangeNotification];
+
+	//	2023/08/21 bugfix: when this instance is the *shared* fullscreen display controller,
+	//	the following notification is received by multiple thumbnail browsers, which can
+	//	cause a crash if the notification is for a *particular* PGDocument instance but is
+	//	processed by a thumbnail browser which is associated with a different PGDocument
+	//	instance. Solution: provide context to the notification callback by supplying the
+	//	active document value. See corresponding code in PGThumbnailController's method
+	//	-displayControllerActiveNodeDidChange:
+	NSDictionary* d = [NSDictionary dictionaryWithObjectsAndKeys:_activeDocument, @"PGDocument",
+																	_activeNode, @"PGNode", nil];
+	[self PG_postNotificationName:PGDisplayControllerActiveNodeDidChangeNotification
+						 userInfo:d];
+//	[self PG_postNotificationName:PGDisplayControllerActiveNodeDidChangeNotification];
+
 	return YES;
 }
 - (void)_readActiveNode
@@ -976,9 +1031,34 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 }
 - (void)_updateNodeIndex
 {
-	_displayImageIndex = [[[self activeNode] resourceAdapter] viewableNodeIndex];
-	[(PGInfoView *)[_infoPanel content] setIndex:_displayImageIndex];
+	PGNode *const an = [self activeNode];
+	PGResourceAdapter *anra = [an resourceAdapter];
+	PGInfoView *const infoView = (PGInfoView *) [_infoPanel content];
+
+	_displayImageIndex = [anra viewableNodeIndex];
+
+	[infoView setIndex:_displayImageIndex];
 	[self synchronizeWindowTitleWithDocumentName];
+
+	//	2023/10/01 the Info window now shows the display progress
+	//	within a single folder/container
+	if(anra.isContainer) {
+		//	this never executes because anra is never a container
+		infoView.currentFolderCount = infoView.currentFolderIndex = 0;
+	} else {
+		PGContainerAdapter *const parent = anra.containerAdapter;
+		NSAssert(parent.isContainer, @"");
+
+		NSArray *const sortedChildren = parent.sortedChildren;
+		NSUInteger const childCount = sortedChildren.count;	//	includes folders and non-images
+		if(childCount > 1) {
+			infoView.currentFolderCount = childCount;
+			NSUInteger const childIndex = [sortedChildren indexOfObject:an];
+			NSAssert(NSNotFound != childIndex, @"");
+			infoView.currentFolderIndex = childIndex;
+		} else
+			infoView.currentFolderCount = infoView.currentFolderIndex = 0;
+	}
 }
 - (void)_updateInfoPanelText
 {
@@ -1041,11 +1121,12 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 }
 - (void)synchronizeWindowTitleWithDocumentName
 {
+	NSString *blank = [NSString string];
 	PGDisplayableIdentifier *const identifier = [[[self activeDocument] node] identifier];
 	NSURL *const URL = [identifier URL];
 	if([identifier isFileIdentifier]) {
 		NSString *const path = [identifier isFileIdentifier] ? [URL path] : nil;
-		[[self window] setRepresentedFilename:path ? path : @""];
+		[[self window] setRepresentedFilename:path ? path : blank];
 	} else {
 		[[self window] setRepresentedURL:URL];
 		NSButton *const docButton = [[self window] standardWindowButton:NSWindowDocumentIconButton];
@@ -1054,10 +1135,13 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 		[image recache];
 		[docButton setImage:image];
 	}
-	NSUInteger const count = [[[[self activeDocument] node] resourceAdapter] viewableNodeCount];
+	NSUInteger const nodeCount = [[[[self activeDocument] node] resourceAdapter] viewableNodeCount];
 	NSString *const title = [identifier displayName];
-	NSString *const titleDetails = count > 1 ? [NSString stringWithFormat:@" (%lu/%lu)", (unsigned long)_displayImageIndex + 1, (unsigned long)count] : @"";
-	[[self window] setTitle:title ? [title stringByAppendingString:titleDetails] : @""];
+	NSString *const titleDetails = nodeCount > 1 ?
+		[NSString stringWithFormat:@" (%lu/%lu)", (unsigned long)_displayImageIndex + 1, (unsigned long)nodeCount] :
+		blank;
+
+	[[self window] setTitle:title ? [title stringByAppendingString:titleDetails] : blank];
 	NSMutableAttributedString *const menuLabel = [[[identifier attributedStringWithAncestory:NO] mutableCopy] autorelease];
 	[[menuLabel mutableString] appendString:titleDetails];
 	[[[PGDocumentController sharedDocumentController] windowsMenuItemForDocument:[self activeDocument]] setAttributedTitle:menuLabel];
@@ -1067,14 +1151,14 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	[[self activeDocument] close];
 }
 
-#pragma mark -NSResponder
+#pragma mark - NSResponder
 
 - (id)validRequestorForSendType:(NSString *)sendType returnType:(NSString *)returnType
 {
 	return ![returnType length] && [self writeSelectionToPasteboard:nil types:[NSArray arrayWithObject:sendType]] ? self : [super validRequestorForSendType:sendType returnType:returnType];
 }
 
-#pragma mark -NSObject
+#pragma mark - NSObject
 
 - (id)init
 {
@@ -1111,7 +1195,7 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	[super dealloc];
 }
 
-#pragma mark -NSObject(NSKeyValueObserving)
+#pragma mark - NSObject(NSKeyValueObserving)
 
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context
 {
@@ -1119,7 +1203,7 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	else [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
 }
 
-#pragma mark -NSObject(NSMenuValidation)
+#pragma mark - NSObject(NSMenuValidation)
 
 #define PGFuzzyEqualityToCellState(a, b) ({ double __a = (double)(a); double __b = (double)(b); (fabs(__a - __b) < 0.001f ? NSControlStateValueOn : (fabs(round(__a) - round(__b)) < 0.1f ? NSControlStateValueMixed : NSControlStateValueOff)); })
 - (BOOL)validateMenuItem:(NSMenuItem *)anItem
@@ -1135,6 +1219,8 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	}
 
 	// Edit:
+	if(@selector(selectAll:) == action)
+		return [[self activeDocument] showsThumbnails];
 	if(@selector(performFindPanelAction:) == action) switch([anItem tag]) {
 		case NSFindPanelActionShowFindPanel:
 		case NSFindPanelActionNext:
@@ -1271,7 +1357,7 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	return [super validateMenuItem:anItem];
 }
 
-#pragma mark -NSObject(NSServicesRequests)
+#pragma mark - NSObject(NSServicesRequests)
 
 - (BOOL)writeSelectionToPasteboard:(NSPasteboard *)pboard types:(NSArray *)types
 {
@@ -1282,7 +1368,7 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	return wrote;
 }
 
-#pragma mark -<NSWindowDelegate>
+#pragma mark - <NSWindowDelegate>
 
 - (BOOL)window:(NSWindow *)window shouldPopUpDocumentPathMenu:(NSMenu *)menu
 {
@@ -1352,12 +1438,14 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 - (void)windowWillClose:(NSNotification *)aNotif
 {
 	NSParameterAssert(aNotif);
-	if([aNotif object] != [self window]) return;
-	if([_findPanel parentWindow]) [_findPanel close];
+	if([aNotif object] != [self window])
+		return;
+	if([_findPanel parentWindow])
+		[_findPanel close];
 	[self close];
 }
 
-#pragma mark -<PGClipViewDelegate>
+#pragma mark - <PGClipViewDelegate>
 
 - (BOOL)clipView:(PGClipView *)sender handleMouseEvent:(NSEvent *)anEvent first:(BOOL)flag
 {
