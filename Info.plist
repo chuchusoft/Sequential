@@ -330,6 +330,8 @@
 				<string>JPEG</string>
 				<string>jpe</string>
 				<string>JPE</string>
+				<string>jfif</string>
+				<string>JFIF</string>
 				<string>thm</string>
 				<string>THM</string>
 			</array>
@@ -641,7 +643,7 @@
 	<key>CFBundleExecutable</key>
 	<string>${EXECUTABLE_NAME}</string>
 	<key>CFBundleGetInfoString</key>
-	<string>2.2.1</string>
+	<string>2.3.0</string>
 	<key>CFBundleHelpBookFolder</key>
 	<string>Sequential.help</string>
 	<key>CFBundleHelpBookName</key>
@@ -657,7 +659,7 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>2.2.1</string>
+	<string>2.3.0</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleURLTypes</key>
@@ -674,7 +676,7 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>2.2.1</string>
+	<string>2.3.0</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.utilities</string>
 	<key>LSArchitecturePriority</key>
@@ -773,6 +775,7 @@
 				<string>jpg</string>
 				<string>jpeg</string>
 				<string>jpe</string>
+				<string>jfif</string>
 				<string>thm</string>
 				<string>pict</string>
 				<string>pct</string>
@@ -791,6 +794,10 @@
 				<string>pic</string>
 				<string>PIC</string>
 				<string>hdr</string>
+				<string>webp</string>
+				<string>svg</string>
+				<string>heic</string>
+				<string>heif</string>
 			</array>
 			<key>CFBundleTypeMIMETypes</key>
 			<array>
@@ -861,6 +868,12 @@
 				<string>com.apple.icns</string>
 				<string>public.jpeg-2000</string>
 				<string>public.radiance</string>
+				<string>org.webmproject.webp</string>
+				<string>public.svg-image</string>
+				<string>public.camera-raw-image</string>
+				<string>public.heic</string>
+				<string>public.heif</string>
+				<string>com.apple.live-photo</string>
 			</array>
 		</dict>
 		<key>PGHTMLAdapter</key>
