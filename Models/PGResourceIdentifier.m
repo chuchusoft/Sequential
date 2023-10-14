@@ -472,6 +472,7 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 
 @end
 
+#pragma mark -
 @implementation PGAliasIdentifier
 static NSMutableArray *PGCachedAliasIdentifiers;
 
@@ -591,34 +592,29 @@ static NSMutableArray *PGCachedAliasIdentifiers;
 - (NSURL *)URLByFollowingAliases:(BOOL)flag
 {
 #if 1
-	assert(_bookmarkedURL);
+	NSParameterAssert(_bookmarkedURL);
 	if(!_bookmarkedURL)
 		return nil;
 
 	if(!flag && _cachedURL)
 		return [[_cachedURL retain] autorelease];
 
-	NSURL* url;
-	@autoreleasepool {
-		BOOL bookmarkDataIsStale = NO;
-		NSError* error = nil;
-		url = [NSURL URLByResolvingBookmarkData:_bookmarkedURL
-											   options:NSURLBookmarkResolutionWithoutUI
-										 relativeToURL:nil
-								   bookmarkDataIsStale:&bookmarkDataIsStale
-												 error:&error];
+	BOOL bookmarkDataIsStale = NO;
+	NSError* error = nil;
+	NSURL* url = [NSURL URLByResolvingBookmarkData:_bookmarkedURL
+										   options:NSURLBookmarkResolutionWithoutUI
+									 relativeToURL:nil
+							   bookmarkDataIsStale:&bookmarkDataIsStale
+											 error:&error];
 
-		if(flag && url)
-			url = [NSURL URLByResolvingAliasFileAtURL:url
-											  options:NSURLBookmarkResolutionWithoutUI
-												error:&error];
-		[url retain];
-	}
+	if(flag && url)
+		url = [NSURL URLByResolvingAliasFileAtURL:url
+										  options:NSURLBookmarkResolutionWithoutUI
+											error:&error];
 
 	if(!flag && url)
 		[self cacheURL:url];
 
-	[url autorelease];
 	return url;
 #else
 	if(!flag && _cachedURL)
@@ -658,7 +654,7 @@ static NSMutableArray *PGCachedAliasIdentifiers;
 	if((self = [super initWithCoder:aCoder])) {
 #if 1
 //NSLog(@"[aCoder allowedClasses] = %@", aCoder.allowedClasses);
-		assert([aCoder.allowedClasses containsObject:NSData.class]);
+		NSParameterAssert([aCoder.allowedClasses containsObject:NSData.class]);
 		_bookmarkedURL = [[aCoder decodeDataObject] retain];
 		if(!_bookmarkedURL)
 			_bookmarkedURL	=	[NSData new];
@@ -677,7 +673,7 @@ static NSMutableArray *PGCachedAliasIdentifiers;
 {
 	[super encodeWithCoder:aCoder];
 #if 1
-	assert(_bookmarkedURL);
+	NSParameterAssert(_bookmarkedURL);
 	[aCoder encodeDataObject:_bookmarkedURL];
 #else
 	if(_alias)
