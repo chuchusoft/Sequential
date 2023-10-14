@@ -51,7 +51,7 @@ static NSArray *PGIgnoredPaths = nil;
 static
 BOOL
 IsPackage(NSURL* URL) {
-#if 1
+#if 1	//	2021/07/21
 	id value = nil;
 	NSError* error = nil;
 	BOOL b = [URL getResourceValue:&value forKey:NSURLIsPackageKey error:&error];
@@ -67,7 +67,7 @@ IsPackage(NSURL* URL) {
 static
 bool
 IsVisibleInFinder(NSURL* pageURL) {
-#if 1
+#if 1	//	2021/07/21
 	id value = nil;
 	NSError* error = nil;
 	BOOL b = [pageURL getResourceValue:&value forKey:NSURLIsHiddenKey error:&error];
@@ -83,13 +83,8 @@ IsVisibleInFinder(NSURL* pageURL) {
 - (void)createChildren
 {
 	NSURL *const URL = [[(PGDataProvider *)[self dataProvider] identifier] URLByFollowingAliases:YES];
-#if 1	//	2021/07/21
-	if (IsPackage(URL))
+	if(IsPackage(URL))
 		return;
-#else
-	LSItemInfoRecord info;
-	if(LSCopyItemInfoForURL((CFURLRef)URL, kLSRequestBasicFlagsOnly, &info) != noErr || info.flags & kLSItemInfoIsPackage) return;
-#endif
 
 	[[self document] setProcessingNodes:YES];
 	NSMutableArray *const oldPages = [[[self unsortedChildren] mutableCopy] autorelease];
@@ -99,12 +94,9 @@ IsVisibleInFinder(NSURL* pageURL) {
 		NSString *const pagePath = [path stringByAppendingPathComponent:pathComponent];
 		if([PGIgnoredPaths containsObject:pagePath]) continue;
 		NSURL *const pageURL = [pagePath PG_fileURL];
-#if 1	//	2021/07/21
-		if (!IsVisibleInFinder(pageURL))
+		if(!IsVisibleInFinder(pageURL))
 			continue;
-#else
-		if(LSCopyItemInfoForURL((CFURLRef)pageURL, kLSRequestBasicFlagsOnly, &info) != noErr || info.flags & kLSItemInfoIsInvisible) continue;
-#endif
+
 		PGDisplayableIdentifier *const pageIdent = [pageURL PG_displayableIdentifier];
 		PGNode *node = [self childForIdentifier:pageIdent];
 		if(node) {
