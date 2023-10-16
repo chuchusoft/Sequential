@@ -126,9 +126,6 @@ static NSSize PGRoundedCornerSizes[4];
 	if(_sizeTransitionTimer || [self inLiveResize] || ([self canAnimateRep] && [self animates])) return NSImageInterpolationNone;
 	if([self antialiasWhenUpscaling]) return NSImageInterpolationHigh;
 	NSSize const imageSize = NSMakeSize([_rep pixelsWide], [_rep pixelsHigh]), viewSize = [self size];
-//NSLog(@"-interpolation ==> %@",
-//imageSize.width < viewSize.width && imageSize.height < viewSize.height ?
-//@"NSImageInterpolationNone" : @"NSImageInterpolationHigh");
 	return imageSize.width < viewSize.width && imageSize.height < viewSize.height ? NSImageInterpolationNone : NSImageInterpolationHigh;
 }
 @synthesize usesRoundedCorners = _usesRoundedCorners;
@@ -316,11 +313,6 @@ static NSSize PGRoundedCornerSizes[4];
 	}
 	NSSize const actualSize = NSMakeSize([_rep pixelsWide], [_rep pixelsHigh]);
 	NSSize const s = NSMakeSize(actualSize.width / _immediateSize.width, actualSize.height / _immediateSize.height);
-/*	BOOL const isActualSize = NSEqualSizes(actualSize, _immediateSize);
-	if(!isActualSize) {
-		[NSGraphicsContext saveGraphicsState];
-		[[NSGraphicsContext currentContext] setImageInterpolation:[self interpolation]];
-	}	*/
 
 	NSRect r = aRect;
 	NSAffineTransform *transform = nil;
@@ -329,7 +321,7 @@ static NSSize PGRoundedCornerSizes[4];
 		[transform concat];
 	}
 	NSCompositingOperation const op = !_isPDF && (compositeCopy || [_rep isOpaque]) ? NSCompositingOperationCopy : NSCompositingOperationSourceOver;
-	NSDictionary *const hints = @{NSImageHintInterpolation: [NSNumber numberWithUnsignedLong:[self interpolation]]};//NSImageInterpolationHigh
+	NSDictionary *const hints = @{NSImageHintInterpolation: [NSNumber numberWithUnsignedLong:[self interpolation]]};
 	if(rects && PGUpright == _orientation) {
 		NSInteger i = count;
 		while(i--)
@@ -357,8 +349,6 @@ static NSSize PGRoundedCornerSizes[4];
 										 fraction:1];
 	}
 
-//	if(!isActualSize) [NSGraphicsContext restoreGraphicsState];
-//	else
 	if(transform) {
 		[transform invert];
 		[transform concat];
