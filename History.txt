@@ -1,3 +1,8 @@
+2.3.1 (2023-??-??)
+- PDF image drawing was being cached in a layer which resulted in a sub-optimal
+  rendering appearance on high-DPI screens; now, PDF image drawing is no longer
+  cached and is instead drawn as directly to the display as possible.
+
 2.3.0 (2023-10-15)
 - when in fullscreen mode with thumbnails displaying, the app would crash when
   multiple archive/PDF documents were opened because it was trying to perform
