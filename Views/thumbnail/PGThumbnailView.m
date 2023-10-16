@@ -1084,10 +1084,6 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 {
 	return YES;
 }
-- (void)setUpGState
-{
-	[[NSGraphicsContext currentContext] setImageInterpolation:NSImageInterpolationHigh];
-}
 - (void)drawRect:(NSRect)aRect
 {
 	CGContextRef const context = [[NSGraphicsContext currentContext] CGContext];
