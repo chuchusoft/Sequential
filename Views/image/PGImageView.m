@@ -455,14 +455,15 @@ static NSSize PGRoundedCornerSizes[4];
 	}
 
 	//	2023/10/16 never cache PDF drawing because it results in a lower resolution
-	//	image being rendered on a high-DPI display
+	//	image being rendered on a high-DPI display.
 	if(!_isPDF)
 		[self _cache];
 	if(_cacheLayer)
 		CGContextDrawLayerAtPoint(NSGraphicsContext.currentContext.CGContext,
 							NSPointToCGPoint(imageRect.origin), _cacheLayer);
 	else if(_isPDF)
-		//	2023/10/16 PDFs are drawn as "directly" as possible to produce the best rendering possible
+		//	2023/10/16 PDFs are drawn as "directly" as possible to produce the
+		//	best rendering possible.
 		[self _drawImageWithFrame:imageRect compositeCopy:NO rects:NULL count:0];
 	else {
 		NSInteger count = 0;
