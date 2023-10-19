@@ -47,7 +47,9 @@ static NSSize PGRoundedCornerSizes[4];
 - (void)_animate;
 - (void)_invalidateCache;
 - (void)_cache;
-- (void)_drawImageWithFrame:(NSRect)aRect compositeCopy:(BOOL)compositeCopy rects:(NSRect const *)rects count:(NSUInteger)count;
+//	2023/10/16 replaced with -_drawImageWithFrame:
+//- (void)_drawImageWithFrame:(NSRect)aRect compositeCopy:(BOOL)compositeCopy rects:(NSRect const *)rects count:(NSUInteger)count;
+- (void)_drawImageWithFrame:(NSRect)aRect;
 @property(readonly) BOOL _shouldDrawRoundedCorners;
 - (BOOL)_needsToDrawRoundedCornersForImageRect:(NSRect)r rects:(NSRect const *)rects count:(NSUInteger)count;
 - (void)_getRoundedCornerRects:(NSRectArray)rects forRect:(NSRect)r;
@@ -59,6 +61,7 @@ static NSSize PGRoundedCornerSizes[4];
 
 @end
 
+#pragma mark -
 @implementation PGImageView
 
 #pragma mark +PGImageView
@@ -87,7 +90,7 @@ static NSSize PGRoundedCornerSizes[4];
 	PGRoundedCornerSizes[PGMaxXMaxYCorner] = [PGRoundedCornerImages[PGMaxXMaxYCorner] size];
 }
 
-#pragma mark -PGImageView
+#pragma mark - PGImageView
 
 @synthesize rep = _rep;
 @synthesize orientation = _orientation;
@@ -141,8 +144,10 @@ static NSSize PGRoundedCornerSizes[4];
 {
 	if(flag == _usesCaching) return;
 	_usesCaching = flag;
-	if(flag) [self setNeedsDisplay:YES];
-	else [self _invalidateCache];
+
+	//	2023/10/16 since caching is no longer done, do nothing
+//	if(flag) [self setNeedsDisplay:YES];
+//	else [self _invalidateCache];
 }
 
 #pragma mark -
@@ -249,7 +254,7 @@ static NSSize PGRoundedCornerSizes[4];
 	self.paused = NO;
 }
 
-#pragma mark -PGImageView(Private)
+#pragma mark - PGImageView(Private)
 
 - (BOOL)_imageIsOpaque
 {
@@ -269,18 +274,20 @@ static NSSize PGRoundedCornerSizes[4];
 }
 - (void)_invalidateCache
 {
-	CGLayerRelease(_cacheLayer);
-	_cacheLayer = NULL;
+//	CGLayerRelease(_cacheLayer);	2023/10/16 removed
+//	_cacheLayer = NULL;
 }
 - (void)_cache
 {
-	if(_cacheLayer || !_rep || ([self canAnimateRep] && [self animates]) || ![self usesCaching] || [self inLiveResize] || _sizeTransitionTimer) return;
+	if(//_cacheLayer ||	2023/10/16 removed
+		!_rep || ([self canAnimateRep] && [self animates]) || ![self usesCaching] || [self inLiveResize] || _sizeTransitionTimer) return;
 	NSString *const runLoopMode = [[NSRunLoop currentRunLoop] currentMode];
 	if(!runLoopMode || PGEqualObjects(runLoopMode, NSEventTrackingRunLoopMode)) {
 		if(!_awaitingUpdate) [self performSelector:@selector(_update) withObject:nil afterDelay:0.0f inModes:[NSArray arrayWithObject:NSDefaultRunLoopMode]];
 		_awaitingUpdate = YES;
 		return;
 	}
+/*	2023/10/16 removed
 #if 1
 	NSGraphicsContext *const oldContext = [NSGraphicsContext currentContext];
 	CGLayerRef const layer = CGLayerCreateWithContext(oldContext.CGContext,
@@ -297,8 +304,9 @@ static NSSize PGRoundedCornerSizes[4];
 	[self _drawImageWithFrame:b compositeCopy:YES rects:NULL count:0];
 	[layerContext flushGraphics];
 	[NSGraphicsContext setCurrentContext:oldContext];
-	_cacheLayer = layer;
+	_cacheLayer = layer;	*/
 }
+/*	2023/10/16 replaced by -_drawImageWithFrame:
 - (void)_drawImageWithFrame:(NSRect)aRect compositeCopy:(BOOL)compositeCopy rects:(NSRect const *)rects count:(NSUInteger)count
 {
 	BOOL const roundedCorners = [self _needsToDrawRoundedCornersForImageRect:aRect rects:rects count:count];
@@ -311,8 +319,8 @@ static NSSize PGRoundedCornerSizes[4];
 		if(rects) NSRectFillList(rects, count);
 		else NSRectFill(aRect);
 	}
-	NSSize const actualSize = NSMakeSize([_rep pixelsWide], [_rep pixelsHigh]);
-	NSSize const s = NSMakeSize(actualSize.width / _immediateSize.width, actualSize.height / _immediateSize.height);
+//	NSSize const actualSize = NSMakeSize([_rep pixelsWide], [_rep pixelsHigh]);
+//	NSSize const s = NSMakeSize(actualSize.width / _immediateSize.width, actualSize.height / _immediateSize.height);
 
 	NSRect r = aRect;
 	NSAffineTransform *transform = nil;
@@ -355,6 +363,55 @@ static NSSize PGRoundedCornerSizes[4];
 	}
 
 	if(useTransparencyLayer) CGContextEndTransparencyLayer(context);
+}
+ */
+- (void)_drawImageWithFrame:(NSRect)aRect
+{
+	BOOL const roundedCorners = [self _needsToDrawRoundedCornersForImageRect:aRect rects:NULL count:0];
+	BOOL const useTransparencyLayer = roundedCorners;
+	CGContextRef const context = useTransparencyLayer ? [[NSGraphicsContext currentContext] CGContext] : NULL;
+	if(useTransparencyLayer)
+		CGContextBeginTransparencyLayer(context, NULL);
+
+	if(_isPDF) {
+		[[NSColor whiteColor] set];
+		NSRectFill(aRect);
+	}
+
+	NSRect r = aRect;
+	NSAffineTransform *transform = nil;
+	if(PGUpright != _orientation) {
+		transform = [NSAffineTransform PG_transformWithRect:&r orientation:_orientation];
+		[transform concat];
+	}
+	NSCompositingOperation const op = (!_isPDF && [_rep isOpaque]) ?
+										NSCompositingOperationCopy : NSCompositingOperationSourceOver;
+	NSDictionary *const hints = @{NSImageHintInterpolation: [NSNumber numberWithUnsignedLong:[self interpolation]]};
+	[_image drawInRect:r
+			  fromRect:NSZeroRect
+			 operation:op
+			  fraction:1.0f
+		respectFlipped:YES
+				 hints:hints];
+
+	if(roundedCorners) {
+		NSUInteger i;
+		NSRect corners[4];
+		[self _getRoundedCornerRects:corners forRect:r];
+		for(i = 0; i < 4; i++)
+			[PGRoundedCornerImages[i] drawAtPoint:corners[i].origin
+										 fromRect:NSZeroRect
+										operation:NSCompositingOperationDestinationOut
+										 fraction:1.0f];
+	}
+
+	if(transform) {
+		[transform invert];
+		[transform concat];
+	}
+
+	if(useTransparencyLayer)
+		CGContextEndTransparencyLayer(context);
 }
 - (BOOL)_shouldDrawRoundedCorners
 {
@@ -416,7 +473,7 @@ static NSSize PGRoundedCornerSizes[4];
 	[self setNeedsDisplay:YES];
 }
 
-#pragma mark -NSView
+#pragma mark - NSView
 
 - (id)initWithFrame:(NSRect)aRect
 {
@@ -434,7 +491,7 @@ static NSSize PGRoundedCornerSizes[4];
 
 - (BOOL)wantsDefaultClipping
 {
-	return !!_cacheLayer;
+	return NO;	//	return !!_cacheLayer;	2023/10/16 removed
 }
 - (BOOL)isOpaque
 {
@@ -454,26 +511,28 @@ static NSSize PGRoundedCornerSizes[4];
 		[[self _transformWithRotationInDegrees:deg] concat];
 	}
 
-	//	2023/10/16 never cache PDF drawing because it results in a lower resolution
-	//	image being rendered on a high-DPI display.
-	if(!_isPDF)
-		[self _cache];
+	//	2023/10/16 with no caching, a simpler drawing function is now used;
+	//	the image is drawn as directly as possible to produce the best possible
+	//	visual quality. Caching was removed because:
+	//	* for PDFs, a lower resolution image was rendered on high-DPI displays,
+	//	* for non-PDFs, it has no visual or performance benefits (AppKit is now
+	//		optimised well for high-DPI screens and performance).
+	[self _drawImageWithFrame:imageRect];
+/*	//	2023/10/16 removed caching
+	[self _cache];
 	if(_cacheLayer)
 		CGContextDrawLayerAtPoint(NSGraphicsContext.currentContext.CGContext,
 							NSPointToCGPoint(imageRect.origin), _cacheLayer);
-	else if(_isPDF)
-		//	2023/10/16 PDFs are drawn as "directly" as possible to produce the
-		//	best rendering possible.
-		[self _drawImageWithFrame:imageRect compositeCopy:NO rects:NULL count:0];
 	else {
 		NSInteger count = 0;
 		NSRect const *rects = NULL;
 		if(!deg) [self getRectsBeingDrawn:&rects count:&count];
 		[self _drawImageWithFrame:imageRect compositeCopy:NO rects:rects count:count];
-	}
+	}	*/
 #if PGDebugDrawingModes
-	[(_cacheLayer ? [NSColor redColor] : [NSColor greenColor]) set];
-	NSFrameRect(NSInsetRect(imageRect, 0.5f, 0.5f)); // Outer-most frame: Cached
+	//	2023/10/16 removed
+//	[(_cacheLayer ? [NSColor redColor] : [NSColor greenColor]) set];
+//	NSFrameRect(NSInsetRect(imageRect, 0.5f, 0.5f)); // Outer-most frame: Cached
 
 	[([self isOpaque] ? [NSColor redColor] : [NSColor greenColor]) set];
 	NSFrameRect(NSInsetRect(imageRect, 2.5f, 2.5f)); // Next-inner frame: View opaque
@@ -514,7 +573,7 @@ static NSSize PGRoundedCornerSizes[4];
 	[self _invalidateCache];
 }
 
-#pragma mark -NSView(PGClipViewAdditions)
+#pragma mark - NSView(PGClipViewAdditions)
 
 - (BOOL)PG_acceptsClicksInClipView:(PGClipView *)sender
 {
@@ -525,7 +584,7 @@ static NSSize PGRoundedCornerSizes[4];
 	return YES;
 }
 
-#pragma mark -NSObject
+#pragma mark - NSObject
 
 - (id)init
 {
