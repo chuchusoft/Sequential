@@ -45,7 +45,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	NSImage *_image;
 	BOOL _isPDF;
 	NSUInteger _numberOfFrames;
-	CGLayerRef _cacheLayer;
+//	CGLayerRef _cacheLayer;		2023/10/16 removed; -setUsesCaching: is now a no-op
 	BOOL _awaitingUpdate;
 }
 
