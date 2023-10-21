@@ -44,18 +44,19 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 
 @interface PGGenericImageAdapter(Private)
 
-- (void)_threaded_imageRep;
+//- (void)_threaded_imageRep;
 - (NSDictionary *)_imageSourceOptions;
 - (void)_setImageProperties:(NSDictionary *)properties;
 - (void)_readFinishedWithImageRep:(NSImageRep *)aRep;
 
 @end
 
+#pragma mark -
 @implementation PGGenericImageAdapter
 
 #pragma mark Private Protocol
 
-- (void)_threaded_imageRep
+/* - (void)_threaded_imageRep
 {
 	NSAutoreleasePool *const pool = [[NSAutoreleasePool alloc] init];
 	NSData *const data = [[self dataProvider] data];
@@ -90,13 +91,9 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 									   withObject:md
 									waitUntilDone:NO];
 
-			if(1 == imageCount) {
-				rep = PGImageSourceImageRepAtIndex(source, 0);
-			} else {
-				//	why are there two different ways to set up the image rep ???
-				//	why not just use "rep = PGImageSourceImageRepAtIndex(source, 0);" ???
-				rep = [NSBitmapImageRep imageRepWithData:data]; // If the image is animated, we can't use the image source.;
-			}
+			rep = imageCount > 1
+				  ? [NSBitmapImageRep imageRepWithData:data] // If the image is animated, we can't use the image source.;
+				  : PGImageSourceImageRepAtIndex(source, 0);
 #else
 			[self performSelectorOnMainThread:@selector(_setImageProperties:) withObject:[(NSDictionary *)CGImageSourceCopyPropertiesAtIndex(source, 0, NULL) autorelease] waitUntilDone:NO];
 			if(imageCount > 1) rep = [NSBitmapImageRep imageRepWithData:data]; // If the image is animated, we can't use the image source.
@@ -108,7 +105,7 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 	}
 	[self performSelectorOnMainThread:@selector(_readFinishedWithImageRep:) withObject:rep waitUntilDone:NO];
 	[pool drain];
-}
+} */
 - (NSDictionary *)_imageSourceOptions
 {
 	return [NSDictionary dictionaryWithObjectsAndKeys:
@@ -183,14 +180,128 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 	if(_reading) return;
 	_reading = YES;
 	_readFailed = NO;
+#if 1	//	2023/10/21
+	[self generateImages];
+#else
 	[NSThread detachNewThreadSelector:@selector(_threaded_imageRep) toTarget:self withObject:nil];
+#endif
 }
 - (BOOL)canGenerateRealThumbnail
 {
 	return YES;
 }
 
-#pragma mark -PGResourceAdapter(PGAbstract)
+#pragma mark - <PGResourceAdapterImageGeneration>
+
+- (void)generateImagesInOperation:(NSOperation *)operation
+					thumbnailSize:(NSSize)size {	//	2023/10/21
+	if(_cachedRep) {
+		//	the only time this executes is when a main image exists but
+		//	no thumbnail exists (because the thumbnail views were hidden
+		//	when the main image was created but they are now visible)
+		NSAssert(nil == [self realThumbnail], @"realThumbnail is nil");
+		if(_imageProperties) {
+			//	single image in image file: no need to build another
+			//	ImageRep instance: just use _cachedRep and _orientation
+			[self _setThumbnailImageInOperation:operation
+									   imageRep:_cachedRep
+								  thumbnailSize:size
+									orientation:_orientation
+										 opaque:NO];
+			return;
+		}
+
+		//	fall through to slower code (e.g., for an animated image)
+	}
+
+	NSData *const data = [[self dataProvider] data];
+	if(!data || [operation isCancelled])
+		return;
+	CGImageSourceRef const source = CGImageSourceCreateWithData((CFDataRef)data, (CFDictionaryRef)[self _imageSourceOptions]);
+	if(!source)
+		return;
+	size_t const count = CGImageSourceGetCount(source);
+	if(!count || [operation isCancelled]) {
+		CFRelease(source);
+		return;
+	}
+
+	//	main image generation
+	NSBitmapImageRep *rep0 = nil;
+	CFDictionaryRef image0properties = NULL;
+	if(!_cachedRep) {
+		NSImageRep *rep = nil;
+		if(count) {
+			//	2022/10/15 if this container file only has 1 image in it then add
+			//	the properties of the container to the properties dictionary; this
+			//	allows the Inspector panel to show metadata such as file size
+			{
+				CFDictionaryRef	sourceProperties = 1 == count ? CGImageSourceCopyProperties(source, NULL) : NULL;
+				CFDictionaryRef	properties = 1 == count ? CGImageSourceCopyPropertiesAtIndex(source, 0, NULL) : NULL;
+				if(properties)
+					image0properties	=	CFRetain(properties);
+				const NSUInteger capacity =
+					(properties ? CFDictionaryGetCount(properties) : 0) +
+					(sourceProperties ? CFDictionaryGetCount(sourceProperties) : 0);
+				NSMutableDictionary<NSString*, NSObject*>* md = capacity ?
+					[NSMutableDictionary dictionaryWithCapacity:capacity] : 0;
+				if(sourceProperties) {
+					if(md)
+						[md addEntriesFromDictionary:(NSDictionary *)sourceProperties];
+					CFRelease(sourceProperties);
+				}
+				if(properties) {
+					if(md)
+						[md addEntriesFromDictionary:(NSDictionary *)properties];
+					CFRelease(properties);
+				}
+
+				if(md && ![operation isCancelled])
+					[self performSelectorOnMainThread:@selector(_setImageProperties:)
+										   withObject:md
+										waitUntilDone:NO];
+			}
+
+			//	if the image is animated, use the entire image source
+			if(count > 1)
+				rep = [NSBitmapImageRep imageRepWithData:data];
+			else
+				rep = rep0 = PGImageSourceImageRepAtIndex(source, 0);
+		}
+
+		if(rep && ![operation isCancelled])
+			[self performSelectorOnMainThread:@selector(_readFinishedWithImageRep:)
+								   withObject:rep
+								waitUntilDone:NO];
+	}
+
+	//	thumbnail generation
+	if([[self document] showsThumbnails])
+	{
+		size_t const thumbnailFrameIndex = count / 10;
+		NSBitmapImageRep *const repForThumb = 0 == thumbnailFrameIndex && rep0 ?
+			rep0 : PGImageSourceImageRepAtIndex(source, thumbnailFrameIndex);
+		if(!repForThumb || [operation isCancelled])
+			return;
+		NSDictionary *const properties = 0 == thumbnailFrameIndex && image0properties ?
+			(NSDictionary *)image0properties :
+			[(NSDictionary *)CGImageSourceCopyPropertiesAtIndex(source, thumbnailFrameIndex, NULL) autorelease];
+
+		PGOrientation const orientation = PGOrientationWithTIFFOrientation([[properties objectForKey:(NSString *)kCGImagePropertyOrientation] unsignedIntegerValue]);
+		[self _setThumbnailImageInOperation:operation
+								   imageRep:repForThumb
+							  thumbnailSize:size
+								orientation:orientation
+									 opaque:NO];
+	}
+
+	if(image0properties)
+		CFRelease(image0properties);
+	if(source)
+		CFRelease(source);
+}
+
+/* #pragma mark -PGResourceAdapter(PGAbstract)
 
 - (NSImageRep *)threaded_thumbnailRepWithSize:(NSSize)size
 {
@@ -209,7 +320,7 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 	CFRelease(source);
 	PGOrientation const orientation = PGOrientationWithTIFFOrientation([[properties objectForKey:(NSString *)kCGImagePropertyOrientation] unsignedIntegerValue]);
 	return [rep PG_thumbnailWithMaxSize:size orientation:orientation opaque:NO];
-}
+} */
 
 #pragma mark NSObject
 
