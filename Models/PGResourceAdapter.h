@@ -36,7 +36,14 @@ enum {
 };
 typedef NSInteger PGRecursionPolicy;
 
-@interface PGResourceAdapter : NSObject <PGActivityOwner, PGResourceAdapting>
+@protocol PGResourceAdapterImageGeneratorCompletion <NSObject>	//	2023/10/21
+
+@required
+- (void)generationDidCompleteInOperation:(NSOperation *)operation;
+
+@end
+
+@interface PGResourceAdapter : NSObject <PGActivityOwner, PGResourceAdapting, PGResourceAdapterImageGeneratorCompletion>
 {
 	@private
 	PGNode *_node;
@@ -45,7 +52,7 @@ typedef NSInteger PGRecursionPolicy;
 	NSError *_error;
 
 	NSImage *_realThumbnail;
-	NSOperation *_thumbnailGenerationOperation;
+	NSOperation *_generateImageOperation;	//	2023/10/21 generates full image and/or thumbnail if neither exist
 }
 
 + (NSDictionary *)typesDictionary;
@@ -96,7 +103,6 @@ typedef NSInteger PGRecursionPolicy;
 - (NSImage *)thumbnail;
 - (NSImage *)fastThumbnail;
 - (NSImage *)realThumbnail;
-- (void)setRealThumbnail:(NSImage *)anImage;
 - (BOOL)canGenerateRealThumbnail;
 - (void)invalidateThumbnail;
 
@@ -124,9 +130,26 @@ typedef NSInteger PGRecursionPolicy;
 
 @end
 
-@interface PGResourceAdapter(PGAbstract)
+//	private API for use by sub-classes only; clients of PGResourceAdapter
+//	should not call these; they are used to send the results of the image
+//	generation to the PGResourceAdapter instance for later use when
+//	-drawRect: is invoked
+@interface PGResourceAdapter (PrivateMethodsForSubclassUse)
 
-- (NSImageRep *)threaded_thumbnailRepWithSize:(NSSize)size;
+- (void)_startGeneratingImages;
+- (void)_setThumbnailImageInOperation:(NSOperation *)operation
+							 imageRep:(NSImageRep *)rep
+						thumbnailSize:(NSSize)size
+						  orientation:(PGOrientation)orientation
+							   opaque:(BOOL)opaque;
+
+@end
+
+//	sub-classes of PGResourceAdapter must implement this protocol:
+@protocol PGResourceAdapterImageGeneration <NSObject>	//	2023/10/21
+
+@required
+- (void)generateImagesInOperation:(NSOperation *)operation thumbnailSize:(NSSize)thumbnailSize;
 
 @end
 
