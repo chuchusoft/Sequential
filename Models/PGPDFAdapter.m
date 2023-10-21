@@ -126,7 +126,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (void)read
 {
 	NSPDFImageRep *const rep = [[self dataProvider] mainRep];
-	//	could this be done when _mainRep is initialized?
 	[rep setCurrentPage:[[self dataProvider] pageIndex]];
 	[[self node] readFinishedWithImageRep:rep];
 }
@@ -148,7 +147,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		return;
 
 	@synchronized(repForThumb) {
-		//	could this be done when _threadRep is initialized?
 		[repForThumb setCurrentPage:[[self dataProvider] pageIndex]];
 	}
 
@@ -158,18 +156,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 							orientation:PGUpright
 								 opaque:YES];
 }
-
-/* #pragma mark -PGResourceAdapter(PGAbstract)
-
-- (NSImageRep *)threaded_thumbnailRepWithSize:(NSSize)size
-{
-	NSPDFImageRep *const rep = [(PGPDFDataProvider *)[self dataProvider] threadRep];
-	if(rep) @synchronized(rep) {
-		[rep setCurrentPage:[[self dataProvider] pageIndex]];
-		return [rep PG_thumbnailWithMaxSize:size orientation:PGUpright opaque:YES];
-	}
-	return nil;
-} */
 
 @end
 
