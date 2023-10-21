@@ -195,6 +195,14 @@ enum {
 {
 	if((PGNodeLoadingOrReading & _status) == PGNodeReading) [_adapter read];
 }
+- (void)setIsReading:(BOOL)reading {	//	2023/10/21
+	NSParameterAssert((PGNodeLoadingOrReading & _status) == PGNodeNothing ||
+						(PGNodeLoadingOrReading & _status) == PGNodeReading);
+	if(reading)
+		_status |= PGNodeReading;
+	else
+		_status &= ~PGNodeReading;
+}
 - (void)readFinishedWithImageRep:(NSImageRep *)aRep
 {
 	NSParameterAssert((PGNodeLoadingOrReading & _status) == PGNodeReading);
