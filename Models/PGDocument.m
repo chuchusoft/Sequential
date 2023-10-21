@@ -53,7 +53,8 @@ NSString *const PGDocumentNodeKey = @"PGDocumentNode";
 NSString *const PGDocumentRemovedChildrenKey = @"PGDocumentRemovedChildren";
 NSString *const PGDocumentUpdateRecursivelyKey = @"PGDocumentUpdateRecursively";
 
-#define PGDocumentMaxCachedNodes 3
+//#define PGDocumentMaxCachedNodes 3	//	too small (machines now have 8GB+ of RAM)
+#define PGDocumentMaxCachedNodes 128	//	2023/10/21 this should not be a hardcoded number; it should use a heuristic based on the app's resource useage
 
 @interface PGDocument(Private)
 
