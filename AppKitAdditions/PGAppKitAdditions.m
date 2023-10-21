@@ -158,7 +158,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @implementation NSImageRep(PGAppKitAdditions)
 
-- (id)PG_thumbnailWithMaxSize:(NSSize)size orientation:(PGOrientation)orientation opaque:(BOOL)opaque
+- (NSBitmapImageRep *)PG_thumbnailWithMaxSize:(NSSize)size
+								  orientation:(PGOrientation)orientation
+									   opaque:(BOOL)opaque
 {
 	if(!self) return nil;
 	NSSize const originalSize = PGRotated90CCW & orientation ? NSMakeSize([self pixelsHigh], [self pixelsWide]) : NSMakeSize([self pixelsWide], [self pixelsHigh]);
