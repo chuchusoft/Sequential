@@ -68,7 +68,7 @@ typedef NSUInteger AEIconType;
 
 @interface NSImageRep(PGAppKitAdditions)
 
-- (id)PG_thumbnailWithMaxSize:(NSSize)size orientation:(PGOrientation)orientation opaque:(BOOL)opaque;
+- (NSBitmapImageRep *)PG_thumbnailWithMaxSize:(NSSize)size orientation:(PGOrientation)orientation opaque:(BOOL)opaque;
 
 @end
 
