@@ -146,15 +146,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	if(!repForThumb)
 		return;
 
+	//	repForThumb must be used within a @synchronized(repForThumb)
+	//	because it's a shared variable; not doing so causes the wrong
+	//	thumbnail image to be generated
 	@synchronized(repForThumb) {
 		[repForThumb setCurrentPage:[[self dataProvider] pageIndex]];
+		[self _setThumbnailImageInOperation:operation
+								   imageRep:repForThumb
+							  thumbnailSize:size
+								orientation:PGUpright
+									 opaque:YES];
 	}
-
-	[self _setThumbnailImageInOperation:operation
-							   imageRep:repForThumb
-						  thumbnailSize:size
-							orientation:PGUpright
-								 opaque:YES];
 }
 
 @end
