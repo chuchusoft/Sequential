@@ -24,7 +24,7 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import "PGResourceAdapter.h"
 
-@interface PGGenericImageAdapter : PGResourceAdapter
+@interface PGGenericImageAdapter : PGResourceAdapter<PGResourceAdapterImageGeneration>
 {
 	@private
 	BOOL _reading;
