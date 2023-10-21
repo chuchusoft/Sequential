@@ -85,6 +85,7 @@ typedef NSUInteger PGNodeStatus;
 
 - (void)becomeViewed;
 - (void)readIfNecessary;
+- (void)setIsReading:(BOOL)reading;	//	2023/10/21
 - (void)readFinishedWithImageRep:(NSImageRep *)aRep;
 
 - (void)removeFromDocument;
