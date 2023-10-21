@@ -54,6 +54,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	@private
 	XADArchive *_archive;
 	int _entry;
+
+	//	The use of @synchronized(_archive) causes contention
+	//	between all threads attempting to use _archive; when
+	//	the main thread is attempting to draw thumbnails, this
+	//	contention blocks the main thread by preventing the
+	//	access to the icon (typeCode and extension) and data
+	//	size (dataByteSize) values; to avoid this contention,
+	//	these small metadata values are cached.
+	OSType _typeCode;
+	NSString *_extension;
+	uint64_t _dataByteSize;
 }
 
 - (id)initWithArchive:(XADArchive *)archive entry:(int)entry;
@@ -387,9 +398,17 @@ StringAtDepth(NSInteger depth) {
 - (id)initWithArchive:(XADArchive *)archive entry:(int)entry;
 {
 	if((self = [super init])) {
+		NSParameterAssert(nil != archive);
 		_archive = [archive retain];
 		_entry = entry;
-		NSParameterAssert(nil != archive);
+
+		_typeCode = [archive PG_OSTypeForEntry:entry];
+		_extension = [[[[archive nameOfEntry:entry] pathExtension] lowercaseString] retain];
+		{
+			off_t const value = [archive representativeSizeOfEntry:entry];
+			NSParameterAssert(value >= 0);	//	the following cast should be safe
+			_dataByteSize = (uint64_t) value;	//	cast signed 64-bit int to unsigned 64-bit int
+		}
 	}
 	return self;
 }
@@ -398,6 +417,7 @@ StringAtDepth(NSInteger depth) {
 
 - (NSData *)data
 {
+NSLog(@"PGArchiveDataProvider -data for entry %d", _entry);
 	@synchronized(_archive) {
 		return [_archive contentsOfEntry:_entry]; // TODO: Handle password issues.
 	}
@@ -405,12 +425,13 @@ StringAtDepth(NSInteger depth) {
 }
 - (uint64_t)dataByteSize
 {
-	@synchronized(_archive) {
+	return _dataByteSize;
+/*	@synchronized(_archive) {
 		off_t const value = [_archive representativeSizeOfEntry:_entry];
 		NSParameterAssert(value >= 0);	//	the following cast should be safe
 		return (uint64_t) value;	//	cast signed 64-bit int to unsigned 64-bit int
 	}
-	return 0;
+	return 0;	*/
 }
 - (NSDate *)dateModified
 {	//	2023/09/17 added to implement sorting by date modified in archives
@@ -432,17 +453,19 @@ StringAtDepth(NSInteger depth) {
 
 - (OSType)typeCode
 {
-	@synchronized(_archive) {
+	return _typeCode;
+/*	@synchronized(_archive) {
 		return [_archive PG_OSTypeForEntry:_entry];
 	}
-	return 0;
+	return 0;	*/
 }
 - (NSString *)extension
 {
-	@synchronized(_archive) {
+	return _extension;
+/*	@synchronized(_archive) {
 		return [[[_archive nameOfEntry:_entry] pathExtension] lowercaseString];
 	}
-	return nil;
+	return nil;	*/
 }
 
 #pragma mark -
@@ -496,6 +519,7 @@ StringAtDepth(NSInteger depth) {
 
 - (void)dealloc
 {
+	[_extension release];
 	[_archive release];
 	[super dealloc];
 }
