@@ -49,16 +49,22 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 
 #define PGThumbnailSize 128.0f
 
-@interface PGThumbnailGenerationOperation : NSOperation
-{
-	@private
-	PGResourceAdapter *_adapter;
+@interface PGGenerateImageOperation : NSOperation {
+@private
+	NSObject<PGResourceAdapterImageGeneratorCompletion, PGResourceAdapterImageGeneration> *_adapter;
 }
 
 - (id)initWithResourceAdapter:(PGResourceAdapter *)adapter;
+@end
+
+@interface PGResourceAdapter (Private)
+
+- (void)_setRealThumbnail:(NSImage *)anImage;
+- (void)_stopGeneratingImagesInOperation:(NSOperation *)operation;
 
 @end
 
+#pragma mark -
 @implementation PGResourceAdapter
 
 #pragma mark +PGResourceAdapter
@@ -228,9 +234,9 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 }
 - (void)loadIfNecessary
 {
-	NSAutoreleasePool *const pool = [[NSAutoreleasePool alloc] init]; // We load recursively, so memory use can be a problem.
-	[self load];
-	[pool release];
+	@autoreleasepool { // We load recursively, so memory use can be a problem.
+		[self load];
+	}
 }
 - (void)load
 {
@@ -247,10 +253,10 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 {
 	NSImage *const realThumbnail = [self realThumbnail];
 	if(realThumbnail) return realThumbnail;
-	if([self canGenerateRealThumbnail] && !_thumbnailGenerationOperation) {
-		_thumbnailGenerationOperation = [[PGThumbnailGenerationOperation alloc] initWithResourceAdapter:self];
-		[[self document] addOperation:_thumbnailGenerationOperation];
-	}
+
+	if([self canGenerateRealThumbnail])
+		[self _startGeneratingImages];	//	2023/10/21
+
 	return [self fastThumbnail];
 }
 - (NSImage *)fastThumbnail
@@ -263,16 +269,16 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 {
 	return [[_realThumbnail retain] autorelease];
 }
-- (void)setRealThumbnail:(NSImage *)anImage
+- (void)_setRealThumbnail:(NSImage *)anImage
 {
+	if(!_generateImageOperation)
+		return;
+
 	if(anImage != _realThumbnail) {
 		[_realThumbnail release];
 		_realThumbnail = [anImage retain];
 		[[self document] noteNodeThumbnailDidChange:[self node] recursively:NO];
 	}
-	[_thumbnailGenerationOperation cancel];
-	[_thumbnailGenerationOperation release];
-	_thumbnailGenerationOperation = nil;
 }
 - (BOOL)canGenerateRealThumbnail
 {
@@ -281,11 +287,11 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 - (void)invalidateThumbnail
 {
 	if(![self canGenerateRealThumbnail]) return;
+
+	[self _stopGeneratingImagesInOperation:_generateImageOperation];
 	[_realThumbnail release];
 	_realThumbnail = nil;
-	[_thumbnailGenerationOperation cancel];
-	[_thumbnailGenerationOperation release];
-	_thumbnailGenerationOperation = nil;
+
 	(void)[self thumbnail];
 }
 
@@ -387,6 +393,53 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 
 - (void)noteResourceDidChange {}
 
+- (void)_startGeneratingImages {	//	2023/10/21
+	if(!_generateImageOperation) {
+		[[self node] setIsReading:YES];
+
+		NSAssert([self conformsToProtocol:@protocol(PGResourceAdapterImageGeneration)],
+					@"PGResourceAdapterImageGeneration");
+		_generateImageOperation = [[PGGenerateImageOperation alloc] initWithResourceAdapter:self];
+		[[self document] addOperation:_generateImageOperation];
+	}
+}
+
+- (void)_stopGeneratingImagesInOperation:(NSOperation *)operation {	//	2023/10/21
+	[[self node] setIsReading:NO];
+
+	NSParameterAssert(_generateImageOperation == operation);
+
+	if(_generateImageOperation) {
+		[_generateImageOperation cancel];
+		[_generateImageOperation release];
+		_generateImageOperation = nil;
+	}
+}
+
+- (void)_setThumbnailImageInOperation:(NSOperation *)operation
+							 imageRep:(NSImageRep *)rep
+						thumbnailSize:(NSSize)size
+						  orientation:(PGOrientation)orientation
+							   opaque:(BOOL)opaque {
+	//	-PG_thumbnailWithMaxSize:orientation:opaque: does not mutate
+	//	rep so it does not require mutual exclusion
+	NSImageRep *thumbRep = [rep PG_thumbnailWithMaxSize:size
+											orientation:orientation
+												 opaque:opaque];
+	if(!thumbRep || [operation isCancelled])
+		return;
+
+	NSImage *const thumbImage = [[[NSImage alloc] initWithSize:NSMakeSize([thumbRep pixelsWide], [thumbRep pixelsHigh])] autorelease];
+	if(!thumbImage || [operation isCancelled])
+		return;
+	[thumbImage addRepresentation:thumbRep];
+	if([operation isCancelled])
+		return;
+	[self performSelectorOnMainThread:@selector(_setRealThumbnail:)
+						   withObject:thumbImage
+						waitUntilDone:NO];
+}
+
 #pragma mark -NSObject
 
 - (id)init
@@ -403,7 +456,7 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 	[_activity release];
 	[_error release];
 	[_realThumbnail release];
-	[_thumbnailGenerationOperation release];
+	[_generateImageOperation release];	//	2023/10/21
 	[super dealloc];
 }
 
@@ -449,13 +502,18 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 - (void)noteFileEventDidOccurDirect:(BOOL)flag {}
 - (void)noteSortOrderDidChange {}
 
+#pragma mark - <PGResourceAdapterImageGeneratorCompletion>
+
+- (void)generationDidCompleteInOperation:(NSOperation *)operation {
+	[self _stopGeneratingImagesInOperation:operation];
+}
+
 @end
 
-@implementation PGThumbnailGenerationOperation
+#pragma mark -
+@implementation PGGenerateImageOperation
 
-#pragma mark -PGThumbnailGenerationOperation
-
-- (id)initWithResourceAdapter:(PGResourceAdapter *)adapter
+- (id)initWithResourceAdapter:(NSObject<PGResourceAdapterImageGeneratorCompletion, PGResourceAdapterImageGeneration> *)adapter
 {
 	if((self = [super init])) {
 		_adapter = [adapter retain];
@@ -463,34 +521,33 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 	return self;
 }
 
-#pragma mark -NSOperation
-
-- (void)main
-{
-	@try { @autoreleasepool {	//	2023/08/20 added exception wrapper and autorelease pool
-		if([self isCancelled]) return;
-		NSImageRep *const rep = [_adapter threaded_thumbnailRepWithSize:NSMakeSize(PGThumbnailSize, PGThumbnailSize)];
-		if(!rep || [self isCancelled]) return;
-		NSImage *const image = [[[NSImage alloc] initWithSize:NSMakeSize([rep pixelsWide], [rep pixelsHigh])] autorelease];
-		[image addRepresentation:rep];
-		if([self isCancelled]) return;
-		[_adapter performSelectorOnMainThread:@selector(setRealThumbnail:) withObject:image waitUntilDone:NO];
-	} }
-	@catch(...) {
-		// Do not rethrow exceptions.
-	}
-}
-
-#pragma mark -NSObject
-
 - (void)dealloc
 {
 	[_adapter release];
 	[super dealloc];
 }
 
+#pragma mark NSOperation
+
+- (void)main
+{
+	@try {	//	2023/08/20 added exception wrapper
+		if([self isCancelled]) return;
+		[_adapter generateImagesInOperation:self thumbnailSize:NSMakeSize(PGThumbnailSize, PGThumbnailSize)];	//	2023/10/21
+	}
+	@catch(...) {
+		// Do not rethrow exceptions.
+	}
+	@finally {
+		[_adapter performSelectorOnMainThread:@selector(generationDidCompleteInOperation:)
+								   withObject:self
+								waitUntilDone:NO];
+	}
+}
+
 @end
 
+#pragma mark -
 @implementation PGDataProvider(PGResourceAdapterLoading)
 
 - (NSUInteger)_matchPriorityForTypeDictionary:(NSDictionary *)dict
@@ -537,6 +594,12 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 	o = [dict objectForKey:PGCFBundleTypeExtensionsKey];
 	if(o && [o containsObject:[[self extension] lowercaseString]]) return 1;
 
+	//	the original code:
+//	if([[dict objectForKey:PGBundleTypeFourCCsKey] containsObject:[self fourCCData]]) return 5;
+//	if([[dict objectForKey:PGLSItemContentTypes] containsObject:[self UTIType]]) return 4;
+//	if([[dict objectForKey:PGCFBundleTypeMIMETypesKey] containsObject:[self MIMEType]]) return 3;
+//	if([[dict objectForKey:PGCFBundleTypeOSTypesKey] containsObject:PGOSTypeToStringQuoted([self typeCode], NO)]) return 2;
+//	if([[dict objectForKey:PGCFBundleTypeExtensionsKey] containsObject:[[self extension] lowercaseString]]) return 1;
 	return 0;
 }
 
@@ -562,14 +625,5 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 	for(Class const class in [self adapterClassesForNode:node]) [adapters addObject:[[[class alloc] initWithNode:node dataProvider:self] autorelease]];
 	return adapters;
 }
-/*	- (NSUInteger)matchPriorityForTypeDictionary:(NSDictionary *)dict
-{
-	if([[dict objectForKey:PGBundleTypeFourCCsKey] containsObject:[self fourCCData]]) return 5;
-	if([[dict objectForKey:PGLSItemContentTypes] containsObject:[self UTIType]]) return 4;
-	if([[dict objectForKey:PGCFBundleTypeMIMETypesKey] containsObject:[self MIMEType]]) return 3;
-	if([[dict objectForKey:PGCFBundleTypeOSTypesKey] containsObject:PGOSTypeToStringQuoted([self typeCode], NO)]) return 2;
-	if([[dict objectForKey:PGCFBundleTypeExtensionsKey] containsObject:[[self extension] lowercaseString]]) return 1;
-	return 0;
-}	*/
 
 @end
