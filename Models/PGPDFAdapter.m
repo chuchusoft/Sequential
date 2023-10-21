@@ -32,7 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import "PGAppKitAdditions.h"
 #import "PGGeometry.h"
 
-@interface PGPDFPageAdapter : PGResourceAdapter
+@interface PGPDFPageAdapter : PGResourceAdapter<PGResourceAdapterImageGeneration>
 
 @end
 
@@ -51,6 +51,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+#pragma mark -
 @implementation PGPDFAdapter
 
 #pragma mark -PGContainerAdapter
@@ -98,6 +99,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+#pragma mark -
 @implementation PGPDFPageAdapter
 
 #pragma mark -PGResourceAdapter
@@ -124,6 +126,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (void)read
 {
 	NSPDFImageRep *const rep = [[self dataProvider] mainRep];
+	//	could this be done when _mainRep is initialized?
 	[rep setCurrentPage:[[self dataProvider] pageIndex]];
 	[[self node] readFinishedWithImageRep:rep];
 }
@@ -135,7 +138,28 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	return YES;
 }
 
-#pragma mark -PGResourceAdapter(PGAbstract)
+#pragma mark - <PGResourceAdapterImageGeneration>
+
+//	main image is created in -read so only need to create thumbnail image
+- (void)generateImagesInOperation:(NSOperation *)operation
+					thumbnailSize:(NSSize)size {	//	2023/10/21
+	NSPDFImageRep *const repForThumb = [(PGPDFDataProvider *)[self dataProvider] threadRep];
+	if(!repForThumb)
+		return;
+
+	@synchronized(repForThumb) {
+		//	could this be done when _threadRep is initialized?
+		[repForThumb setCurrentPage:[[self dataProvider] pageIndex]];
+	}
+
+	[self _setThumbnailImageInOperation:operation
+							   imageRep:repForThumb
+						  thumbnailSize:size
+							orientation:PGUpright
+								 opaque:YES];
+}
+
+/* #pragma mark -PGResourceAdapter(PGAbstract)
 
 - (NSImageRep *)threaded_thumbnailRepWithSize:(NSSize)size
 {
@@ -145,16 +169,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		return [rep PG_thumbnailWithMaxSize:size orientation:PGUpright opaque:YES];
 	}
 	return nil;
-}
+} */
 
 @end
 
+#pragma mark -
 @implementation PGPDFDataProvider
-
-#pragma mark -PGPDFDataProvider
 
 - (id)initWithMainRep:(NSPDFImageRep *)mainRep threadRep:(NSPDFImageRep *)threadRep pageIndex:(NSInteger)page
 {
+	NSParameterAssert(mainRep);
+	NSParameterAssert(threadRep);
+
 	if((self = [super init])) {
 		_mainRep = [mainRep retain];
 		_threadRep = [threadRep retain];
@@ -162,6 +188,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	}
 	return self;
 }
+
+- (void)dealloc
+{
+	[_mainRep release];
+	[_threadRep release];
+	[super dealloc];
+}
+
 @synthesize mainRep = _mainRep;
 @synthesize threadRep = _threadRep;
 @synthesize pageIndex = _pageIndex;
@@ -171,15 +205,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (NSArray *)adapterClassesForNode:(PGNode *)node
 {
 	return [NSArray arrayWithObject:[PGPDFPageAdapter class]];
-}
-
-#pragma mark -NSObject
-
-- (void)dealloc
-{
-	[_mainRep release];
-	[_threadRep release];
-	[super dealloc];
 }
 
 @end
