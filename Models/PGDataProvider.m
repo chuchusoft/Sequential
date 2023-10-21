@@ -165,12 +165,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 }
 - (NSImage *)icon
 {
-	IconRef iconRef = NULL;
 	NSString *const MIMEType = [self MIMEType];
 	OSType typeCode = [self typeCode];
 	if(MIMEType || typeCode) {
-		if('fold' == typeCode) typeCode = kGenericFolderIcon;
-		if(noErr == GetIconRefFromTypeInfo('????', typeCode, NULL, (CFStringRef)MIMEType, kIconServicesNormalUsageFlag, &iconRef)) {
+		IconRef iconRef = NULL;
+
+		if('fold' == typeCode)
+			typeCode = kGenericFolderIcon;
+		if(noErr == GetIconRefFromTypeInfo('????', typeCode, NULL, (CFStringRef)MIMEType,
+											kIconServicesNormalUsageFlag, &iconRef) && iconRef) {
 			NSImage *const icon = [[[NSImage alloc] initWithIconRef:iconRef] autorelease];
 			ReleaseIconRef(iconRef);
 			return icon;
