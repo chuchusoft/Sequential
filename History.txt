@@ -1,7 +1,18 @@
 2.3.1 (2023-??-??)
 - PDF image drawing was being cached in a layer which resulted in a sub-optimal
   rendering appearance on high-DPI screens; now, PDF image drawing is no longer
-  cached and is instead drawn as directly to the display as possible.
+  cached and is instead drawn as directly to the display as possible. On
+  review, it was decided that all image drawing should not be cached because
+  AppKit is optimised to draw correctly and efficiently on high-DPI screens. As
+  a result, the entire drawing code was made simpler by removing the layer
+  caching entirely. PDF images should be noticeably better on high-DPI screens.
+  For non-PDF images, no degradation in image quality should occur.
+- thumbnails and main images were being generated separately which resulted in
+  the compressed image data being read and decompressed twice. The images are
+  now read and decompressed once to generate both images.
+- the number of cached images per document was raised from 3 to 250. This
+  improves the app's performance when navigating forwards and backwards because
+  (much) fewer images need to be decompressed repeatedly.
 
 2.3.0 (2023-10-15)
 - when in fullscreen mode with thumbnails displaying, the app would crash when
