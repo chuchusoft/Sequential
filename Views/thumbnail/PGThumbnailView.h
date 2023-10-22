@@ -73,6 +73,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (NSImage *)thumbnailView:(PGThumbnailView *)sender thumbnailForItem:(id)item;
 - (BOOL)thumbnailView:(PGThumbnailView *)sender canSelectItem:(id)item;
 - (BOOL)thumbnailView:(PGThumbnailView *)sender isContainerItem:(id)item;
+- (OSType)thumbnailView:(PGThumbnailView *)sender typeCodeForItem:(id)item;	//	2023/10/22
 - (NSURL *)thumbnailView:(PGThumbnailView *)sender urlForItem:(id)item;	//	2023/10/14
 - (NSString *)thumbnailView:(PGThumbnailView *)sender labelForItem:(id)item;
 - (NSColor *)thumbnailView:(PGThumbnailView *)sender labelColorForItem:(id)item;
