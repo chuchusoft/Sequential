@@ -78,7 +78,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (NSString *)thumbnailView:(PGThumbnailView *)sender labelForItem:(id)item;
 - (NSColor *)thumbnailView:(PGThumbnailView *)sender labelColorForItem:(id)item;
 - (NSRect)thumbnailView:(PGThumbnailView *)sender highlightRectForItem:(id)item; // A rect within {{0, 0}, {1, 1}}.
-- (BOOL)thumbnailView:(PGThumbnailView *)sender shouldRotateThumbnailForItem:(id)item;
+- (BOOL)thumbnailView:(PGThumbnailView *)sender hasRealThumbnailForItem:(id)item;
 
 //	can return NSNotFound if item is not a container/folder:
 //- (NSInteger)thumbnailView:(PGThumbnailView *)sender directChildrenCountForItem:(id)item;
