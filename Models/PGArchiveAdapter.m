@@ -71,7 +71,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
-@interface PGFolderDataProvider : PGDataProvider
+@interface PGArchiveFolderDataProvider : PGDataProvider
 
 @end
 
@@ -204,7 +204,7 @@ StringAtDepth(NSInteger depth) {
 			if(isFile)
 				[node setDataProvider:[[[PGArchiveDataProvider alloc] initWithArchive:_archive entry:(int) i] autorelease]];
 			else {
-				[node setDataProvider:[[[PGFolderDataProvider alloc] init] autorelease]];
+				[node setDataProvider:[[[PGArchiveFolderDataProvider alloc] init] autorelease]];
 				if(isEntrylessFolder) {
 //NSLog(@"subpath '%@' entryPath '%@' isEntrylessFolder %u", subpath, entryPath, isEntrylessFolder);
 //NSLog(@"isEntrylessFolder so adding index %lu backinto indexes", i);
@@ -417,7 +417,7 @@ StringAtDepth(NSInteger depth) {
 
 - (NSData *)data
 {
-NSLog(@"PGArchiveDataProvider -data for entry %d", _entry);
+//NSLog(@"PGArchiveDataProvider -data for entry %d", _entry);
 	@synchronized(_archive) {
 		return [_archive contentsOfEntry:_entry]; // TODO: Handle password issues.
 	}
@@ -527,8 +527,7 @@ NSLog(@"PGArchiveDataProvider -data for entry %d", _entry);
 @end
 
 #pragma mark -
-
-@implementation PGFolderDataProvider
+@implementation PGArchiveFolderDataProvider
 
 #pragma mark PGDataProvider
 
