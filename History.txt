@@ -1,4 +1,4 @@
-2.3.1 (2023-??-??)
+2.4.0 (2023-??-??)
 - PDF image drawing was being cached in a layer which resulted in a sub-optimal
   rendering appearance on high-DPI screens; now, PDF image drawing is no longer
   cached and is instead drawn as directly to the display as possible. On
@@ -10,9 +10,15 @@
 - thumbnails and main images were being generated separately which resulted in
   the compressed image data being read and decompressed twice. The images are
   now read and decompressed once to generate both images.
-- the number of cached images per document was raised from 3 to 250. This
-  improves the app's performance when navigating forwards and backwards because
-  (much) fewer images need to be decompressed repeatedly.
+- the number of cached images per document was increased. This improves the
+  app's performance when navigating forwards and backwards because (much) fewer
+  images need to be decompressed repeatedly.
+- in the thumbnail view, PDF files are now displayed with the thumbnail of the
+  first page in the file instead of a generic PDF icon.
+- the byte file size of a PDF or archive is now shown on the thumbnail (it was
+  not always being shown); [the code now tests for a typeCode of 'fold'].
+- the size of the children in a disk folder is now correctly shown on the
+  thumbnail (disk folders now return a typeCode of 'fold').
 
 2.3.0 (2023-10-15)
 - when in fullscreen mode with thumbnails displaying, the app would crash when
