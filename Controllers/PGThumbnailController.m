@@ -413,6 +413,9 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 {
 	return [[item resourceAdapter] isContainer];
 }
+- (OSType)thumbnailView:(PGThumbnailView *)sender typeCodeForItem:(id)item {
+	return [[(PGNode *)item dataProvider] typeCode];	//	2023/10/22
+}
 - (NSURL *)thumbnailView:(PGThumbnailView *)sender urlForItem:(id)item
 {
 	NSAssert([item isKindOfClass:[PGNode class]], @"item is PGNode*");
