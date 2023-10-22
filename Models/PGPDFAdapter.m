@@ -72,9 +72,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	NSPDFImageRep *const threadRep = [[mainRep copy] autorelease];
 
 	NSDictionary *const localeDict = [[NSUserDefaults standardUserDefaults] dictionaryRepresentation];
-	NSMutableArray *const nodes = [NSMutableArray array];
-	NSInteger i = 0;
-	for(; i < [mainRep pageCount]; i++) {
+	NSUInteger const pageCount = [mainRep pageCount];
+	NSMutableArray *const nodes = [NSMutableArray arrayWithCapacity:pageCount];
+	for(NSUInteger i = 0; i < pageCount; i++) {
 		PGDisplayableIdentifier *const identifier = [[[[self node] identifier] subidentifierWithIndex:i] displayableIdentifier];
 		[identifier setNaturalDisplayName:[[NSNumber numberWithUnsignedInteger:i + 1] descriptionWithLocale:localeDict]];
 		PGNode *const node = [[[PGNode alloc] initWithParent:self identifier:identifier] autorelease];
