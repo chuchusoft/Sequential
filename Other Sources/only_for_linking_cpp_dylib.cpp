@@ -2,7 +2,7 @@
 //  only_for_linking_cpp_dylib.cpp
 //  Sequential
 //
-//  Created by Vincent Tan on 2021/08/04.
+//  Created on 2021/08/04.
 //
 
 //	Problem: when the UniversalDetector library is statically
