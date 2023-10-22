@@ -1147,8 +1147,11 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 			CGContextBeginTransparencyLayerWithRect(context, NSRectToCGRect(thumbnailRect), NULL);
 			[nilShadow set];
 		}
+		BOOL const hasRealThumbnail = [self.dataSource thumbnailView:self hasRealThumbnailForItem:item];
 		NSRect transformedThumbnailRect = thumbnailRect;
-		NSAffineTransform *const transform = [NSAffineTransform PG_transformWithRect:&transformedThumbnailRect orientation:[[self dataSource] thumbnailView:self shouldRotateThumbnailForItem:item] ? PGAddOrientation(_thumbnailOrientation, PGFlippedVert) : PGFlippedVert]; // Also flip it vertically because our view is flipped and -drawInRect:… ignores that.
+		NSAffineTransform *const transform = [NSAffineTransform PG_transformWithRect:&transformedThumbnailRect
+			 // Also flip it vertically because our view is flipped and -drawInRect:… ignores that.
+			orientation:hasRealThumbnail ? PGAddOrientation(_thumbnailOrientation, PGFlippedVert) : PGFlippedVert];
 		[transform concat];
 		[thumb drawInRect:transformedThumbnailRect fromRect:NSZeroRect operation:NSCompositingOperationSourceOver fraction:enabled ? 1.0f : 0.33f];
 		[transform invert];
@@ -1167,7 +1170,6 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 			[shadow set];
 		}
 
-	//	BOOL const hasRealThumbnail = [self.dataSource thumbnailView:self shouldRotateThumbnailForItem:item];
 		BOOL const isContainer = [self.dataSource thumbnailView:self isContainerItem:item];
 		BOOL const willDrawText = !isContainer // || hasRealThumbnail
 			? showThumbnailImageName || showThumbnailImageSize	//	images and non-containers
@@ -1249,7 +1251,6 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 				NSAssert(showThumbnailContainerName && !showThumbnailContainerChildCount &&
 						!showThumbnailContainerChildSizeTotal, @"name-only");
 				NSString *const	label = [[self dataSource] thumbnailView:self labelForItem:item];
-				BOOL const hasRealThumbnail = [self.dataSource thumbnailView:self shouldRotateThumbnailForItem:item];
 				DrawSingleTextLabelIn(!hasRealThumbnail, label, labelColor, attributes, enabled, frame,
 										frameWithMargin, textStorage, layoutManager, textContainer);
 			} else {
@@ -1267,9 +1268,8 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 
 				OSType const	typeCode = [self.dataSource thumbnailView:self typeCodeForItem:item];
 				if('fold' != typeCode) {	//	PDF/ZIP/RAR/etc.
-					//	TODO: draw the 2 lines at the bottom of the thumbnail if there is a real
-					//	TODO: thumbnail being displayed (eg, on a PDF container node)
-					BOOL const hasRealThumbnail = [self.dataSource thumbnailView:self shouldRotateThumbnailForItem:item];
+					//	draw the 2 lines at the bottom of the thumbnail if there is a real
+					//	thumbnail being displayed (eg, on a PDF container node)
 					DrawUpperAndLower(!hasRealThumbnail, showThumbnailContainerName ? label : [NSString string],
 						labelColor, showThumbnailContainerChildCount, sizeFormat,
 						byteSizeDirectChildren, folderCount, imageCount,
@@ -1568,7 +1568,7 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 {
 	return NSMakeRect(0.0f, 0.0f, 1.0f, 1.0f);
 }
-- (BOOL)thumbnailView:(PGThumbnailView *)sender shouldRotateThumbnailForItem:(id)item
+- (BOOL)thumbnailView:(PGThumbnailView *)sender hasRealThumbnailForItem:(id)item
 {
 	return NO;
 }
