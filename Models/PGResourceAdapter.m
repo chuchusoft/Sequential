@@ -608,7 +608,7 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 	NSParameterAssert(node);
 	NSDictionary *const types = [PGResourceAdapter typesDictionary];
 	NSMutableDictionary *const adapterByPriority = [NSMutableDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithUnsignedInteger:0], [PGResourceAdapter class], nil];
-	uint8_t fourCCData[4] = {0,0,0,0};
+	uint8_t fourCCData[4] = {0,0,0,0};	//	2023/10/14
 	for(NSString *const classString in types) {
 		Class const class = NSClassFromString(classString);
 		if(!class) continue;
