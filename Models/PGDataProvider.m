@@ -26,23 +26,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 // Models
 #import "PGResourceIdentifier.h"
+#import "PGResourceDataProvider.h"
 
 // Other Sources
-#import "PGFoundationAdditions.h"
-
-@interface PGResourceDataProvider : PGDataProvider
-{
-	@private
-	PGResourceIdentifier *_identifier;
-	NSString *_displayableName;
-}
-
-- (id)initWithResourceIdentifier:(PGResourceIdentifier *)ident displayableName:(NSString *)name;
-//- (id)valueForLSAttributeName:(CFStringRef)name;
-- (id)valueForResourceKey:(NSURLResourceKey)key;
-- (id)valueForFMAttributeName:(NSString *)name;
-
-@end
+//#import "PGFoundationAdditions.h"
 
 @interface PGURLResponseDataProvider : PGDataProvider
 {
@@ -207,131 +194,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
-@implementation PGResourceDataProvider
-
-#pragma mark -PGResourceDataProvider
-
-- (id)initWithResourceIdentifier:(PGResourceIdentifier *)ident displayableName:(NSString *)name
-{
-	if((self = [super init])) {
-		_identifier = [ident retain];
-		_displayableName = [name copy];
-	}
-	return self;
-}
-/* - (id)valueForLSAttributeName:(CFStringRef)name
-{
-	FSRef ref;
-	if(![_identifier getRef:&ref byFollowingAliases:NO]) return nil;
-	id val = nil;
-	if(noErr != LSCopyItemAttribute(&ref, kLSRolesViewer, name, (CFTypeRef *)&val)) return nil;
-	return [val autorelease];
-} */
-
-- (id)valueForResourceKey:(NSURLResourceKey)key {
-	NSError* error = nil;
-	id value = nil;
-	if(![_identifier.URL getResourceValue:&value forKey:key error:&error] || error)
-		return nil;
-	return value;
-}
-
-- (id)valueForFMAttributeName:(NSString *)name
-{
-	return [_identifier isFileIdentifier] ? [[[NSFileManager defaultManager] attributesOfItemAtPath:[[_identifier URL] path] error:NULL] objectForKey:name] : nil;
-}
-
-#pragma mark -PGDataProvider
-
-- (PGResourceIdentifier *)identifier
-{
-	return [[_identifier retain] autorelease];
-}
-- (NSString *)displayableName
-{
-//	return _displayableName ? _displayableName : [self valueForLSAttributeName:kLSItemDisplayName];
-	return _displayableName ? _displayableName : [self valueForResourceKey:NSURLLocalizedNameKey];
-}
-- (NSData *)data
-{
-	return [[[NSData alloc] initWithContentsOfURL:[_identifier URL]
-										  options:NSDataReadingMapped | NSDataReadingUncached
-											error:NULL] autorelease];
-}
-- (uint64_t)dataByteSize
-{
-	return (uint64_t) [[self valueForFMAttributeName:NSFileSize] unsignedLongValue];
-}
-
 #pragma mark -
-
-- (NSString *)UTIType
-{
-//	return [self valueForLSAttributeName:kLSItemContentType];
-	return [self valueForResourceKey:NSURLTypeIdentifierKey];
-}
-/* - (NSString *)MIMEType
-{
-	return [(NSString *)UTTypeCopyPreferredTagWithClass((CFStringRef)[self UTIType], kUTTagClassMIMEType) autorelease];
-}
-- (OSType)typeCode
-{
-	return PGOSTypeFromString([self valueForLSAttributeName:kLSItemFileType]);
-} */
-- (NSString *)extension
-{
-//	return [[self valueForLSAttributeName:kLSItemExtension] lowercaseString];
-	return _identifier.URL.pathExtension;
-}
-
-#pragma mark -
-
-- (NSDate *)dateModified
-{
-	return [self valueForFMAttributeName:NSFileModificationDate];
-}
-- (NSDate *)dateCreated
-{
-	return [self valueForFMAttributeName:NSFileCreationDate];
-}
-
-#pragma mark -
-
-- (BOOL)hasData
-{
-	return PGEqualObjects([self valueForFMAttributeName:NSFileType], NSFileTypeRegular);
-}
-/* - (NSNumber *)dataLength
-{	2023/09/17 deprecated
-	return [self valueForFMAttributeName:NSFileSize];
-} */
-- (NSImage *)icon
-{
-	return [[NSWorkspace sharedWorkspace] iconForFile:[[_identifier URL] path]];
-}
-- (NSString *)kindString
-{
-	NSString* uniformTypeIdentifier = [self UTIType];
-	NSParameterAssert(uniformTypeIdentifier);
-	CFStringRef desc = UTTypeCopyDescription((CFStringRef) uniformTypeIdentifier);
-	NSParameterAssert(desc);
-	return [(NSString *)desc autorelease];
-}
-
-#pragma mark -NSObject
-
-- (void)dealloc
-{
-	[_identifier release];
-	[_displayableName release];
-	[super dealloc];
-}
-
-@end
-
 @implementation PGURLResponseDataProvider
-
-#pragma mark -PGURLResponseDataProvider
 
 - (id)initWithURLResponse:(NSURLResponse *)response data:(NSData *)data
 {
