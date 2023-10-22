@@ -256,6 +256,12 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 
 	if([self canGenerateRealThumbnail])
 		[self _startGeneratingImages];	//	2023/10/21
+	else if ([(NSObject<PGResourceAdapterImageGeneration>*)self respondsToSelector:@selector(generateThumbnailForContainer)])
+		//	2023/10/22 currently, only PGPDFAdapter implements -generateThumbnailForContainer
+		//	because PDF files are a suitable container (because PDF files have a definite
+		//	notion of a first page whereas an archive does not [you can sort an archive's
+		//	contents by mod-date, for example, so what is then the first page?]).
+		[(NSObject<PGResourceAdapterImageGeneration>*)self generateThumbnailForContainer];
 
 	return [self fastThumbnail];
 }
@@ -271,7 +277,11 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 }
 - (void)_setRealThumbnail:(NSImage *)anImage
 {
-	if(!_generateImageOperation)
+	//	2023/10/22 if this adapter represents a container (such as a PDF file), allow
+	//	the thumbnail image of this container to be set; _generateImageOperation will
+	//	be non-nil only on the instance that is generating the thumbnail (e.g., in the
+	//	page 0 instance for a PDF file)
+	if(!_generateImageOperation && !self.isContainer)
 		return;
 
 	if(anImage != _realThumbnail) {
@@ -420,7 +430,8 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 							 imageRep:(NSImageRep *)rep
 						thumbnailSize:(NSSize)size
 						  orientation:(PGOrientation)orientation
-							   opaque:(BOOL)opaque {
+							   opaque:(BOOL)opaque
+		  setParentContainerThumbnail:(BOOL)setParentContainerThumbnail {
 	//	-PG_thumbnailWithMaxSize:orientation:opaque: does not mutate
 	//	rep so it does not require mutual exclusion
 	NSImageRep *thumbRep = [rep PG_thumbnailWithMaxSize:size
@@ -438,6 +449,11 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 	[self performSelectorOnMainThread:@selector(_setRealThumbnail:)
 						   withObject:thumbImage
 						waitUntilDone:NO];
+
+	if(setParentContainerThumbnail)	//	2023/10/22
+		[[self parentAdapter] performSelectorOnMainThread:@selector(_setRealThumbnail:)
+											   withObject:thumbImage
+											waitUntilDone:NO];
 }
 
 #pragma mark -NSObject
