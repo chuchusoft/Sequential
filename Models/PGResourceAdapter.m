@@ -432,8 +432,6 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 						  orientation:(PGOrientation)orientation
 							   opaque:(BOOL)opaque
 		  setParentContainerThumbnail:(BOOL)setParentContainerThumbnail {
-	//	-PG_thumbnailWithMaxSize:orientation:opaque: does not mutate
-	//	rep so it does not require mutual exclusion
 	NSImageRep *thumbRep = [rep PG_thumbnailWithMaxSize:size
 											orientation:orientation
 												 opaque:opaque];
