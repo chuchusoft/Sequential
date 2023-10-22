@@ -36,7 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
-@interface PGPDFDataProvider : PGDataProvider
+@interface PGPDFPageDataProvider : PGDataProvider
 {
 	@private
 	NSPDFImageRep *_mainRep;
@@ -79,15 +79,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		[identifier setNaturalDisplayName:[[NSNumber numberWithUnsignedInteger:i + 1] descriptionWithLocale:localeDict]];
 		PGNode *const node = [[[PGNode alloc] initWithParent:self identifier:identifier] autorelease];
 		if(!node) continue;
-		[node setDataProvider:[[[PGPDFDataProvider alloc] initWithMainRep:mainRep threadRep:threadRep pageIndex:i] autorelease]];
+		[node setDataProvider:[[[PGPDFPageDataProvider alloc] initWithMainRep:mainRep threadRep:threadRep pageIndex:i] autorelease]];
 		[nodes addObject:node];
 	}
 	[self setUnsortedChildren:nodes presortedOrder:PGSortInnateOrder];
 	[[self node] loadFinishedForAdapter:self];
 }
-
-#pragma mark -
-
 - (BOOL)canSaveData
 {
 	return YES;
@@ -95,6 +92,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (BOOL)hasSavableChildren
 {
 	return NO;
+}
+
+- (void)generateThumbnailForContainer {
+	//	2023/10/22 generate a thumbnail image using the adapter for page 0; when
+	//	the thumbnail has been generated, the code in
+	//	-_setThumbnailImageInOperation:imageRep:thumbnailSize:orientation:opaque:
+	//	will get the container's instance and invoke -setThumbnail: on it to set
+	//	the container's thumbnail to page 0's thumbnail
+	for(PGNode *const node in self.unsortedChildren) {
+		NSAssert([node.dataProvider isKindOfClass:PGPDFPageDataProvider.class], @"!PGPDFPageDataProvider");
+		NSInteger const pageIndex = ((PGPDFPageDataProvider *)node.dataProvider).pageIndex;
+		if(0 != pageIndex)
+			continue;
+
+		(void) [node.resourceAdapter thumbnail];	//	triggers thumbnail generation
+		break;
+	}
 }
 
 @end
@@ -142,7 +156,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 //	main image is created in -read so only need to create thumbnail image
 - (void)generateImagesInOperation:(NSOperation *)operation
 					thumbnailSize:(NSSize)size {	//	2023/10/21
-	NSPDFImageRep *const repForThumb = [(PGPDFDataProvider *)[self dataProvider] threadRep];
+	NSPDFImageRep *const repForThumb = [(PGPDFPageDataProvider *)[self dataProvider] threadRep];
 	if(!repForThumb)
 		return;
 
@@ -150,19 +164,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	//	because it's a shared variable; not doing so causes the wrong
 	//	thumbnail image to be generated
 	@synchronized(repForThumb) {
-		[repForThumb setCurrentPage:[[self dataProvider] pageIndex]];
+		NSInteger const pageIndex = [[self dataProvider] pageIndex];
+		[repForThumb setCurrentPage:pageIndex];
+		//	2023/10/22 if this is the first page in the PDF file, set the
+		//	thumbnail image of the PDF container to the same thumbnail
 		[self _setThumbnailImageInOperation:operation
 								   imageRep:repForThumb
 							  thumbnailSize:size
 								orientation:PGUpright
-									 opaque:YES];
+									 opaque:YES
+				setParentContainerThumbnail:0 == pageIndex];
 	}
 }
 
 @end
 
 #pragma mark -
-@implementation PGPDFDataProvider
+@implementation PGPDFPageDataProvider
 
 - (id)initWithMainRep:(NSPDFImageRep *)mainRep threadRep:(NSPDFImageRep *)threadRep pageIndex:(NSInteger)page
 {
