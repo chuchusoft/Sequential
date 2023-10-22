@@ -141,7 +141,8 @@ typedef NSInteger PGRecursionPolicy;
 							 imageRep:(NSImageRep *)rep
 						thumbnailSize:(NSSize)size
 						  orientation:(PGOrientation)orientation
-							   opaque:(BOOL)opaque;
+							   opaque:(BOOL)opaque
+		  setParentContainerThumbnail:(BOOL)setParentContainerThumbnail;
 
 @end
 
@@ -149,7 +150,13 @@ typedef NSInteger PGRecursionPolicy;
 @protocol PGResourceAdapterImageGeneration <NSObject>	//	2023/10/21
 
 @required
+//	invoked on a page in a PDF container:
 - (void)generateImagesInOperation:(NSOperation *)operation thumbnailSize:(NSSize)thumbnailSize;
+
+@optional
+//	invoked on a PDF container; searches for the page with index 0 and invokes its
+//	_startGeneratingImages method:
+- (void)generateThumbnailForContainer;
 
 @end
 
