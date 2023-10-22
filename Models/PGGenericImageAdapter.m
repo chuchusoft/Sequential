@@ -153,7 +153,8 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 									   imageRep:_cachedRep
 								  thumbnailSize:size
 									orientation:_orientation
-										 opaque:NO];
+										 opaque:NO
+					setParentContainerThumbnail:NO];
 			return;
 		}
 
@@ -238,7 +239,8 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 								   imageRep:repForThumb
 							  thumbnailSize:size
 								orientation:orientation
-									 opaque:NO];
+									 opaque:NO
+				setParentContainerThumbnail:NO];
 	}
 
 	if(image0properties)
