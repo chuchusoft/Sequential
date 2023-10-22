@@ -453,7 +453,7 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 	return r;
 }
 
-- (BOOL)thumbnailView:(PGThumbnailView *)sender shouldRotateThumbnailForItem:(id)item
+- (BOOL)thumbnailView:(PGThumbnailView *)sender hasRealThumbnailForItem:(id)item
 {
 	return [[item resourceAdapter] hasRealThumbnail];
 }
