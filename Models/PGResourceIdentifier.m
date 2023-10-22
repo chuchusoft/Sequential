@@ -474,18 +474,6 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 
 #pragma mark -
 @implementation PGAliasIdentifier
-static NSMutableArray *PGCachedAliasIdentifiers;
-
-#pragma mark +PGAliasIdentifier
-
-+ (void)clearCache
-{
-	[PGCachedAliasIdentifiers makeObjectsPerformSelector:@selector(clearCache)];
-	[PGCachedAliasIdentifiers release];
-	PGCachedAliasIdentifiers = nil;
-}
-
-#pragma mark -PGAliasIdentifier
 
 - (id)initWithURL:(NSURL *)URL
 {
@@ -518,11 +506,6 @@ static NSMutableArray *PGCachedAliasIdentifiers;
 	if(!URL) return;
 	[_cachedURL release];
 	_cachedURL = [URL retain];
-	if(!PGCachedAliasIdentifiers) {
-		PGCachedAliasIdentifiers = [[NSMutableArray alloc] init];
-		[PGAliasIdentifier performSelector:@selector(clearCache) withObject:nil afterDelay:0.0f];
-	}
-	[PGCachedAliasIdentifiers addObject:self];
 }
 
 #else
