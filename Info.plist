@@ -699,6 +699,7 @@
 	<true/>
 	<key>PGDataProviderCustomizers</key>
 	<array>
+		<string>PGFolderAdapter</string>
 		<string>PGWebAdapter</string>
 	</array>
 	<key>PGResourceAdapterClasses</key>
