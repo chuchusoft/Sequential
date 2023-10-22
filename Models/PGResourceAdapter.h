@@ -164,6 +164,5 @@ typedef NSInteger PGRecursionPolicy;
 
 - (NSArray *)adapterClassesForNode:(PGNode *)node;
 - (NSArray *)adaptersForNode:(PGNode *)node;
-//- (NSUInteger)matchPriorityForTypeDictionary:(NSDictionary *)dict;
 
 @end
