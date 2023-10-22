@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import "PGDocument.h"
 #import "PGNode.h"
 #import "PGResourceIdentifier.h"
+#import "PGResourceDataProvider.h"
 #import "PGDataProvider.h"
 
 // Other Sources
@@ -36,6 +37,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 static NSArray *PGIgnoredPaths = nil;
 
+@interface PGDiskFolderDataProvider : PGResourceDataProvider	//	2023/10/22
+@end
+
+#pragma mark -
+@implementation PGDiskFolderDataProvider
+
+#pragma mark PGDataProvider
+- (OSType)typeCode
+{
+	return 'fold';
+}
+
+@end
+
+#pragma mark -
 @implementation PGFolderAdapter
 
 #pragma mark +NSObject
@@ -44,6 +60,22 @@ static NSArray *PGIgnoredPaths = nil;
 {
 	if([PGFolderAdapter class] != self) return;
 	PGIgnoredPaths = [[NSArray alloc] initWithObjects:@"/net", @"/etc", @"/home", @"/tmp", @"/var", @"/mach_kernel.ctfsys", @"/mach.sym", nil];
+}
+
+#pragma mark +PGDataProviderCustomizing
+
+//	2023/10/22
++ (PGDataProvider *)customDataProviderWithResourceIdentifier:(PGResourceIdentifier *)ident displayableName:(NSString *)name
+{
+	if(![ident isFileIdentifier])
+		return nil;
+	NSURL *const URL = [ident URL];
+	NSError *error = nil;
+	NSURLFileResourceType value = nil;
+	BOOL const b = [URL getResourceValue:&value forKey:NSURLFileResourceTypeKey error:&error];
+	if(!b || error || ![value isEqual:NSURLFileResourceTypeDirectory])
+		return nil;
+	return [[[PGDiskFolderDataProvider alloc] initWithResourceIdentifier:ident displayableName:name] autorelease];
 }
 
 #pragma mark -PGFolderAdapter
