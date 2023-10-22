@@ -1259,26 +1259,19 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 				Unpack_ByteSize_FolderImageCounts(byteSizeAndFolderAndImageCount, &byteSizeDirectChildren,
 												  &folderCount, &imageCount);
 
-				NSURL *const	url = [self.dataSource thumbnailView:self urlForItem:item];
-				//	"!url && 0 == byteSizeDirectChildren" is a heuristic to detect a PDF file
-				if(!url && 0 == byteSizeDirectChildren) {
+				OSType const	typeCode = [self.dataSource thumbnailView:self typeCodeForItem:item];
+				if('fold' != typeCode)	//	PDF/ZIP/RAR/etc.
 					DrawUpperAndLower(YES, showThumbnailContainerName ? label : [NSString string],
 						labelColor, showThumbnailContainerChildCount, sizeFormat,
 						byteSizeDirectChildren, folderCount, imageCount,
 
-						//	show byte size of PDF file as "[123MB]"
+						//	show byte size of PDF/ZIP/RAR/etc. file as "[123MB]"
 						showThumbnailContainerChildSizeTotal ?
 							[self.dataSource thumbnailView:self byteSizeOf:item] : ~0ull,
 
 						enabled, attributes, textStorage, layoutManager, textContainer, fontLineHeight,
 						frame, frameWithMargin.size);
-				} else
-			/*	id				value = nil;
-				if(url && url.isFileURL &&
-					[url getResourceValue:&value forKey:NSURLIsDirectoryKey error:nil] &&
-					value && [value isEqual:@NO])
-					continue;	*/
-
+				else	//	folder on a disk or in an archive
 					DrawUpperAndLower(YES, showThumbnailContainerName ? label : [NSString string],
 						labelColor, showThumbnailContainerChildCount, sizeFormat,
 						byteSizeDirectChildren, folderCount, imageCount,
