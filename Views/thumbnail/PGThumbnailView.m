@@ -594,6 +594,7 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 
 	NSRect const frame, NSSize const frameWithMarginSize
 ) {
+	//	stage 1: build the metadata string
 	NSMutableString*	s	=	[NSMutableString string]; // [[NSMutableString new] autorelease];
 #if 1
 	if(showCounts && 0 != folderCount) {
@@ -713,6 +714,8 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 #endif
 	NSCAssert(0 != s.length, @"s.length");
 
+	//	stage 2: measure the extent of the rendered strings, then
+	//	build a rect which will correctly show them on the thumbnail
 	MeasuredText	lowerMT;
 	MeasuredText	upperMT;
 #define UPPER_LOWER_GAP 2.0f
@@ -741,6 +744,8 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 	if(BOTTOM_GAP - halfFrameHeight < dy)	//	is there enough space to shift the bubbles down?
 #define BUBBLE_DOWN_SHIFT 8.0f
 		dy	+=	BUBBLE_DOWN_SHIFT;
+
+	//	stage 3: draw the strings
 
 	//	always draw item name first because its rectangle is vertically larger than the metadata's rect
 	DrawTextInBubbleBy(labelColor, frame, dy, layoutManager, &upperMT);
@@ -1244,7 +1249,8 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 				NSAssert(showThumbnailContainerName && !showThumbnailContainerChildCount &&
 						!showThumbnailContainerChildSizeTotal, @"name-only");
 				NSString *const	label = [[self dataSource] thumbnailView:self labelForItem:item];
-				DrawSingleTextLabelIn(YES, label, labelColor, attributes, enabled, frame,
+				BOOL const hasRealThumbnail = [self.dataSource thumbnailView:self shouldRotateThumbnailForItem:item];
+				DrawSingleTextLabelIn(!hasRealThumbnail, label, labelColor, attributes, enabled, frame,
 										frameWithMargin, textStorage, layoutManager, textContainer);
 			} else {
 				//	folders/containers which show an image count and/or size (and maybe a name)
@@ -1260,8 +1266,11 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 												  &folderCount, &imageCount);
 
 				OSType const	typeCode = [self.dataSource thumbnailView:self typeCodeForItem:item];
-				if('fold' != typeCode)	//	PDF/ZIP/RAR/etc.
-					DrawUpperAndLower(YES, showThumbnailContainerName ? label : [NSString string],
+				if('fold' != typeCode) {	//	PDF/ZIP/RAR/etc.
+					//	TODO: draw the 2 lines at the bottom of the thumbnail if there is a real
+					//	TODO: thumbnail being displayed (eg, on a PDF container node)
+					BOOL const hasRealThumbnail = [self.dataSource thumbnailView:self shouldRotateThumbnailForItem:item];
+					DrawUpperAndLower(!hasRealThumbnail, showThumbnailContainerName ? label : [NSString string],
 						labelColor, showThumbnailContainerChildCount, sizeFormat,
 						byteSizeDirectChildren, folderCount, imageCount,
 
@@ -1271,7 +1280,7 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 
 						enabled, attributes, textStorage, layoutManager, textContainer, fontLineHeight,
 						frame, frameWithMargin.size);
-				else	//	folder on a disk or in an archive
+				} else	//	folder on a disk or in an archive
 					DrawUpperAndLower(YES, showThumbnailContainerName ? label : [NSString string],
 						labelColor, showThumbnailContainerChildCount, sizeFormat,
 						byteSizeDirectChildren, folderCount, imageCount,
