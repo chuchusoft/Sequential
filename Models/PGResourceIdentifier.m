@@ -44,25 +44,12 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 @interface PGAliasIdentifier : PGResourceIdentifier <NSSecureCoding>	//	NSCoding
 {
 @private
-#if 1
 	NSData *_bookmarkedURL;
 	NSURL *_cachedURL;
-#else
-	AliasHandle _alias;
-	BOOL _hasValidRef;
-	FSRef _ref;
-	NSURL *_cachedURL;
-#endif
 }
 
-+ (void)clearCache;
-
 - (id)initWithURL:(NSURL *)URL; // Must be a file URL.
-//- (id)initWithAliasData:(const uint8_t *)data length:(NSUInteger)length;
-//- (BOOL)setAliasWithData:(const uint8_t *)data length:(NSUInteger)length;
-//- (BOOL)getRef:(out FSRef *)outRef byFollowingAliases:(BOOL)follow validate:(BOOL)validate;
-//- (void)cacheURL:(NSURL *)URL;
-- (void)clearCache;
+//- (void)clearCache;
 
 @end
 
@@ -551,11 +538,11 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 
 #endif
 
- - (void)clearCache
+/* - (void)clearCache
 {
 	[_cachedURL release];
 	_cachedURL = nil;
-}
+} */
 
 #pragma mark -PGResourceIdentifier
 
@@ -621,13 +608,10 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 
 - (void)dealloc
 {
-#if 1
 	[_bookmarkedURL release];
+	[_cachedURL release];
+
 	[super dealloc];
-#else
-	if(_alias) DisposeHandle((Handle)_alias);
-	[super dealloc];
-#endif
 }
 
 #pragma mark -<NSSecureCoding>	//	NSCoding
