@@ -1049,7 +1049,37 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 		PGContainerAdapter *const parent = anra.containerAdapter;
 		NSAssert(parent.isContainer, @"");
 
-		NSArray *const sortedChildren = parent.sortedChildren;
+#if 1
+		@autoreleasepool {	//	don't count non-viewable nodes (non-images) when a folder's progress is being determined
+			NSInteger childIndex = NSNotFound;
+			NSMutableArray<PGNode*> *const children = [NSMutableArray arrayWithArray:parent.sortedChildren];
+			NSMutableIndexSet *const indexes = [NSMutableIndexSet indexSet];
+			NSUInteger i = 0;
+			for(PGNode *node in children) {
+				if(![node isViewable])
+					[indexes addIndex:i];
+				else if(an == node) {
+					NSAssert(NSNotFound == childIndex, @"");
+
+					//	the index after non-viewables are removed from children
+					childIndex = i - [indexes count];
+				}
+
+				++i;
+			}
+			if(0 != [indexes count])
+				[children removeObjectsAtIndexes:indexes];
+			NSAssert(NSNotFound != childIndex || 0 == [children count], @"");
+
+			NSUInteger const childCount = children.count;
+			if(childCount > 1) {
+				infoView.currentFolderCount = childCount;
+				infoView.currentFolderIndex = childIndex;
+			} else
+				infoView.currentFolderCount = infoView.currentFolderIndex = 0;
+		}
+#else
+		NSArray<PGNode*> *const sortedChildren = parent.sortedChildren;
 		NSUInteger const childCount = sortedChildren.count;	//	includes folders and non-images
 		if(childCount > 1) {
 			infoView.currentFolderCount = childCount;
@@ -1058,6 +1088,7 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 			infoView.currentFolderIndex = childIndex;
 		} else
 			infoView.currentFolderCount = infoView.currentFolderIndex = 0;
+#endif
 	}
 }
 - (void)_updateInfoPanelText
