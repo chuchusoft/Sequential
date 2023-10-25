@@ -194,17 +194,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		[[[NSColor PG_bezelForegroundColor] colorWithAlphaComponent:0.2f] set];
 #else
 		[[NSColor PG_bezelForegroundColor] set];
-#endif
-		NSUInteger const maxValue = [self count] - 1;
-		CGFloat x = round(((CGFloat)MIN([self index], maxValue) / maxValue) * (PGProgressBarWidth - PGProgressBarHeight) +
-							PGProgressBarHeight / 2.0f);
-		if([self originCorner] == PGMaxXMinYCorner) x = -x + origin;
-		else x = x + origin;
 
-#if 0	//	debugging only:
-#else
 		//	[3] draw knob in progress bar
 		{
+			NSUInteger const maxValue = [self count] - 1;
+	#if 1
+			CGFloat x = ((CGFloat)MIN([self index], maxValue) / maxValue) * (PGProgressBarWidth - PGProgressBarHeight) +
+						PGProgressBarHeight / 2.0f;
+	#else
+			CGFloat x = round(((CGFloat)MIN([self index], maxValue) / maxValue) * (PGProgressBarWidth - PGProgressBarHeight) +
+								PGProgressBarHeight / 2.0f);
+	#endif
+			if([self originCorner] == PGMaxXMinYCorner) x = -x + origin;
+			else x = x + origin;
+
 			[NSGraphicsContext saveGraphicsState];
 			[[NSGraphicsContext currentContext] setShouldAntialias:NO];
 			NSBezierPath *const knob = [NSBezierPath bezierPath];
