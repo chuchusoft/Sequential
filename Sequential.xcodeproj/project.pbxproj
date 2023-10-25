@@ -76,7 +76,6 @@
 		0E47942B0DF1832E0083B7CA /* Silhouette-White.png in Resources */ = {isa = PBXBuildFile; fileRef = 0E47942A0DF1832E0083B7CA /* Silhouette-White.png */; };
 		0E5035410DDBBF070067FF6A /* Cursor-Hand-Pointing.png in Resources */ = {isa = PBXBuildFile; fileRef = 0E5035400DDBBF070067FF6A /* Cursor-Hand-Pointing.png */; };
 		0E56B8DD0E24918C00987F57 /* PGActivityPanelController.m in Sources */ = {isa = PBXBuildFile; fileRef = 0E56B8DC0E24918C00987F57 /* PGActivityPanelController.m */; };
-		0E5EC04B0CEB850300E7FF9A /* PGMainThreadProxy.m in Sources */ = {isa = PBXBuildFile; fileRef = 0E5EC04A0CEB850300E7FF9A /* PGMainThreadProxy.m */; };
 		0E5EC1D60CEDFBBC00E7FF9A /* PGURLAlert.m in Sources */ = {isa = PBXBuildFile; fileRef = 0E5EC1D50CEDFBBC00E7FF9A /* PGURLAlert.m */; };
 		0E7B2FF60E9266A600F537CD /* PGKeyboardLayout.m in Sources */ = {isa = PBXBuildFile; fileRef = 0E7B2FF50E9266A600F537CD /* PGKeyboardLayout.m */; };
 		0E7D74460C9ED641004AA269 /* PGDragHighlightView.m in Sources */ = {isa = PBXBuildFile; fileRef = 0E7D74450C9ED641004AA269 /* PGDragHighlightView.m */; };
@@ -465,8 +464,6 @@
 		0E5035400DDBBF070067FF6A /* Cursor-Hand-Pointing.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Cursor-Hand-Pointing.png"; sourceTree = "<group>"; };
 		0E56B8DB0E24918C00987F57 /* PGActivityPanelController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PGActivityPanelController.h; sourceTree = "<group>"; };
 		0E56B8DC0E24918C00987F57 /* PGActivityPanelController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PGActivityPanelController.m; sourceTree = "<group>"; };
-		0E5EC0490CEB850300E7FF9A /* PGMainThreadProxy.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PGMainThreadProxy.h; sourceTree = "<group>"; };
-		0E5EC04A0CEB850300E7FF9A /* PGMainThreadProxy.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PGMainThreadProxy.m; sourceTree = "<group>"; };
 		0E5EC1D40CEDFBBC00E7FF9A /* PGURLAlert.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PGURLAlert.h; sourceTree = "<group>"; };
 		0E5EC1D50CEDFBBC00E7FF9A /* PGURLAlert.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PGURLAlert.m; sourceTree = "<group>"; };
 		0E7B2FF40E9266A600F537CD /* PGKeyboardLayout.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PGKeyboardLayout.h; sourceTree = "<group>"; };
@@ -827,8 +824,6 @@
 				0E7B2FF50E9266A600F537CD /* PGKeyboardLayout.m */,
 				0EC0F5F810F0C758000C8B8B /* PGLocalizing.h */,
 				0EC0F5F910F0C758000C8B8B /* PGLocalizing.m */,
-				0E5EC0490CEB850300E7FF9A /* PGMainThreadProxy.h */,
-				0E5EC04A0CEB850300E7FF9A /* PGMainThreadProxy.m */,
 				0EC11DEE0CA02B7B003E492C /* PGZooming.h */,
 				0EC11DEF0CA02B7B003E492C /* PGZooming.m */,
 				F1CA6DDA26BA587100ECE823 /* only_for_linking_cpp_dylib.cpp */,
@@ -1281,7 +1276,6 @@
 				0E7D74460C9ED641004AA269 /* PGDragHighlightView.m in Sources */,
 				0EC11DF00CA02B7B003E492C /* PGZooming.m in Sources */,
 				0ECD9FFE0CB3961B0059C754 /* PGFindView.m in Sources */,
-				0E5EC04B0CEB850300E7FF9A /* PGMainThreadProxy.m in Sources */,
 				0E5EC1D60CEDFBBC00E7FF9A /* PGURLAlert.m in Sources */,
 				F1E5360F26B2E74A0057A129 /* PGHTMLAdapter.m in Sources */,
 				0EE059B10CF29F380080061B /* PGImageSaveAlert.m in Sources */,
