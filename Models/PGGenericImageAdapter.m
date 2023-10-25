@@ -204,6 +204,8 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 				}
 
 				if(md && ![operation isCancelled])
+					//	-performSelectorOnMainThread:withObject:waitUntilDone: will
+					//	retain md; after -_setImageProperties: finishes, md is released
 					[self performSelectorOnMainThread:@selector(_setImageProperties:)
 										   withObject:md
 										waitUntilDone:NO];
@@ -217,6 +219,8 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 		}
 
 		if(rep && ![operation isCancelled])
+			//	-performSelectorOnMainThread:withObject:waitUntilDone: will retain
+			//	rep; after -_readFinishedWithImageRep: finishes, rep is released
 			[self performSelectorOnMainThread:@selector(_readFinishedWithImageRep:)
 								   withObject:rep
 								waitUntilDone:NO];
