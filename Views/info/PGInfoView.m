@@ -132,9 +132,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (void)drawRect:(NSRect)aRect
 {
 	NSRect const b = [self bounds];
-	NSBezierPath *const bezel = [NSBezierPath PG_bezierPathWithRoundRect:b cornerRadius:PGCornerRadius];
-	[[NSColor PG_bezelBackgroundColor] set];
-	[bezel fill];
+
+	//	[1] fill the background region
+	{
+		NSBezierPath *const bezel = [NSBezierPath PG_bezierPathWithRoundRect:b cornerRadius:PGCornerRadius];
+		[[NSColor PG_bezelBackgroundColor] set];
+		[bezel fill];
+	}
+
 	if([self showsProgressBar]) {
 		CGFloat const origin = [self originCorner] == PGMaxXMinYCorner ? NSMaxX(b) - 1.0f - PGProgressBarBorder : PGProgressBarBorder;
 		NSRect progressBarRect = NSMakeRect(
@@ -143,43 +148,88 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		NSBezierPath *const progressBarOutline = [NSBezierPath PG_bezierPathWithRoundRect:progressBarRect
 																			 cornerRadius:PGProgressBarRadius];
 
-		//	2023/10/01 show the display progress within a single folder/container as a bar
+		//	[2] 2023/10/01 draw the progress within a single folder/container as a color-filled bar
 		if(0 != _currentFolderCount) {
-			progressBarRect.size.width = PGProgressBarWidth * _currentFolderIndex / (_currentFolderCount - 1);
-			//	fill the background only when it is at least PGProgressBarRadius
-			//	points wide otherwise it looks like an "inverted pill"
-			if(progressBarRect.size.width >= PGProgressBarRadius) {
+			CGFloat const w = PGProgressBarWidth * _currentFolderIndex / (_currentFolderCount - 1);
+			if(w > 0) {
+				progressBarRect.size.width = w;
+				#define PGProgressBarDiameter	(2 * PGProgressBarRadius)
+				BOOL const needsClipping = w < PGProgressBarDiameter;
+				if(needsClipping) {
+					progressBarRect.origin.x += w - PGProgressBarDiameter;
+					progressBarRect.size.width = PGProgressBarDiameter;
+
+					//	need to clip otherwise the folder-progress bar is drawn outside the outline's region
+					[NSGraphicsContext saveGraphicsState];
+					[progressBarOutline setClip];
+				}
+
 				NSBezierPath *const folderProgress = [NSBezierPath PG_bezierPathWithRoundRect:progressBarRect
 																				 cornerRadius:PGProgressBarRadius];
-				[[NSColor selectedContentBackgroundColor] set];
+#if 0	//	debugging only:
+				if(needsClipping) {
+				/*	this does not work because system colors are dynamic
+					NSColor *const scbgColor = NSColor.selectedContentBackgroundColor;
+				    if ((scbgColor.type == NSColorTypeComponentBased) &&
+						(scbgColor.colorSpace.colorSpaceModel == NSColorSpaceModelRGB))
+						[[NSColor colorWithHue:1-scbgColor.hueComponent
+									saturation:scbgColor.saturationComponent
+									brightness:scbgColor.brightnessComponent
+										 alpha:scbgColor.alphaComponent] set];
+					else	*/
+						[[NSColor yellowColor] set];
+				} else
+#endif
+					[[NSColor selectedContentBackgroundColor] set];
 				[folderProgress fill];
+
+				if(needsClipping)
+					[NSGraphicsContext restoreGraphicsState];
 			}
 		}
 
+		//	draw knob in progress bar and progress bar outline
+
+#if 0	//	debugging only:
+		[[[NSColor PG_bezelForegroundColor] colorWithAlphaComponent:0.2f] set];
+#else
 		[[NSColor PG_bezelForegroundColor] set];
+#endif
 		NSUInteger const maxValue = [self count] - 1;
 		CGFloat x = round(((CGFloat)MIN([self index], maxValue) / maxValue) * (PGProgressBarWidth - PGProgressBarHeight) +
 							PGProgressBarHeight / 2.0f);
 		if([self originCorner] == PGMaxXMinYCorner) x = -x + origin;
 		else x = x + origin;
 
-		[NSGraphicsContext saveGraphicsState];
-		[[NSGraphicsContext currentContext] setShouldAntialias:NO];
-		NSBezierPath *const knob = [NSBezierPath bezierPath];
-		CGFloat const halfKnob = PGProgressKnobSize / 2.0f;
-		[knob moveToPoint:NSMakePoint(0.5f + x           , 1.5f + PGProgressBarBorder)];
-		[knob lineToPoint:NSMakePoint(0.5f + x - halfKnob, 1.5f + PGProgressBarBorder + halfKnob)];
-		[knob lineToPoint:NSMakePoint(0.5f + x           , 1.5f + PGProgressBarBorder + PGProgressKnobSize)];
-		[knob lineToPoint:NSMakePoint(0.5f + x + halfKnob, 1.5f + PGProgressBarBorder + halfKnob)];
-		[knob closePath];
-		[knob fill];
-		[NSGraphicsContext restoreGraphicsState];
+#if 0	//	debugging only:
+#else
+		//	[3] draw knob in progress bar
+		{
+			[NSGraphicsContext saveGraphicsState];
+			[[NSGraphicsContext currentContext] setShouldAntialias:NO];
+			NSBezierPath *const knob = [NSBezierPath bezierPath];
+			CGFloat const halfKnob = PGProgressKnobSize / 2.0f;
+			[knob moveToPoint:NSMakePoint(0.5f + x           , 1.5f + PGProgressBarBorder)];
+			[knob lineToPoint:NSMakePoint(0.5f + x - halfKnob, 1.5f + PGProgressBarBorder + halfKnob)];
+			[knob lineToPoint:NSMakePoint(0.5f + x           , 1.5f + PGProgressBarBorder + PGProgressKnobSize)];
+			[knob lineToPoint:NSMakePoint(0.5f + x + halfKnob, 1.5f + PGProgressBarBorder + halfKnob)];
+			[knob closePath];
+			[knob fill];
+			[NSGraphicsContext restoreGraphicsState];
+		}
+#endif
 
+		//	[4] draw progress bar outline
 		[progressBarOutline stroke];
 	}
+
+	//	[5] draw name of image file
 	CGFloat const progressBarWidth = [self showsProgressBar] ? PGProgressBarWidth : 0.0f;
 	CGFloat const textOffset = [self originCorner] == PGMinXMinYCorner ? progressBarWidth : 0.0f;
-	[[self attributedStringValue] drawInRect:NSMakeRect(NSMinX(b) + PGPaddingSize + PGTextHorzPadding + textOffset, NSMinY(b) + PGTextBottomPadding, NSWidth(b) - PGTotalPaddingSize - PGTextTotalHorzPadding - progressBarWidth, NSHeight(b) - PGTextTotalVertPadding)];
+	[[self attributedStringValue] drawInRect:NSMakeRect(NSMinX(b) + PGPaddingSize + PGTextHorzPadding + textOffset,
+														NSMinY(b) + PGTextBottomPadding,
+														NSWidth(b) - PGTotalPaddingSize - PGTextTotalHorzPadding - progressBarWidth,
+														NSHeight(b) - PGTextTotalVertPadding)];
 }
 
 #pragma mark - NSObject
