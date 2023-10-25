@@ -275,7 +275,7 @@ static void PGEventStreamCallback(ConstFSEventStreamRef streamRef, PGBranchSubsc
 
 - (void)dealloc
 {
-	[[NSNotificationCenter defaultCenter] removeObserver:self];
+	[self PG_removeObserver];
 	[self unsubscribe];
 	[_rootSubscription release];
 	[super dealloc];
