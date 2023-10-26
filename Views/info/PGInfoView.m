@@ -141,11 +141,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	}
 
 	if([self showsProgressBar]) {
-		CGFloat const origin = [self originCorner] == PGMaxXMinYCorner ? NSMaxX(b) - 1.0f - PGProgressBarBorder : PGProgressBarBorder;
+		BOOL const canAlignToBackingStore = [self respondsToSelector:@selector(backingAlignedRect:options:)];	//	10.7+
+		CGFloat const origin = [self originCorner] == PGMaxXMinYCorner ?
+								NSMaxX(b) - 1.0f - PGProgressBarBorder : PGProgressBarBorder;
 		NSRect progressBarRect = NSMakeRect(
 			[self originCorner] == PGMinXMinYCorner ? 0.5f + origin : 0.5f + origin - PGProgressBarWidth,
 			0.5f + PGProgressBarBorder, PGProgressBarWidth, PGProgressBarHeight);
-		NSBezierPath *const progressBarOutline = [NSBezierPath PG_bezierPathWithRoundRect:progressBarRect
+
+		//	if possible, draw the outline in a backing store aligned rectangle;
+		//	doing so will look better on high pixel density display devices
+		NSBezierPath *const progressBarOutline = [NSBezierPath PG_bezierPathWithRoundRect:canAlignToBackingStore ?
+			[self backingAlignedRect:progressBarRect options:NSAlignAllEdgesNearest] : progressBarRect
 																			 cornerRadius:PGProgressBarRadius];
 
 		//	[2] 2023/10/01 draw the progress within a single folder/container as a color-filled bar
@@ -164,6 +170,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 					[progressBarOutline setClip];
 				}
 
+				//	using a backing aligned rect causes the progress to look jerky as several indexes
+				//	end up drawing to the same rectangle whereas a rect with a fractional width
+				//	appears to progress smoothly, so use progressBarRect unaligned (as it is)
 				NSBezierPath *const folderProgress = [NSBezierPath PG_bezierPathWithRoundRect:progressBarRect
 																				 cornerRadius:PGProgressBarRadius];
 #if 0	//	debugging only:
@@ -199,26 +208,42 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		{
 			NSUInteger const maxValue = [self count] - 1;
 	#if 1
+			//	2023/10/26 draw anti-aliased rounded knob at fractional locations
 			CGFloat x = ((CGFloat)MIN([self index], maxValue) / maxValue) * (PGProgressBarWidth - PGProgressBarHeight) +
 						PGProgressBarHeight / 2.0f;
 	#else
+			//	original code: draws unaliased diamond at integral locations
 			CGFloat x = round(((CGFloat)MIN([self index], maxValue) / maxValue) * (PGProgressBarWidth - PGProgressBarHeight) +
 								PGProgressBarHeight / 2.0f);
 	#endif
 			if([self originCorner] == PGMaxXMinYCorner) x = -x + origin;
 			else x = x + origin;
 
-			[NSGraphicsContext saveGraphicsState];
-			[[NSGraphicsContext currentContext] setShouldAntialias:NO];
-			NSBezierPath *const knob = [NSBezierPath bezierPath];
-			CGFloat const halfKnob = PGProgressKnobSize / 2.0f;
-			[knob moveToPoint:NSMakePoint(0.5f + x           , 1.5f + PGProgressBarBorder)];
-			[knob lineToPoint:NSMakePoint(0.5f + x - halfKnob, 1.5f + PGProgressBarBorder + halfKnob)];
-			[knob lineToPoint:NSMakePoint(0.5f + x           , 1.5f + PGProgressBarBorder + PGProgressKnobSize)];
-			[knob lineToPoint:NSMakePoint(0.5f + x + halfKnob, 1.5f + PGProgressBarBorder + halfKnob)];
-			[knob closePath];
-			[knob fill];
-			[NSGraphicsContext restoreGraphicsState];
+			{
+	#if 1
+				//	2023/10/26 draw anti-aliased rounded knob at fractional locations
+				#define PGProgressThreeQuartersKnobSize (PGProgressKnobSize * 0.75f)
+				NSRect const knobRect = NSMakeRect(x + (0.5f - PGProgressThreeQuartersKnobSize / 2.0f),
+													0.5f + PGProgressBarHeight / 2.0f,
+													PGProgressThreeQuartersKnobSize, PGProgressThreeQuartersKnobSize);
+				NSBezierPath *const knob = [NSBezierPath PG_bezierPathWithRoundRect:knobRect
+																	   cornerRadius:PGProgressThreeQuartersKnobSize / 2.0f];
+				[knob fill];
+	#else
+				//	original code: draws unaliased diamond at integral locations
+				[NSGraphicsContext saveGraphicsState];
+				[[NSGraphicsContext currentContext] setShouldAntialias:NO];
+				NSBezierPath *const knob = [NSBezierPath bezierPath];
+				CGFloat const halfKnob = PGProgressKnobSize / 2.0f;
+				[knob moveToPoint:NSMakePoint(0.5f + x           , 1.5f + PGProgressBarBorder)];
+				[knob lineToPoint:NSMakePoint(0.5f + x - halfKnob, 1.5f + PGProgressBarBorder + halfKnob)];
+				[knob lineToPoint:NSMakePoint(0.5f + x           , 1.5f + PGProgressBarBorder + PGProgressKnobSize)];
+				[knob lineToPoint:NSMakePoint(0.5f + x + halfKnob, 1.5f + PGProgressBarBorder + halfKnob)];
+				[knob closePath];
+				[knob fill];
+				[NSGraphicsContext restoreGraphicsState];
+	#endif
+			}
 		}
 #endif
 
