@@ -1050,12 +1050,17 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 		NSAssert(parent.isContainer, @"");
 
 #if 1
-		@autoreleasepool {	//	don't count non-viewable nodes (non-images) when a folder's progress is being determined
+		@autoreleasepool {
+			//	don't count non-viewable nodes (non-images) when a folder's progress is being determined
+			//	TODO: ?should this be cached?
 			NSInteger childIndex = NSNotFound;
 			NSMutableArray<PGNode*> *const children = [NSMutableArray arrayWithArray:parent.sortedChildren];
 			NSMutableIndexSet *const indexes = [NSMutableIndexSet indexSet];
-			NSUInteger i = 0;
+			NSUInteger i = 0, containerCount = 0;
+			BOOL const parentIsRootNode = an.parentNode == an.rootNode;
 			for(PGNode *node in children) {
+				if(node.resourceAdapter.isContainer)
+					++containerCount;
 				if(![node isViewable])
 					[indexes addIndex:i];
 				else if(an == node) {
@@ -1071,8 +1076,10 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 				[children removeObjectsAtIndexes:indexes];
 			NSAssert(NSNotFound != childIndex || 0 == [children count], @"");
 
+			//	if imageCount <= 1 or the root node's set of children has no containers
+			//	then do not draw the folder progress bar else do so
 			NSUInteger const childCount = children.count;
-			if(childCount > 1) {
+			if(childCount > 1 && (!parentIsRootNode || 0 != containerCount)) {
 				infoView.currentFolderCount = childCount;
 				infoView.currentFolderIndex = childIndex;
 			} else
