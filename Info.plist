@@ -69,6 +69,7 @@
 			<array>
 				<string>7z</string>
 				<string>7Z</string>
+				<string>001</string>
 			</array>
 			<key>CFBundleTypeMIMETypes</key>
 			<array>
@@ -713,6 +714,7 @@
 				<string>rar</string>
 				<string>cbr</string>
 				<string>7z</string>
+				<string>001</string>
 			</array>
 			<key>CFBundleTypeMIMETypes</key>
 			<array>
