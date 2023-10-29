@@ -205,6 +205,7 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 
 @end
 
+#pragma mark -
 @implementation PGDisplayableIdentifier
 
 #pragma mark +PGResourceIdentifier
@@ -452,6 +453,10 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 
 #pragma mark -<NSObject>
 
+- (BOOL)isEqual:(id)object {
+	return [_identifier isEqual:object];
+}
+
 - (NSString *)description
 {
 	return [NSString stringWithFormat:@"<%@ %p: %@ (\"%@\")>", [self class], self, _identifier, [self displayName]];
@@ -473,6 +478,7 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 						includingResourceValuesForKeys:nil
 										 relativeToURL:nil
 												 error:&error] retain];
+		(void) [self URLByFollowingAliases:YES];	//	force URL to be cached
 #else
 		if(!CFURLGetFSRef((CFURLRef)URL, &_ref) ||
 		   FSNewAliasMinimal(&_ref, &_alias) != noErr) {
@@ -490,9 +496,11 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 
 - (void)cacheURL:(NSURL *)URL
 {
-	if(!URL) return;
+	BOOL const urlDidChange = (nil != _cachedURL || nil != URL) && ![_cachedURL isEqual:URL];
 	[_cachedURL release];
-	_cachedURL = [URL retain];
+	_cachedURL = URL ? [URL retain] : nil;
+	if(urlDidChange)
+		[self PG_postNotificationName:PGDisplayableIdentifierDisplayNameDidChangeNotification];
 }
 
 #else
@@ -582,8 +590,7 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 										  options:NSURLBookmarkResolutionWithoutUI
 											error:&error];
 
-	if(!flag && url)
-		[self cacheURL:url];
+	[self cacheURL:url];
 
 	return url;
 #else
@@ -656,7 +663,9 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 	if(![obj isKindOfClass:[PGAliasIdentifier class]])
 		return [super isEqual:obj];
 #if 1
-	return [self.identifier isEqual:((PGAliasIdentifier*)obj).identifier];
+	NSURL *const selfURL = [self URLByFollowingAliases:YES];
+	NSURL *const objURL = [obj URLByFollowingAliases:YES];
+	return [selfURL isEqual:objURL];
 #else
 	FSRef ourRef, theirRef;
 	if(![self getRef:&ourRef byFollowingAliases:NO validate:NO] ||
@@ -668,6 +677,7 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 
 @end
 
+#pragma mark -
 @implementation PGURLIdentifier
 
 #pragma mark -PGURLIdentifier
@@ -723,6 +733,7 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 
 @end
 
+#pragma mark -
 @implementation PGIndexIdentifier
 
 #pragma mark -PGIndexIdentifier
@@ -793,6 +804,7 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 
 @end
 
+#pragma mark -
 @implementation NSURL(PGResourceIdentifierCreation)
 
 - (PGResourceIdentifier *)PG_resourceIdentifier
