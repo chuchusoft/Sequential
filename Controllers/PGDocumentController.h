@@ -82,6 +82,8 @@ typedef NSUInteger PGImageScaleConstraint;
 #define PGScaleMax 16.0f
 #define PGScaleMin (1.0f / 16.0f)
 
+@class PGDisplayableIdentifier;	//	2023/10/29 to specify static type
+
 @interface PGDocumentController :
 	NSResponder <NSApplicationDelegate, NSMenuDelegate>
 {
@@ -102,11 +104,11 @@ typedef NSUInteger PGImageScaleConstraint;
 	IBOutlet NSMenuItem *selectPreviousDocument;
 	IBOutlet NSMenuItem *selectNextDocument;
 
-	NSArray *_recentDocumentIdentifiers;
+	NSArray<PGDisplayableIdentifier*> *_recentDocumentIdentifiers;	//	2023/10/29 specified static type
 	BOOL _fullscreen;
 
 	PGDocument *_currentDocument;
-	NSMutableArray *_documents;
+	NSMutableArray<__kindof PGDocument*> *_documents;	//	2023/10/29 specified static type
 	PGFullscreenController *_fullscreenController;
 	BOOL _inFullscreen;
 
@@ -114,7 +116,7 @@ typedef NSUInteger PGImageScaleConstraint;
 	PGTimerPanelController *_timerPanel;
 	PGActivityPanelController *_activityPanel;
 
-	NSMutableDictionary *_classesByExtension;
+//	NSMutableDictionary *_classesByExtension;	2023/10/29 not used; removed
 }
 
 + (PGDocumentController *)sharedDocumentController;
@@ -143,7 +145,7 @@ typedef NSUInteger PGImageScaleConstraint;
 - (BOOL)performZoomOut;
 - (BOOL)performToggleFullscreen;
 
-@property(copy, nonatomic) NSArray *recentDocumentIdentifiers;
+@property(copy, nonatomic) NSArray<PGDisplayableIdentifier*> *recentDocumentIdentifiers;	//	2023/10/29 specified static type
 @property(readonly) NSUInteger maximumRecentDocumentCount;
 @property(readonly) PGDisplayController *displayControllerForNewDocument;
 @property(assign, nonatomic, getter = isFullscreen) BOOL fullscreen;
