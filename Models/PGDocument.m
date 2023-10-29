@@ -269,7 +269,22 @@ NSString *const PGDocumentUpdateRecursivelyKey = @"PGDocumentUpdateRecursively";
 	NSUInteger const flags = [[[aNotif userInfo] objectForKey:PGSubscriptionRootFlagsKey] unsignedIntegerValue];
 	if(flags & (NOTE_DELETE | NOTE_REVOKE)) return [self close];
 	PGResourceIdentifier *const ident = [[[[aNotif userInfo] objectForKey:PGSubscriptionPathKey] PG_fileURL] PG_resourceIdentifier];
-	[[[[self node] resourceAdapter] nodeForIdentifier:ident] noteFileEventDidOccurDirect:YES];
+
+	//	if the identifier is a PGAliasIdentifier instance, the call to -isEqual:
+	//	will update the internal bookmark and trigger the posting of a
+	//	PGDisplayableIdentifierDisplayNameDidChangeNotification to
+	//	-[PGDocumentController recentDocumentIdentifierDidChange:], so
+	//	the only other thing which needs updating is the title bar's
+	//	document icon so do that now (command-clicking the title bar
+	//	will display the file/folder's new location)
+	if([_rootIdentifier isEqual:ident]) {
+		[_displayController synchronizeWindowTitleWithDocumentName];
+		return;	//	no children need updating so exit now
+	}
+
+	PGNode *const node = [[[self node] resourceAdapter] nodeForIdentifier:ident];
+	if(node)
+		[node noteFileEventDidOccurDirect:YES];
 }
 
 #pragma mark -PGDocument(Private)
