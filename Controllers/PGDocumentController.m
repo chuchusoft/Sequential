@@ -100,9 +100,11 @@ static PGDocumentController *PGSharedDocumentController = nil;
 - (void)_awakeAfterLocalizing;
 - (void)_setFullscreen:(BOOL)flag;
 - (PGDocument *)_openNew:(BOOL)flag document:(PGDocument *)document display:(BOOL)display;
+- (void)_setRecentDocumentIdentifiers:(NSArray<PGDisplayableIdentifier*> *)anArray;
 
 @end
 
+#pragma mark -
 @implementation PGDocumentController
 
 #pragma mark +PGDocumentController
@@ -219,7 +221,7 @@ static PGDocumentController *PGSharedDocumentController = nil;
 }
 - (IBAction)clearRecentDocuments:(id)sender
 {
-	[self setRecentDocumentIdentifiers:[NSArray array]];
+	[self setRecentDocumentIdentifiers:[NSArray<PGDisplayableIdentifier*> array]];
 }
 - (IBAction)closeAll:(id)sender
 {
@@ -289,24 +291,17 @@ static PGDocumentController *PGSharedDocumentController = nil;
 
 #pragma mark -
 
-- (NSArray *)recentDocumentIdentifiers
+- (NSArray<PGDisplayableIdentifier*> *)recentDocumentIdentifiers
 {
 	//	bugfix: never return a nil value
 	if(!_recentDocumentIdentifiers)
-		_recentDocumentIdentifiers	=	[NSArray new];
+		_recentDocumentIdentifiers	=	[NSArray<PGDisplayableIdentifier*> new];
 
 	return [[_recentDocumentIdentifiers retain] autorelease];
 }
-- (void)setRecentDocumentIdentifiers:(NSArray *)anArray
+- (void)setRecentDocumentIdentifiers:(NSArray<PGDisplayableIdentifier*> *)anArray
 {
-	NSParameterAssert(anArray);
-	if(PGEqualObjects(anArray, _recentDocumentIdentifiers)) return;
-	[_recentDocumentIdentifiers PG_removeObjectObserver:self name:PGDisplayableIdentifierIconDidChangeNotification];
-	[_recentDocumentIdentifiers PG_removeObjectObserver:self name:PGDisplayableIdentifierDisplayNameDidChangeNotification];
-	[_recentDocumentIdentifiers release];
-	_recentDocumentIdentifiers = [[anArray subarrayWithRange:NSMakeRange(0, MIN([anArray count], [self maximumRecentDocumentCount]))] copy];
-	[_recentDocumentIdentifiers PG_addObjectObserver:self selector:@selector(recentDocumentIdentifierDidChange:) name:PGDisplayableIdentifierIconDidChangeNotification];
-	[_recentDocumentIdentifiers PG_addObjectObserver:self selector:@selector(recentDocumentIdentifierDidChange:) name:PGDisplayableIdentifierDisplayNameDidChangeNotification];
+	[self _setRecentDocumentIdentifiers:anArray];
 	[self recentDocumentIdentifierDidChange:nil];
 }
 - (NSUInteger)maximumRecentDocumentCount
@@ -465,7 +460,13 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 {
 	PGDisplayableIdentifier *const identifier = [document rootIdentifier];
 	if(!identifier) return;
-	NSMutableArray *const identifiers = [[[self recentDocumentIdentifiers] mutableCopy] autorelease];
+	NSArray<PGDisplayableIdentifier*> *const recentDocumentIdentifiers = [self recentDocumentIdentifiers];
+	//	if the recent document list has not changed then exit
+	if([recentDocumentIdentifiers count] > 0 &&
+		identifier == [recentDocumentIdentifiers objectAtIndex:0]) {
+		return;
+	}
+	NSMutableArray<PGDisplayableIdentifier*> *const identifiers = [[recentDocumentIdentifiers mutableCopy] autorelease];
 	[identifiers removeObject:identifier];
 	[identifiers insertObject:identifier atIndex:0];
 	[self setRecentDocumentIdentifiers:identifiers];
@@ -637,12 +638,24 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 	}
 //	NSEnableScreenUpdates();	2021/07/21 deprecated
 }
+
 - (PGDocument *)_openNew:(BOOL)flag document:(PGDocument *)document display:(BOOL)display
 {
 	if(!document) return nil;
 	if(flag) [self addDocument:document];
 	if(display) [document createUI];
 	return document;
+}
+
+- (void)_setRecentDocumentIdentifiers:(NSArray<PGDisplayableIdentifier*> *)anArray {
+	NSParameterAssert(anArray);
+	if(PGEqualObjects(anArray, _recentDocumentIdentifiers)) return;
+	[_recentDocumentIdentifiers PG_removeObjectObserver:self name:PGDisplayableIdentifierIconDidChangeNotification];
+	[_recentDocumentIdentifiers PG_removeObjectObserver:self name:PGDisplayableIdentifierDisplayNameDidChangeNotification];
+	[_recentDocumentIdentifiers release];
+	_recentDocumentIdentifiers = [[anArray subarrayWithRange:NSMakeRange(0, MIN([anArray count], [self maximumRecentDocumentCount]))] copy];
+	[_recentDocumentIdentifiers PG_addObjectObserver:self selector:@selector(recentDocumentIdentifierDidChange:) name:PGDisplayableIdentifierIconDidChangeNotification];
+	[_recentDocumentIdentifiers PG_addObjectObserver:self selector:@selector(recentDocumentIdentifierDidChange:) name:PGDisplayableIdentifierDisplayNameDidChangeNotification];
 }
 
 #pragma mark -NSResponder
@@ -684,15 +697,17 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 		} else
 			rdia	=	[NSArray array];
 		if(rdia)
-			[self setRecentDocumentIdentifiers:rdia];
+			//	calling -setRecentDocumentIdentifiers: will pointlessly write the list
+			//	back out so avoid doing that by using a private setter
+			[self _setRecentDocumentIdentifiers:rdia];
 #else
 		[self setRecentDocumentIdentifiers:recentItemsData ?
 		 [NSKeyedUnarchiver unarchiveObjectWithData:recentItemsData] : [NSArray array]];
 #endif
 		_fullscreen = [[defaults objectForKey:PGFullscreenKey] boolValue];
 
-		_documents = [[NSMutableArray alloc] init];
-		_classesByExtension = [[NSMutableDictionary alloc] init];
+		_documents = [[NSMutableArray<__kindof PGDocument*> alloc] init];
+	//	_classesByExtension = [[NSMutableDictionary alloc] init];	2023/10/29 not used; removed
 
 		_inspectorPanel = [[PGInspectorPanelController alloc] init];
 		_timerPanel = [[PGTimerPanelController alloc] init];
@@ -719,7 +734,7 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 	[_inspectorPanel release];
 	[_timerPanel release];
 	[_activityPanel release];
-	[_classesByExtension release];
+//	[_classesByExtension release];	2023/10/29 not used; removed
 	[super dealloc];
 }
 
@@ -793,11 +808,11 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 
 #pragma mark -<NSMenuDelegate>
 
-- (void)menuNeedsUpdate:(NSMenu *)menu
+- (void)menuNeedsUpdate:(NSMenu *)recentDocumentsMenu
 {
-	[menu PG_removeAllItems];
-	BOOL addedAnyItems = NO;
-	NSArray *const identifiers = [self recentDocumentIdentifiers];
+	[recentDocumentsMenu PG_removeAllItems];
+	BOOL addedAnyItems = NO;	//	could be replaced by testing "if(0 != [recentDocumentsMenu numberOfItems])" instead of "if(addedAnyItems)"
+	NSArray<PGDisplayableIdentifier*> *const identifiers = [self recentDocumentIdentifiers];
 	for(PGDisplayableIdentifier *const identifier in identifiers) {
 		if(![identifier URL])
 			continue; // Make sure the URLs are valid.
@@ -811,11 +826,11 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 		NSMenuItem *const item = [[[NSMenuItem alloc] initWithTitle:@"" action:@selector(openRecentDocument:) keyEquivalent:@""] autorelease];
 		[item setAttributedTitle:[identifier attributedStringWithAncestory:!uniqueName]];
 		[item setRepresentedObject:identifier];
-		[menu addItem:item];
+		[recentDocumentsMenu addItem:item];
 		addedAnyItems = YES;
 	}
-	if(addedAnyItems) [menu addItem:[NSMenuItem separatorItem]];
-	[menu addItem:[[[NSMenuItem alloc] initWithTitle:NSLocalizedString(@"Clear Menu", @"Clear the Open Recent menu. Should be the same as the standard text.") action:@selector(clearRecentDocuments:) keyEquivalent:@""] autorelease]];
+	if(addedAnyItems) [recentDocumentsMenu addItem:[NSMenuItem separatorItem]];
+	[recentDocumentsMenu addItem:[[[NSMenuItem alloc] initWithTitle:NSLocalizedString(@"Clear Menu", @"Clear the Open Recent menu. Should be the same as the standard text.") action:@selector(clearRecentDocuments:) keyEquivalent:@""] autorelease]];
 }
 
 @end
