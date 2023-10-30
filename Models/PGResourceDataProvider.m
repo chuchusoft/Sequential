@@ -35,7 +35,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 // Other Sources
 #import "PGFoundationAdditions.h"
 
-#pragma mark -
 @implementation PGResourceDataProvider
 
 - (id)initWithResourceIdentifier:(PGResourceIdentifier *)ident displayableName:(NSString *)name
