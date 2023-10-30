@@ -29,6 +29,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import "PGNode.h"
 #import "PGResourceIdentifier.h"
 
+// Controllers
+#import "PGThumbnailController.h"
+
 // Other Sources
 #import "PGAppKitAdditions.h"
 #import "PGGeometry.h"
@@ -227,8 +230,7 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 	}
 
 	//	thumbnail generation
-	if([[self document] showsThumbnails])
-	{
+	if([PGThumbnailController shouldShowThumbnailsForDocument:[self document]]) {
 		size_t const thumbnailFrameIndex = count / 10;
 		NSBitmapImageRep *const repForThumb = 0 == thumbnailFrameIndex && rep0 ?
 			rep0 : PGImageSourceImageRepAtIndex(source, thumbnailFrameIndex);
