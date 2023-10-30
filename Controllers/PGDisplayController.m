@@ -1047,7 +1047,8 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 		infoView.currentFolderCount = infoView.currentFolderIndex = 0;
 	} else {
 		PGContainerAdapter *const parent = anra.containerAdapter;
-		NSAssert(parent.isContainer, @"");
+		if(!parent || !parent.isContainer)
+			return;
 
 #if 1
 		@autoreleasepool {
