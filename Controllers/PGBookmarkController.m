@@ -301,10 +301,12 @@ GetBookmarksFileURL(BOOL createParentFolderIfNonExistant) {
 		//	2023/08/12 transfer list of paused documents from UserDefaults to separate file
 		if(!bookmarksDataIsFromPGPausedDocumentsKey) {
 			bookmarksData	=	[NSUserDefaults.standardUserDefaults objectForKey:@"PGPausedDocuments4"];
-			if(nil != bookmarksData) {
+			if(nil != bookmarksData)
 				[NSUserDefaults.standardUserDefaults removeObjectForKey:@"PGPausedDocuments4"];
-				[NSUserDefaults.standardUserDefaults synchronize];
-			}
+		} else {
+			//	if these deprecated entries still exist then purge them
+			[NSUserDefaults.standardUserDefaults removeObjectForKey:@"PGPausedDocuments4"];
+			[NSUserDefaults.standardUserDefaults removeObjectForKey:@"PGPausedDocuments3"];
 		}
 
 #if 1	//	2021/07/21 modernized
