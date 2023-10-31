@@ -192,12 +192,19 @@ static NSSize PGRoundedCornerSizes[4];
 		[_image removeRepresentation:_rep];
 		[_rep release];
 		_rep = nil;
+
 		[self setSize:size allowAnimation:NO];
 		_rep = [rep retain];
 		[_image addRepresentation:_rep];
 
 		_isPDF = [_rep isKindOfClass:[NSPDFImageRep class]];
-		_numberOfFrames = [_rep isKindOfClass:[NSBitmapImageRep class]] ? [[(NSBitmapImageRep *)_rep valueForProperty:NSImageFrameCount] unsignedIntegerValue] : 1;
+		_numberOfFrames = [_rep isKindOfClass:[NSBitmapImageRep class]] ?
+			[[(NSBitmapImageRep *)_rep valueForProperty:NSImageFrameCount] unsignedIntegerValue] : 1;
+
+		//	NB: bitmap images will use the default cache mode which
+		//	for NSBitmapImageRep will be NSImageCacheBySize.
+		if(_isPDF)	//	must set NSImageCacheNever for PDFs to draw correctly
+			[_image setCacheMode:NSImageCacheNever];
 
 		[self _runAnimationTimer];
 	} else [self setSize:size allowAnimation:NO];
@@ -479,7 +486,8 @@ static NSSize PGRoundedCornerSizes[4];
 {
 	if((self = [super initWithFrame:aRect])) {
 		_image = [[NSImage alloc] init];
-		[_image setCacheMode:NSImageCacheNever]; // We do our own caching.
+		//	2023/10/16 with the removal of caching, the cache mode is now set in -setImageRep:orientation:size:
+	//	[_image setCacheMode:NSImageCacheNever]; // We do our own caching.
 		_usesCaching = YES;
 		_antialiasWhenUpscaling = YES;
 		_usesRoundedCorners = YES;
