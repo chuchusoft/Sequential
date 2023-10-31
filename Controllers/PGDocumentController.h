@@ -169,6 +169,7 @@ typedef NSUInteger PGImageScaleConstraint;
 - (id)openDocumentWithContentsOfURL:(NSURL *)URL display:(BOOL)flag;
 - (id)openDocumentWithBookmark:(PGBookmark *)aBookmark display:(BOOL)flag;
 - (void)noteNewRecentDocument:(PGDocument *)document;
+- (void)noteDeletedRecentDocument:(PGDocument *)document;
 
 - (void)handleAppleEvent:(NSAppleEventDescriptor *)event withReplyEvent:(NSAppleEventDescriptor *)replyEvent;
 
