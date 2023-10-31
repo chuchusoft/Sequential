@@ -101,6 +101,7 @@ static PGDocumentController *PGSharedDocumentController = nil;
 - (void)_setFullscreen:(BOOL)flag;
 - (PGDocument *)_openNew:(BOOL)flag document:(PGDocument *)document display:(BOOL)display;
 - (void)_setRecentDocumentIdentifiers:(NSArray<PGDisplayableIdentifier*> *)anArray;
+- (void)_changeRecentDocumentIdentifiersWithDocument:(PGDocument *)document prepend:(BOOL)prepend;
 
 @end
 
@@ -458,18 +459,11 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 }
 - (void)noteNewRecentDocument:(PGDocument *)document
 {
-	PGDisplayableIdentifier *const identifier = [document rootIdentifier];
-	if(!identifier) return;
-	NSArray<PGDisplayableIdentifier*> *const recentDocumentIdentifiers = [self recentDocumentIdentifiers];
-	//	if the recent document list has not changed then exit
-	if([recentDocumentIdentifiers count] > 0 &&
-		identifier == [recentDocumentIdentifiers objectAtIndex:0]) {
-		return;
-	}
-	NSMutableArray<PGDisplayableIdentifier*> *const identifiers = [[recentDocumentIdentifiers mutableCopy] autorelease];
-	[identifiers removeObject:identifier];
-	[identifiers insertObject:identifier atIndex:0];
-	[self setRecentDocumentIdentifiers:identifiers];
+	[self _changeRecentDocumentIdentifiersWithDocument:document prepend:YES];
+}
+- (void)noteDeletedRecentDocument:(PGDocument *)document
+{
+	[self _changeRecentDocumentIdentifiersWithDocument:document prepend:NO];
 }
 
 #pragma mark -
@@ -648,6 +642,7 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 }
 
 - (void)_setRecentDocumentIdentifiers:(NSArray<PGDisplayableIdentifier*> *)anArray {
+//NSLog(@"-[PGDocumentController _setRecentDocumentIdentifiers:] self = %p", self);
 	NSParameterAssert(anArray);
 	if(PGEqualObjects(anArray, _recentDocumentIdentifiers)) return;
 	[_recentDocumentIdentifiers PG_removeObjectObserver:self name:PGDisplayableIdentifierIconDidChangeNotification];
@@ -656,6 +651,22 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 	_recentDocumentIdentifiers = [[anArray subarrayWithRange:NSMakeRange(0, MIN([anArray count], [self maximumRecentDocumentCount]))] copy];
 	[_recentDocumentIdentifiers PG_addObjectObserver:self selector:@selector(recentDocumentIdentifierDidChange:) name:PGDisplayableIdentifierIconDidChangeNotification];
 	[_recentDocumentIdentifiers PG_addObjectObserver:self selector:@selector(recentDocumentIdentifierDidChange:) name:PGDisplayableIdentifierDisplayNameDidChangeNotification];
+}
+- (void)_changeRecentDocumentIdentifiersWithDocument:(PGDocument *)document prepend:(BOOL)prepend {
+	PGDisplayableIdentifier *const identifier = [document rootIdentifier];
+	if(!identifier)
+		return;
+	NSArray<PGDisplayableIdentifier*> *const recentDocumentIdentifiers = [self recentDocumentIdentifiers];
+	//	if the recent document list will not change then exit
+	if(prepend && [recentDocumentIdentifiers count] > 0 &&
+		identifier == [recentDocumentIdentifiers objectAtIndex:0]) {
+		return;
+	}
+	NSMutableArray<PGDisplayableIdentifier*> *const identifiers = [[recentDocumentIdentifiers mutableCopy] autorelease];
+	[identifiers removeObject:identifier];
+	if(prepend)
+		[identifiers insertObject:identifier atIndex:0];
+	[self setRecentDocumentIdentifiers:identifiers];
 }
 
 #pragma mark -NSResponder
@@ -835,7 +846,12 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 
 @end
 
-@interface PGApplication : NSApplication
+@interface PGApplication : NSApplication {
+@private
+	//	<https://lapcatsoftware.com/articles/Preferences2.html>
+//	IBOutlet NSMenuItem *_preferencesMenuItem;
+//	NSString *_originalPreferencesTitle;
+}
 @end
 @interface PGWindow : NSWindow
 @end
@@ -874,6 +890,22 @@ static void (*PGNSMenuItemSetEnabled)(id, SEL, BOOL);
 - (void)sendEvent:(NSEvent *)anEvent
 {
 	if([anEvent window] || [anEvent type] != NSEventTypeKeyDown || !([[self mainMenu] performKeyEquivalent:anEvent] || [[PGDocumentController sharedDocumentController] performKeyEquivalent:anEvent])) [super sendEvent:anEvent];
+}
+- (void)applicationWillFinishLaunching:(NSNotification *)notification
+{
+	//	<https://lapcatsoftware.com/articles/Preferences2.html>
+//	if(!_preferencesMenuItem || _originalPreferencesTitle)
+//		return;
+//	_originalPreferencesTitle = [[_preferencesMenuItem title] retain];
+}
+- (void)applicationDidFinishLaunching:(NSNotification *)notification
+{
+	//	<https://lapcatsoftware.com/articles/Preferences2.html>
+//	if(!_originalPreferencesTitle || !_preferencesMenuItem)
+//		return;
+//	[_preferencesMenuItem setTitle:_originalPreferencesTitle];
+//	[_originalPreferencesTitle release];
+//	_originalPreferencesTitle = nil;
 }
 
 @end
