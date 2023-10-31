@@ -260,7 +260,9 @@ static void PGEventStreamCallback(ConstFSEventStreamRef streamRef, PGBranchSubsc
 	NSUInteger const flags = [[[aNotif userInfo] objectForKey:PGSubscriptionRootFlagsKey] unsignedIntegerValue];
 	if(!(flags & (NOTE_RENAME | NOTE_REVOKE | NOTE_DELETE))) return;
 	[self unsubscribe];
-	[self subscribeWithPath:[[aNotif userInfo] objectForKey:PGSubscriptionPathKey]];
+	//	only resubscribe when the object has not been deleted
+	if(0 == (flags & (NOTE_DELETE | NOTE_REVOKE)))
+		[self subscribeWithPath:[[aNotif userInfo] objectForKey:PGSubscriptionPathKey]];
 	[self PG_postNotificationName:PGSubscriptionEventDidOccurNotification userInfo:[aNotif userInfo]];
 }
 
