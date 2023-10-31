@@ -60,6 +60,7 @@ NSString *const PGDocumentUpdateRecursivelyKey = @"PGDocumentUpdateRecursively";
 
 - (PGNode *)_initialNode;
 - (void)_setInitialIdentifier:(PGResourceIdentifier *)ident;
+- (void)_closeWithFileSystemObjectDeleted:(BOOL)deleted;
 
 @end
 
@@ -187,10 +188,7 @@ NSString *const PGDocumentUpdateRecursivelyKey = @"PGDocumentUpdateRecursively";
 }
 - (void)close
 {
-	PGDocumentController *dc = [PGDocumentController sharedDocumentController];
-	[dc noteNewRecentDocument:self];
-	[self setDisplayController:nil];
-	[dc removeDocument:self];
+	[self _closeWithFileSystemObjectDeleted:NO];
 }
 - (void)openBookmark:(PGBookmark *)aBookmark
 {
@@ -266,18 +264,30 @@ NSString *const PGDocumentUpdateRecursivelyKey = @"PGDocumentUpdateRecursively";
 - (void)subscriptionEventDidOccur:(NSNotification *)aNotif
 {
 	NSParameterAssert(aNotif);
-	NSUInteger const flags = [[[aNotif userInfo] objectForKey:PGSubscriptionRootFlagsKey] unsignedIntegerValue];
-	if(flags & (NOTE_DELETE | NOTE_REVOKE)) return [self close];
-	PGResourceIdentifier *const ident = [[[[aNotif userInfo] objectForKey:PGSubscriptionPathKey] PG_fileURL] PG_resourceIdentifier];
+	NSDictionary *const userInfo = [aNotif userInfo];
+	NSString *const path = [userInfo objectForKey:PGSubscriptionPathKey];
+	NSUInteger const flags = [[userInfo objectForKey:PGSubscriptionRootFlagsKey] unsignedIntegerValue];
+	BOOL const isDeleteOrRevoke = !!(flags & (NOTE_DELETE | NOTE_REVOKE));
+	PGResourceIdentifier *const ident = isDeleteOrRevoke ? nil : [[path PG_fileURL] PG_resourceIdentifier];
+	//	NB: if the identifier is a PGAliasIdentifier instance, the call to
+	//	-isEqual: will update the internal bookmark and trigger the posting
+	//	of a PGDisplayableIdentifierDisplayNameDidChangeNotification to
+	//	-[PGDocumentController recentDocumentIdentifierDidChange:]
+	BOOL const isEventForRootNode = ident ? [_rootIdentifier isEqual:ident] :
+		[[NSURL fileURLWithPath:path] isEqual:[_rootIdentifier URLByFollowingAliases:NO]];
 
-	//	if the identifier is a PGAliasIdentifier instance, the call to -isEqual:
-	//	will update the internal bookmark and trigger the posting of a
-	//	PGDisplayableIdentifierDisplayNameDidChangeNotification to
-	//	-[PGDocumentController recentDocumentIdentifierDidChange:], so
-	//	the only other thing which needs updating is the title bar's
-	//	document icon so do that now (command-clicking the title bar
-	//	will display the file/folder's new location)
-	if([_rootIdentifier isEqual:ident]) {
+	if(isDeleteOrRevoke) {
+		//	if the root node represents the deleted object then this
+		//	document must be removed from the Open Recent sub-menu;
+		//	do this by passing YES to -_closeWithFileSystemObjectDeleted:
+		return [self _closeWithFileSystemObjectDeleted:isEventForRootNode];
+	}
+
+	//	if the root node represents the moved/renamed file/folder then
+	//	update the represented document in NSDocument; this will then
+	//	update the title bar's document icon and command-clicking
+	//	the title bar will display the file/folder's new location/name
+	if(isEventForRootNode) {
 		[_displayController synchronizeWindowTitleWithDocumentName];
 		return;	//	no children need updating so exit now
 	}
@@ -299,6 +309,16 @@ NSString *const PGDocumentUpdateRecursivelyKey = @"PGDocumentUpdateRecursively";
 	if(ident == _initialIdentifier) return;
 	[_initialIdentifier release];
 	_initialIdentifier = (PGDisplayableIdentifier *)[ident retain];
+}
+- (void)_closeWithFileSystemObjectDeleted:(BOOL)deleted
+{	//	2023/10/31
+	PGDocumentController *dc = [PGDocumentController sharedDocumentController];
+	if(deleted)
+		[dc noteDeletedRecentDocument:self];
+	else
+		[dc noteNewRecentDocument:self];
+	[self setDisplayController:nil];
+	[dc removeDocument:self];
 }
 
 #pragma mark -PGPrefObject
