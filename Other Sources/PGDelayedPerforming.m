@@ -61,6 +61,10 @@ static void PGTimerCallback(CFRunLoopTimerRef timer, PGTimerContextObject *conte
 	NSParameterAssert(interval >= 0.0f);
 	CFRunLoopTimerContext context = {
 		0,
+		//	NB: because the retain field is set to CFRetain, CFRunLoopTimerCreate() will call CFRetain
+		//	with the PGTimerContextObject instance which will increment its retain count, which means
+		//	that there is a strong reference to the instance so it will not be released when this
+		//	thread's autorelease pool is drained
 		[[[PGTimerContextObject alloc] initWithTarget:self selector:aSel object:anArgument options:opts] autorelease],
 		CFRetain,
 		CFRelease,
@@ -69,10 +73,12 @@ static void PGTimerCallback(CFRunLoopTimerRef timer, PGTimerContextObject *conte
 	CFTimeInterval const repeatInterval = PGRepeatOnInterval & opts ? interval : 0.0f;
 	NSTimer *const timer = [(NSTimer *)CFRunLoopTimerCreate(kCFAllocatorDefault, CFDateGetAbsoluteTime((CFDateRef)(date ? date : [NSDate dateWithTimeIntervalSinceNow:interval])), repeatInterval, kNilOptions, 0, (CFRunLoopTimerCallBack)PGTimerCallback, &context) autorelease];
 	[[NSRunLoop currentRunLoop] addTimer:timer forMode:mode];
+
+	//	to support cancellation, keep track of the timer instance
 	if(!PGTimersByNonretainedObjectValue)
 		PGTimersByNonretainedObjectValue = (NSMutableDictionary *)CFDictionaryCreateMutable(
 											kCFAllocatorDefault, 0, NULL, &kCFTypeDictionaryValueCallBacks);
-//	[NSMutableDictionary dictionary];
+
 	NSMutableArray *timers = [PGTimersByNonretainedObjectValue objectForKey:self];
 	if(!timers) {
 		timers = [NSMutableArray array];
