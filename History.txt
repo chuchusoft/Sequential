@@ -1,12 +1,15 @@
-2.4.0 (2023-??-??)
+2.4.0 (2023-11-02)
 - PDF image drawing was being cached in a layer which resulted in a sub-optimal
   rendering appearance on high-DPI screens; now, PDF image drawing is no longer
-  cached and is instead drawn as directly to the display as possible. On
-  review, it was decided that all image drawing should not be cached because
-  AppKit is optimised to draw correctly and efficiently on high-DPI screens. As
-  a result, the entire drawing code was made simpler by removing the layer
-  caching entirely. PDF images should be noticeably better on high-DPI screens.
-  For non-PDF images, no degradation in image quality should occur.
+  cached and is instead drawn directly to the backing store (which the macOS
+  Window Server will then display on the screen). On review, it was decided
+  that all image drawing should not be cached because AppKit is optimised to
+  draw correctly and efficiently on high-DPI screens. As a result, the entire
+  drawing code was made simpler by removing the layer caching entirely. PDF
+  images should appear noticeably better on high-DPI screens. For non-PDF
+  images, no degradation in image quality should occur but they are also now
+  subject to bitmap caching by AppKit (this appears to help drawing performance
+  when the image is repeatedly drawn).
 - thumbnails and main images were being generated separately which resulted in
   the compressed image data being read and decompressed twice. The images are
   now read and decompressed once to generate both images.
@@ -18,7 +21,30 @@
 - the byte file size of a PDF or archive is now shown on the thumbnail (it was
   not always being shown); [the code now tests for a typeCode of 'fold'].
 - the size of the children in a disk folder is now correctly shown on the
-  thumbnail (disk folders now return a typeCode of 'fold').
+  thumbnail [disk folders now return a typeCode of 'fold'].
+- improved the drawing of the current folder progress bar in the Info window.
+- the full-progress knob in the Info window is now drawn as an anti-aliased
+  rounded rectangle at fractional locations.
+- the current folder progress bar is no longer drawn if the document has no
+  inner containers (such as folders, archives, or PDF files).
+- added ability to display the contents of split 7-zip archives which must
+  have the .7z.001 file extension for the first part.
+- when an archive/PDF file/folder is moved or renamed, its entry in the Open
+  Recent sub-menu is now updated to its new location or name, and the document
+  window's title bar icon/name is updated (command-clicking the window title
+  text will show the updated location/name).
+- when an archive/PDF file/folder is trashed or deleted, its entry in the Open
+  Recent sub-menu is now removed.
+- fixed: opening a single image was not working.
+- changed the distribution method from embedding the app inside the RTFd (*) to
+  including a way for the user to remove the quarantine attribute by using an
+  AppleScript source file that can be exported to create a drag and drop
+  utility app. Instructions for creating this utility app and using it are in
+  the "HOWTO remove the Sequential application from quarantine.rtfd" file.
+  Instructions are provided by using screen shots and screen grab videos.
+  (*) the previous distribution method no longer works in recent versions of
+  macOS so the end user must now remove the app from quarantine to be able to
+  open it.
 
 2.3.0 (2023-10-15)
 - when in fullscreen mode with thumbnails displaying, the app would crash when
@@ -31,7 +57,7 @@
 - shift-clicking in the thumbnail list now extends the selection (instead of
   adding the clicked-on item to the selection and nothing else).
 - option-clicking a container in the thumbnail list (such as a folder or
-  archive) now selects all of that container's (direct) children.
+  archive) now selects all of that container's (direct) viewable children.
 - closing and switching between opened ZIP archives (via cmd-`) is now faster.
 - moved the thumbnail preferences to their own pane named Thumbnail.
 - files and containers can showing names and/or sizes (set in the Thumbnail
