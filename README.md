@@ -56,7 +56,7 @@ The original Sequential source code is at <https://github.com/btrask/Sequential>
 - to create the source backup archive:
 
 % cd ~/folder_containing_sequential_sources
-% tar -c -v -J -H -f Sequential\ src\ 2021-08-04\ 15.27.00.tar.xz --exclude=xcuserdata --exclude=.DS_Store --exclude=.git  --exclude=.gitignore --exclude=.gitattributes --exclude=Sequential/docs --exclude=XADMaster/Windows Sequential XADMaster UniversalDetector
+% tar -c -v -J -H -f Sequential.src.2021-08-04.15.27.00.tar.xz --exclude=xcuserdata --exclude=.DS_Store --exclude=.git  --exclude=.gitignore --exclude=.gitattributes --exclude=Sequential/docs --exclude=XADMaster/Windows Sequential XADMaster UniversalDetector
 
 - to distribute the built app:
 
@@ -78,8 +78,8 @@ The original Sequential source code is at <https://github.com/btrask/Sequential>
 
 % mv ~/Sequential_staging ~/Sequential\ 2021-08-04\ 15.27.00
 
-[6] create a zip archive of the renamed staging folder:
+[6] create an archive of the renamed staging folder:
 
-% tar -c -v -J -H -f ~/Sequential\ app\ 2021-08-04\ 15.27.00.tar.xz ~/Sequential\ 2021-08-04\ 15.27.00
+% tar -c -v -J -H -f ~/Sequential.app.2021-08-04.15.27.00.tar.xz ~/Sequential\ 2021-08-04\ 15.27.00
  
 [7] upload or distribute the .tar.xz files (app and src)
