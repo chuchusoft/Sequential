@@ -1,4 +1,4 @@
-# Sequential 2.3.0 (2023-10-15).
+# Sequential 2.4.0 (2023-11-02).
 
 Sequential is an image and comic viewer for macOS.
 
@@ -43,7 +43,7 @@ The original Sequential source code is at <https://github.com/btrask/Sequential>
 - open the Sequential folder inside the chosen folder
 - open the Sequential.xcodeproj project in Xcode
 - select the Sequential build scheme
-- the use Product -> Build command
+- use the Product -> Build command
 
 
 
@@ -62,26 +62,24 @@ The original Sequential source code is at <https://github.com/btrask/Sequential>
 
 [1] select Product -> Archive in Xcode then copy the archive to a staging folder, eg,
     ~/Sequential_staging
-[2] build a compressed tar of the .app bundle for embedding inside a .rtfd bundle.
-    NB: the 'cd' is required otherwise the tar will contain parent-paths.
-    For example:
+[2] move the .app bundle to the staging folder:
 
-% cd ~/Sequential_staging/Sequential\ 2021-08-04\ 15.27.00.xcarchive/Products/Applications
-% tar -c -v -J -f ../../../Sequential\ 2021-08-04\ 15.27.00.tar.xz Sequential.app
-% cd ~
+% mv ~/Sequential_staging/Sequential\ 2021-08-04\ 15.27.00.xcarchive/Products/Applications ~/Sequential_staging
 
-[3] copy the "Sequential RTFD template" file from the distribution folder (inside
-    the "Sequential" source folder) to the staging folder
+[3] copy the "HOWTO remove the Sequential application from quarantine.rtfd" and
+    "Remove quarantine attribute.applescript" files from the distribution folder
+    (inside the "Sequential" source folder) to the staging folder
 
-[4] open the copied RTFD file and embed the .tar.xz file inside it by:
-    [A] selecting the <replace me> text and deleting the text
-    [B] drag and drop the .tar.xz file from the Finder to where the <replace me>
-        text was
-	[C] save and close the RTFD file
+[4] remove Finder .DS_Store files:
 
-[5] rename the .rtfd file - it's best to embed the release date/time into
-    the file name so the user will know which version it is
+% find ~/Sequential_staging -name .DS_Store -exec rm -- {} +
 
-[6] create a zip archive containing just the RTFD file
+[5] rename the staging folder to include the release date/time:
+
+% mv ~/Sequential_staging ~/Sequential\ 2021-08-04\ 15.27.00
+
+[6] create a zip archive of the renamed staging folder:
+
+% ditto -c -k --keepParent --norsrc --noqtn --noextattr --zlibCompressionLevel 9 ~/Sequential\ 2021-08-04\ 15.27.00 ~/Sequential\ 2021-08-04\ 15.27.00.zip
  
 [7] upload or distribute the .zip file
