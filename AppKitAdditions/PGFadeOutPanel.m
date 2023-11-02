@@ -84,16 +84,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[self cancelFadeOut];
 }
 
-/*
-- (NSWindow *)parentWindow
-{
-//	NSAutoreleasePool *const workaroundPool = [[NSAutoreleasePool alloc] init];
-	NSWindow *const w = [super parentWindow];
-//	[workaroundPool release];
-	return w;
-}
- */
-
 #pragma mark -NSObject
 
 - (void)dealloc
