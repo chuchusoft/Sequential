@@ -129,10 +129,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (BOOL)hasData
 {
-	NSAutoreleasePool *const pool = [[NSAutoreleasePool alloc] init];
+	@autoreleasepool {
+		return !![self data];
+	}
+/*	NSAutoreleasePool *const pool = [[NSAutoreleasePool alloc] init];
 	BOOL const hasData = !![self data];
 	[pool drain];
-	return hasData;
+	return hasData;	*/
 }
 /* - (NSNumber *)dataLength
 {	2023/09/17 deprecated
@@ -144,10 +147,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 } */
 - (NSData *)fourCCData
 {
-	NSAutoreleasePool *const pool = [[NSAutoreleasePool alloc] init];
+	NSData *fourCCData;
+	@autoreleasepool {
+		NSData *const fullData = [self data];
+		fourCCData = [fullData length] > 4 ? [[fullData subdataWithRange:NSMakeRange(0, 4)] retain] : nil;
+	}
+/*	NSAutoreleasePool *const pool = [[NSAutoreleasePool alloc] init];
 	NSData *const fullData = [self data];
 	NSData *const fourCCData = [fullData length] > 4 ? [[fullData subdataWithRange:NSMakeRange(0, 4)] retain] : nil;
-	[pool drain];
+	[pool drain];	*/
 	return [fourCCData autorelease];
 }
 - (NSImage *)icon
