@@ -234,19 +234,20 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 		size_t const thumbnailFrameIndex = count / 10;
 		NSBitmapImageRep *const repForThumb = 0 == thumbnailFrameIndex && rep0 ?
 			rep0 : PGImageSourceImageRepAtIndex(source, thumbnailFrameIndex);
-		if(!repForThumb || [operation isCancelled])
-			return;
-		NSDictionary *const properties = 0 == thumbnailFrameIndex && image0properties ?
-			(NSDictionary *)image0properties :
-			[(NSDictionary *)CGImageSourceCopyPropertiesAtIndex(source, thumbnailFrameIndex, NULL) autorelease];
+		if(repForThumb && ![operation isCancelled]) {
+			NSDictionary *const properties = 0 == thumbnailFrameIndex && image0properties ?
+				(NSDictionary *)image0properties :
+				[(NSDictionary *)CGImageSourceCopyPropertiesAtIndex(source, thumbnailFrameIndex, NULL) autorelease];
 
-		PGOrientation const orientation = PGOrientationWithTIFFOrientation([[properties objectForKey:(NSString *)kCGImagePropertyOrientation] unsignedIntegerValue]);
-		[self _setThumbnailImageInOperation:operation
-								   imageRep:repForThumb
-							  thumbnailSize:size
-								orientation:orientation
-									 opaque:NO
-				setParentContainerThumbnail:NO];
+			PGOrientation const orientation = PGOrientationWithTIFFOrientation(
+				[[properties objectForKey:(NSString *)kCGImagePropertyOrientation] unsignedIntegerValue]);
+			[self _setThumbnailImageInOperation:operation
+									   imageRep:repForThumb
+								  thumbnailSize:size
+									orientation:orientation
+										 opaque:NO
+					setParentContainerThumbnail:NO];
+		}
 	}
 
 	if(image0properties)
