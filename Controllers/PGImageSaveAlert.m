@@ -227,7 +227,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 				_saveOnSheetClose = YES;
 		}];
 
-		*outError = [NSError PG_errorWithDomain:@"com.sequential" code:-1 localizedDescription:(NSString *)nil userInfo:(NSDictionary *)nil];
+		if(outError)
+			*outError = [NSError PG_errorWithDomain:@"com.sequential"
+											   code:-1
+							   localizedDescription:nil
+										   userInfo:nil];
 		return NO;
 	}
 	NSMutableArray *const unsavedNodes = [NSMutableArray array];
@@ -257,7 +261,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[alert addButtonWithTitle:NSLocalizedString(@"OK", nil)];
 	[alert beginSheetModalForWindow:_openPanel completionHandler:^(NSModalResponse returnCode) {}];
 
-	*outError = [NSError PG_errorWithDomain:@"com.sequential" code:-2 localizedDescription:(NSString *)nil userInfo:(NSDictionary *)nil];
+	if(outError)
+		*outError = [NSError PG_errorWithDomain:@"com.sequential"
+										   code:-2
+						   localizedDescription:nil
+									   userInfo:nil];
 	return NO;
 }
 
