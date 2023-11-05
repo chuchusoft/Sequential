@@ -62,6 +62,7 @@ The original Sequential source code is at <https://github.com/btrask/Sequential>
 
 [1] select Product -> Archive in Xcode then copy the archive to a staging folder, eg,
     ~/Sequential_staging
+
 [2] move the .app bundle to the staging folder:
 
 % mv ~/Sequential_staging/Sequential\ 2021-08-04\ 15.27.00.xcarchive/Products/Applications ~/Sequential_staging
