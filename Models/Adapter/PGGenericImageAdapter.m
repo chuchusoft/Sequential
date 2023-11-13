@@ -286,6 +286,7 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 				CGImageSourceCopyPropertiesAtIndex(source, thumbnailFrameIndex, NULL);
 
 			CFNumberRef propertyOrientation = CFDictionaryGetValue(properties, kCGImagePropertyOrientation);
+			CFRelease(properties);
 			NSUInteger propOrientationValue = 0;
 			if(propertyOrientation && CFNumberGetTypeID() == CFGetTypeID(propertyOrientation))
 				(void) CFNumberGetValue(propertyOrientation, kCFNumberNSIntegerType, &propOrientationValue);
