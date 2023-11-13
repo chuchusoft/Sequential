@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 @class PGTimerButton;
 
 @interface PGTimerPanelController : PGFloatingPanelController
+#if !__has_feature(objc_arc)
 {
 	@private
 	IBOutlet PGTimerButton *timerButton;
@@ -36,6 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	IBOutlet NSSlider *intervalSlider;
 	NSTimer *_updateTimer;
 }
+#endif
 
 - (IBAction)toggleTimer:(id)sender;
 - (IBAction)changeTimerInterval:(id)sender;
