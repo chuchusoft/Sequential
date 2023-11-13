@@ -30,14 +30,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @implementation PGTimerButton
 
-#pragma mark +NSControl
+//	MARK: +NSControl
 
 + (id)cellClass
 {
 	return [PGTimerButtonCell class];
 }
 
-#pragma mark -PGTimerButton
+//	MARK: - PGTimerButton
 
 - (AEIconType)iconType
 {
@@ -60,14 +60,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+//	MARK: -
 @implementation PGTimerButtonCell
 
-#pragma mark -PGTimerButtonCell
-
-@synthesize iconType = _iconType;
-@synthesize progress = _progress;
-
-#pragma mark -NSCell
+//	MARK: - NSCell
 
 - (BOOL)isOpaque
 {
@@ -101,7 +97,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		BOOL const e = [self isEnabled];
 		NSColor *const color = [self isHighlighted] ? [NSColor colorWithDeviceWhite:0.8f alpha:0.9f] : [NSColor whiteColor];
 		[(e ? color : [color colorWithAlphaComponent:0.33f]) set];
+#if __has_feature(objc_arc)
+		NSShadow *const shadow = [NSShadow new];
+#else
 		NSShadow *const shadow = [[[NSShadow alloc] init] autorelease];
+#endif
 		[shadow setShadowOffset:NSMakeSize(0.0f, -1.0f)];
 		[shadow setShadowBlurRadius:2.0f];
 		[shadow setShadowColor:[NSColor colorWithDeviceWhite:0.0f alpha:e ? 1.0f : 0.33f]];
