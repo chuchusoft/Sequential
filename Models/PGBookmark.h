@@ -25,11 +25,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 // Models
 @class PGNode;
 @class PGDisplayableIdentifier;
+#if !__has_feature(objc_arc)
 @class PGSubscription;
+#endif
 
 extern NSString *const PGBookmarkDidUpdateNotification;
 
 @interface PGBookmark : NSObject <NSSecureCoding>	//	NSCoding
+#if !__has_feature(objc_arc)
 {
 	@private
 	PGDisplayableIdentifier *_documentIdentifier;
@@ -37,9 +40,12 @@ extern NSString *const PGBookmarkDidUpdateNotification;
 	PGDisplayableIdentifier *_fileIdentifier;
 	PGSubscription *_fileSubscription;
 }
+#endif
 
 - (id)initWithNode:(PGNode *)aNode;
-- (id)initWithDocumentIdentifier:(PGDisplayableIdentifier *)docIdent fileIdentifier:(PGDisplayableIdentifier *)fileIdent displayName:(NSString *)aString; // For backward compatibility.
+- (id)initWithDocumentIdentifier:(PGDisplayableIdentifier *)docIdent
+				  fileIdentifier:(PGDisplayableIdentifier *)fileIdent
+					 displayName:(NSString *)aString; // For backward compatibility.
 
 @property(readonly) PGDisplayableIdentifier *documentIdentifier;
 @property(readonly) PGDisplayableIdentifier *fileIdentifier;
