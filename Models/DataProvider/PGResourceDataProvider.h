@@ -35,11 +35,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import "PGDataProvider.h"
 
 @interface PGResourceDataProvider : PGDataProvider
+#if !__has_feature(objc_arc)
 {
 	@private
 	PGResourceIdentifier *_identifier;
 	NSString *_displayableName;
 }
+#endif
 
 - (id)initWithResourceIdentifier:(PGResourceIdentifier *)ident displayableName:(NSString *)name;
 //- (id)valueForLSAttributeName:(CFStringRef)name;
