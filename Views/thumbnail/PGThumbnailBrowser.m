@@ -24,11 +24,20 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import "PGThumbnailBrowser.h"
 
-// Views
-//#import "PGBezelPanel.h"
-
 // Other Sources
 #import "PGFoundationAdditions.h"
+
+#if __has_feature(objc_arc)
+
+@interface PGThumbnailBrowser ()
+
+@property(nonatomic, assign) NSUInteger updateCount;
+
+- (void)_addColumnWithItem:(id)item;
+
+@end
+
+#endif
 
 @interface PGThumbnailBrowser(Private)
 
@@ -38,17 +47,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @implementation PGThumbnailBrowser
 
-#pragma mark -PGThumbnailBrowser
+//	MARK: - PGThumbnailBrowser
 
+#if __has_feature(objc_arc)
 @synthesize dataSource;
+#else
+@synthesize dataSource;
+#endif
 - (void)setDataSource:(NSObject<PGThumbnailBrowserDataSource, PGThumbnailViewDataSource> *)obj
 {
 	if(obj == dataSource) return;
 	dataSource = obj;
 	[[self views] makeObjectsPerformSelector:@selector(setDataSource:) withObject:obj];
 }
+#if !__has_feature(objc_arc)
 @synthesize delegate;
-@synthesize thumbnailOrientation = _thumbnailOrientation;
+//@synthesize thumbnailOrientation = _thumbnailOrientation;
+#endif
 - (void)setThumbnailOrientation:(PGOrientation)orientation
 {
 	_thumbnailOrientation = orientation;
@@ -151,7 +166,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	}
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)redisplayItem:(id)item recursively:(BOOL)flag
 {
@@ -166,12 +181,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	}
 }
 
-#pragma mark - PGThumbnailBrowser(Private)
+- (void)selectionNeedsDisplay {	//	2023/11/23
+	for(PGThumbnailView *const view in [self views])
+		[view selectionNeedsDisplay];
+}
+
+//	MARK: - PGThumbnailBrowser(Private)
 
 - (void)_addColumnWithItem:(id)item
 {
 	if(item && dataSource && ![dataSource thumbnailBrowser:self itemCanHaveChildren:item]) return;
+#if __has_feature(objc_arc)
+	PGThumbnailView *const thumbnailView = [PGThumbnailView new];
+#else
 	PGThumbnailView *const thumbnailView = [[[PGThumbnailView alloc] init] autorelease];
+#endif
 //NSLog(@"PGThumbnailView %p . dataSource := %p %@", thumbnailView, [self dataSource], [[self dataSource] description]);
 	[thumbnailView setDataSource:[self dataSource]];
 	[thumbnailView setDelegate:self];
@@ -182,7 +206,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[self addColumnWithView:thumbnailView];
 }
 
-#pragma mark - PGColumnView
+//	MARK: - PGColumnView
 
 - (void)insertColumnWithView:(NSView *)aView atIndex:(NSUInteger)index
 {
@@ -197,7 +221,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	if(!_updateCount) [[self delegate] thumbnailBrowser:self numberOfColumnsDidChangeFrom:columns];
 }
 
-#pragma mark - NSResponder
+//	MARK: - NSResponder
 
 - (IBAction)moveLeft:(id)sender
 {
@@ -216,7 +240,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	if([items count] && ![[view selection] count]) [view selectItem:[items objectAtIndex:0] byExtendingSelection:NO];
 }
 
-#pragma mark - <PGThumbnailViewDelegate>
+//	MARK: - <PGThumbnailViewDelegate>
 
 - (void)thumbnailViewSelectionDidChange:(PGThumbnailView *)sender
 {
@@ -261,7 +285,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
-#pragma mark -
+//	MARK: -
 @implementation NSObject(PGThumbnailBrowserDataSource)
 
 - (id)thumbnailBrowser:(PGThumbnailBrowser *)sender parentOfItem:(id)item
