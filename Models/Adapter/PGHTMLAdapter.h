@@ -29,10 +29,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 extern NSString *const PGDOMDocumentKey;
 
 @interface PGHTMLAdapter : PGContainerAdapter <WKNavigationDelegate>
+#if !__has_feature(objc_arc)
 {
 	@private
 	WKWebView *_webView;	//	WebView *_webView;
 	WKNavigation *_navigation;
 }
+#endif
 
 @end
