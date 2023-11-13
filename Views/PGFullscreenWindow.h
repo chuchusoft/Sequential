@@ -24,10 +24,13 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import "PGDocumentWindow.h"
 
-@interface PGFullscreenWindow : PGDocumentWindow {
+@interface PGFullscreenWindow : PGDocumentWindow
+#if !__has_feature(objc_arc)
+{
 @private
 	NSWindow* _blackHideTheNotchWindow;	//	2023/08/14 added
 }
+#endif
 
 - (id)initWithScreen:(NSScreen *)anObject;
 - (void)moveToScreen:(NSScreen *)anObject;
@@ -35,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+//	MARK: -
 @protocol PGFullscreenWindowDelegate <NSObject>
 
 @optional
