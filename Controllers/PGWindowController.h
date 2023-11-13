@@ -25,10 +25,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import "PGDisplayController.h"
 
 @interface PGWindowController : PGDisplayController
+#if !__has_feature(objc_arc)
 {
 	@private
 	BOOL _shouldZoomOnNextImageLoad;
 	BOOL _shouldSaveFrame;
 }
+#endif
 
 @end
