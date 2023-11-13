@@ -25,18 +25,25 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 @protocol PGActivityOwner;
 
 @interface PGActivity : NSObject
+#if !__has_feature(objc_arc)
 {
 	@private
 	NSObject<PGActivityOwner> *_owner;
 	PGActivity *_parentActivity;
 	NSMutableArray *_childActivities;
 }
+#endif
 
 + (id)applicationActivity;
 
 - (id)initWithOwner:(NSObject<PGActivityOwner> *)owner;
+#if __has_feature(objc_arc)
+@property(readonly, weak) NSObject<PGActivityOwner> *owner;
+@property(atomic, weak) PGActivity *parentActivity;
+#else
 @property(readonly) NSObject<PGActivityOwner> *owner;
 @property(assign) PGActivity *parentActivity;
+#endif
 @property(readonly) NSString *activityDescription;
 @property(readonly) CGFloat progress;
 @property(readonly) BOOL isActive;
