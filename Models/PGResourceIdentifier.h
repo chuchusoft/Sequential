@@ -95,7 +95,10 @@ typedef UInt8 PGLabelColor;
 */
 #endif
 
+//	MARK: -
+
 @interface PGDisplayableIdentifier : PGResourceIdentifier <NSSecureCoding>	//	NSCoding
+#if !__has_feature(objc_arc)
 {
 	@private
 	PGResourceIdentifier *_identifier;
@@ -104,9 +107,14 @@ typedef UInt8 PGLabelColor;
 	NSString *_naturalDisplayName;
 	NSString *_customDisplayName;
 }
+#endif
 
 @property(assign) BOOL postsNotifications;
+#if __has_feature(objc_arc)
+@property(strong) NSImage *icon;
+#else
 @property(retain) NSImage *icon;
+#endif
 @property(readonly) NSString *displayName;
 @property(copy) NSString *customDisplayName;
 @property(copy) NSString *naturalDisplayName; // The name from the filesystem or raw address of the URL.
@@ -117,6 +125,8 @@ typedef UInt8 PGLabelColor;
 - (void)noteNaturalDisplayNameDidChange;
 
 @end
+
+//	MARK: -
 
 @interface NSURL(PGResourceIdentifierCreation)
 
