@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 @class PGDisplayController;
 
 @interface PGFloatingPanelController : NSWindowController
+#if !__has_feature(objc_arc)
 {
 	@private
 	BOOL _shown;
@@ -37,14 +38,22 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @property(assign, nonatomic, getter = isShown) BOOL shown;
 - (PGDisplayController *)displayController;
-- (void)toggleShown;
-
 // For overriding:
 @property(readonly) NSString *nibName;
 //@property(readonly) NSString *windowFrameAutosaveName;	2021/07/21 deprecated
+#else
+@property (nonatomic, assign, getter = isShown) BOOL shown;
+@property (readonly) PGDisplayController *displayController;
+#endif
+- (void)toggleShown;
+
 - (void)windowWillShow;
 - (void)windowWillClose;
-- (BOOL)setDisplayController:(PGDisplayController *)controller;
+
+//	this was -(BOOL)setDisplayController: but that signature is non-standard
+//	(because it returns a BOOL), and causes ARC to stop compilation with an
+//	error so use a similarly-named signature:
+- (BOOL)setDisplayControllerReturningWasChanged:(PGDisplayController *)controller;
 
 - (void)windowDidBecomeMain:(NSNotification *)aNotif;
 - (void)windowDidResignMain:(NSNotification *)aNotif;
