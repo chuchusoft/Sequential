@@ -31,6 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 @protocol PGThumbnailBrowserDelegate;
 
 @interface PGThumbnailBrowser : PGColumnView <PGThumbnailViewDelegate>
+#if !__has_feature(objc_arc)
 {
 	@private
 	IBOutlet NSObject<PGThumbnailBrowserDataSource, PGThumbnailViewDataSource> *dataSource;
@@ -38,19 +39,28 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	PGOrientation _thumbnailOrientation;
 	NSUInteger _updateCount;
 }
+#endif
 
-@property(assign, nonatomic) NSObject<PGThumbnailBrowserDataSource, PGThumbnailViewDataSource> *dataSource;
-@property(assign, nonatomic) NSObject<PGThumbnailBrowserDelegate> *delegate;
-@property(assign, nonatomic) PGOrientation thumbnailOrientation;
-@property(copy, nonatomic) NSSet *selection;
+#if __has_feature(objc_arc)
+@property (nonatomic, weak) IBOutlet NSObject<PGThumbnailBrowserDataSource, PGThumbnailViewDataSource> *dataSource;
+@property (nonatomic, weak) IBOutlet NSObject<PGThumbnailBrowserDelegate> *delegate;
+@property (nonatomic, assign) PGOrientation thumbnailOrientation;
+@property (nonatomic, copy) NSSet *selection;
+#else
+@property(nonatomic, assign) NSObject<PGThumbnailBrowserDataSource, PGThumbnailViewDataSource> *dataSource;
+@property(nonatomic, assign) NSObject<PGThumbnailBrowserDelegate> *delegate;
+@property(nonatomic, assign) PGOrientation thumbnailOrientation;
+@property(nonatomic, copy) NSSet *selection;
+#endif
 
 - (void)redisplayItem:(id)item recursively:(BOOL)flag;
+- (void)selectionNeedsDisplay;	//	2023/11/23
 
 - (void)selectAll;
 
 @end
 
-#pragma mark -
+//	MARK: -
 
 @protocol PGThumbnailBrowserDataSource <NSObject>
 
@@ -60,7 +70,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
-#pragma mark -
+//	MARK: -
 
 @protocol PGThumbnailBrowserDelegate <NSObject>
 
