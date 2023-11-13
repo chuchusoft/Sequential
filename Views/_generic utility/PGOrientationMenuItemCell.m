@@ -28,16 +28,32 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import "PGFoundationAdditions.h"
 #import "PGGeometry.h"
 
+#if __has_feature(objc_arc)
+@interface PGOrientationMenuIconCell ()
+
+@property (nonatomic, weak) NSMenuItem *item;
+
+@end
+
+#endif
+
+//	MARK: -
 @implementation PGOrientationMenuIconCell
 
-#pragma mark +PGOrientationMenuIconCell
+//	MARK: +PGOrientationMenuIconCell
 
 + (void)addOrientationMenuIconCellToMenuItem:(NSMenuItem *)anItem
 {
-	if(![anItem isSeparatorItem]) [anItem setAttributedTitle:[NSAttributedString PG_attributedStringWithAttachmentCell:[[[self alloc] initWithMenuItem:anItem] autorelease] label:[anItem title]]];
+	if(![anItem isSeparatorItem])
+#if __has_feature(objc_arc)
+		anItem.attributedTitle = [NSAttributedString PG_attributedStringWithAttachmentCell:[[self alloc] initWithMenuItem:anItem]
+																					 label:anItem.title];
+#else
+		[anItem setAttributedTitle:[NSAttributedString PG_attributedStringWithAttachmentCell:[[[self alloc] initWithMenuItem:anItem] autorelease] label:[anItem title]]];
+#endif
 }
 
-#pragma mark -PGOrientationMenuIconCell
+//	MARK: - PGOrientationMenuIconCell
 
 - (id)initWithMenuItem:(NSMenuItem *)anItem
 {
@@ -59,7 +75,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	}
 }
 
-#pragma mark -NSTextAttachmentCell
+//	MARK: - NSTextAttachmentCell
 
 - (void)drawWithFrame:(NSRect)aRect inView:(NSView *)aView
 {
