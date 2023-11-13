@@ -32,12 +32,14 @@ extern NSString *const PGBezelPanelFrameShouldChangeNotification;
 extern NSString *const PGBezelPanelFrameDidChangeNotification;
 
 @interface PGBezelPanel : PGFadeOutPanel
+#if !__has_feature(objc_arc)
 {
 	@private
 	BOOL _acceptsEvents;
 	BOOL _canBecomeKey;
 	PGInset _frameInset;
 }
+#endif
 
 - (id)initWithContentView:(NSView *)aView;
 - (void)displayOverWindow:(NSWindow *)aWindow;
