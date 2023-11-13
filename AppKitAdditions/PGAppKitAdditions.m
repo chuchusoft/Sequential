@@ -89,13 +89,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 #pragma mark Instance Methods
 
-- (void)PG_fillUsingOperation:(NSCompositingOperation)op
+/* - (void)PG_fillUsingOperation:(NSCompositingOperation)op
 {
 	[NSGraphicsContext saveGraphicsState];
 	[[NSGraphicsContext currentContext] setCompositingOperation:op];
 	[self fill];
 	[NSGraphicsContext restoreGraphicsState];
-}
+} */
 
 @end
 
@@ -123,7 +123,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	NSParameterAssert(image);
 	NSSize const s = [image size];
 	NSRect const r = (NSRect){NSZeroPoint, s};
+#if __has_feature(objc_arc)
+	NSImage *const pattern = [[NSImage alloc] initWithSize:s];
+#else
 	NSImage *const pattern = [[[NSImage alloc] initWithSize:s] autorelease];
+#endif
 	[pattern lockFocus];
 		[self set];
 		NSRectFill(r);
@@ -134,16 +138,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
-@implementation NSControl(PGAppKitAdditions)
+/* @implementation NSControl(PGAppKitAdditions)
 
 - (void)PG_setAttributedStringValue:(NSAttributedString *)anObject
 {
+#if __has_feature(objc_arc)
+	NSMutableAttributedString *const str = [anObject mutableCopy];
+#else
 	NSMutableAttributedString *const str = [[anObject mutableCopy] autorelease];
+#endif
 	[str addAttributes:[[self attributedStringValue] attributesAtIndex:0 effectiveRange:NULL] range:NSMakeRange(0, [str length])];
 	[self setAttributedStringValue:str];
 }
 
-@end
+@end */
 
 @implementation NSEvent(PGAppKitAdditions)
 
@@ -156,7 +164,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
-@implementation NSImageRep(PGAppKitAdditions)
+/* @implementation NSImageRep(PGAppKitAdditions)
 
 - (NSBitmapImageRep *)PG_thumbnailWithMaxSize:(NSSize)size
 								  orientation:(PGOrientation)orientation
@@ -165,7 +173,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	if(!self) return nil;
 	NSSize const originalSize = PGRotated90CCW & orientation ? NSMakeSize([self pixelsHigh], [self pixelsWide]) : NSMakeSize([self pixelsWide], [self pixelsHigh]);
 	NSSize const s = PGIntegralSize(PGScaleSizeByFloat(originalSize, MIN(1.0f, MIN(size.width / originalSize.width, size.height / originalSize.height))));
+#if __has_feature(objc_arc)
+	NSBitmapImageRep *const thumbRep = [[NSBitmapImageRep alloc] initWithBitmapDataPlanes:NULL
+																			   pixelsWide:s.width
+																			   pixelsHigh:s.height
+																			bitsPerSample:8
+																		  samplesPerPixel:4
+																				 hasAlpha:YES
+																				 isPlanar:NO
+																		   colorSpaceName:NSDeviceRGBColorSpace
+																			  bytesPerRow:0
+																			 bitsPerPixel:0];
+#else
 	NSBitmapImageRep *const thumbRep = [[[NSBitmapImageRep alloc] initWithBitmapDataPlanes:NULL pixelsWide:s.width pixelsHigh:s.height bitsPerSample:8 samplesPerPixel:4 hasAlpha:YES isPlanar:NO colorSpaceName:NSDeviceRGBColorSpace bytesPerRow:0 bitsPerPixel:0] autorelease];
+#endif
 	if(!thumbRep) return nil;
 	NSGraphicsContext *const context = [NSGraphicsContext graphicsContextWithBitmapImageRep:thumbRep];
 	[NSGraphicsContext setCurrentContext:context];
@@ -195,7 +216,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	else while([self numberOfItems]) [self removeItemAtIndex:0];
 }
 
-@end
+@end */
 
 @interface NSMenu(AEUndocumented)
 - (id)_menuImpl;
@@ -246,7 +267,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	NSArray *const screens = [self screens];
 	return [screens count] ? [screens objectAtIndex:0] : nil;
 }
-- (BOOL)PG_setDesktopImageURL:(NSURL *)URL
+/* - (BOOL)PG_setDesktopImageURL:(NSURL *)URL
 {
 #if 1
 	NSWorkspace *const ws = [NSWorkspace sharedWorkspace];
@@ -283,24 +304,26 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	AEDisposeDesc(&event);
 	return noErr == sendErr;
 #endif
-}
+} */
 
 @end
 
-@implementation NSView(PGAppKitAdditions)
+//@implementation NSView(PGAppKitAdditions)
 
+/* removed - was only used by one caller
 - (void)PG_setEnabled:(BOOL)enabled recursive:(BOOL)recursive
 {
 	if([self respondsToSelector:@selector(setEnabled:)]) [(NSControl *)self setEnabled:enabled];
 	if(recursive) for(NSView *const subview in [self subviews]) [subview PG_setEnabled:enabled recursive:YES];
-}
+} */
+/* this does not work because it uses incorrect tests, so removed; replaced with _isDisplayControllerTheMainWindow
 - (BOOL)PG_isActive
 {
 	NSWindow *const w = [self window];
 	return [w isKeyWindow] && [w firstResponder] == self;
-}
+} */
 
-@end
+//@end
 
 @implementation NSWindow(PGAppKitAdditions)
 
