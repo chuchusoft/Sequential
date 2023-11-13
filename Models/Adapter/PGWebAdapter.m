@@ -38,13 +38,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import "PGFoundationAdditions.h"
 
 @interface PGWebDataProvider : PGDataProvider
+#if !__has_feature(objc_arc)
 {
 	@private
 	PGResourceIdentifier *_identifier;
 }
+#endif
 
 - (id)initWithResourceIdentifier:(PGResourceIdentifier *)identifier;
-@property(readonly) PGResourceIdentifier *identifier;
 
 @end
 
@@ -188,6 +189,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+#if __has_feature(objc_arc)
+@interface PGWebDataProvider ()
+@property (nonatomic, strong) PGResourceIdentifier *identifierWDP;
+@end
+#endif
+
 @implementation PGWebDataProvider
 
 #pragma mark -PGWebDataProvider
@@ -196,14 +203,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 {
 	if((self = [super init])) {
 #if __has_feature(objc_arc)
-		_identifier = identifier;
+		_identifierWDP = identifier;
 #else
 		_identifier = [identifier retain];
 #endif
 	}
 	return self;
 }
+
+#if __has_feature(objc_arc)
+- (PGResourceIdentifier *)identifier {
+	return _identifierWDP;
+}
+#else
 @synthesize identifier = _identifier;
+#endif
 
 #pragma mark -PGDataProvider(PGResourceAdapterLoading)
 
