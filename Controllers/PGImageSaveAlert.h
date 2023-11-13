@@ -25,10 +25,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 // Models
 @class PGNode;
 
-@interface PGImageSaveAlert : NSWindowController
-#ifdef MAC_OS_X_VERSION_10_6
-<NSOpenSavePanelDelegate, NSOutlineViewDataSource, NSOutlineViewDelegate, NSWindowDelegate>
-#endif
+@interface PGImageSaveAlert : NSWindowController<
+	NSOpenSavePanelDelegate, NSOutlineViewDataSource, NSOutlineViewDelegate, NSWindowDelegate>
+#if !__has_feature(objc_arc)
 {
 	@private
 	IBOutlet NSView *accessoryView;
@@ -43,6 +42,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	BOOL _saveOnSheetClose;
 	BOOL _firstTime;
 }
+#endif
 
 - (id)initWithRoot:(PGNode *)root initialSelection:(NSSet *)aSet;
 - (void)beginSheetForWindow:(NSWindow *)window; // If 'window' is nil, uses a modal alert instead of a sheet.
