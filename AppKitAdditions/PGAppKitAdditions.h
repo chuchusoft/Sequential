@@ -41,7 +41,7 @@ typedef NSUInteger AEIconType;
 + (void)PG_drawIcon:(AEIconType)type inRect:(NSRect)r;
 + (void)PG_drawSpinnerInRect:(NSRect)aRect startAtPetal:(NSInteger)petal;
 
-- (void)PG_fillUsingOperation:(NSCompositingOperation)op;
+//- (void)PG_fillUsingOperation:(NSCompositingOperation)op;
 
 @end
 
@@ -54,11 +54,11 @@ typedef NSUInteger AEIconType;
 
 @end
 
-@interface NSControl(PGAppKitAdditions)
+/* @interface NSControl(PGAppKitAdditions)
 
 - (void)PG_setAttributedStringValue:(NSAttributedString *)str; // Keeps existing attributes.
 
-@end
+@end */
 
 @interface NSEvent(PGAppKitAdditions)
 
@@ -66,7 +66,7 @@ typedef NSUInteger AEIconType;
 
 @end
 
-@interface NSImageRep(PGAppKitAdditions)
+/* @interface NSImageRep(PGAppKitAdditions)
 
 - (NSBitmapImageRep *)PG_thumbnailWithMaxSize:(NSSize)size orientation:(PGOrientation)orientation opaque:(BOOL)opaque;
 
@@ -76,7 +76,7 @@ typedef NSUInteger AEIconType;
 
 - (void)PG_removeAllItems; // -[NSMenu removeAllItems] requires 10.6.
 
-@end
+@end */
 
 @interface NSMenuItem(PGAppKitAdditions)
 
@@ -88,17 +88,17 @@ typedef NSUInteger AEIconType;
 
 @interface NSScreen(PGAppKitAdditions)
 
-+ (NSScreen *)PG_mainScreen; // Returns the real main screen.
-- (BOOL)PG_setDesktopImageURL:(NSURL *)URL;
++ (NSScreen *)PG_mainScreen; // Returns the real main screen (the screen containing the menu bar).
+//- (BOOL)PG_setDesktopImageURL:(NSURL *)URL;
 
 @end
 
-@interface NSView(PGAppKitAdditions)
+/* @interface NSView(PGAppKitAdditions)
 
 - (void)PG_setEnabled:(BOOL)enabled recursive:(BOOL)recursive;
 - (BOOL)PG_isActive;
 
-@end
+@end */
 
 @interface NSWindow(PGAppKitAdditions)
 
