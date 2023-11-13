@@ -28,9 +28,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import "PGFoundationAdditions.h"
 #import "PGZooming.h"
 
+#if __has_feature(objc_arc)
+
+@interface PGURLAlert ()
+
+@property (nonatomic, weak) IBOutlet NSTextField *URLField;
+@property (nonatomic, weak) IBOutlet NSButton *OKButton;
+
+@end
+
+#endif
+
+//	MARK: -
 @implementation PGURLAlert
 
-#pragma mark -PGURLAlert
+//	MARK: - PGURLAlert
 
 - (IBAction)ok:(id)sender
 {
@@ -41,21 +53,29 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[NSApp stopModalWithCode:NSAlertSecondButtonReturn];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (NSURL *)runModal
 {
 	BOOL const canceled = [NSApp runModalForWindow:[self window]] == NSAlertSecondButtonReturn;
 	[[self window] close];
 	if(canceled) return nil;
+#if __has_feature(objc_arc)
+	return [NSURL PG_URLWithString:[_URLField stringValue]];
+#else
 	return [NSURL PG_URLWithString:[URLField stringValue]];
+#endif
 }
 
-#pragma mark -NSWindowController
+//	MARK: - NSWindowController
 
 - (void)enableOKButton
 {
+#if __has_feature(objc_arc)
+	[_OKButton setEnabled:[NSURL PG_URLWithString:[_URLField stringValue]] != nil];
+#else
 	[OKButton setEnabled:[NSURL PG_URLWithString:[URLField stringValue]] != nil];
+#endif
 }
 
 - (void)windowDidLoad
@@ -64,21 +84,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[self enableOKButton];	//	[self controlTextDidChange:nil];	2021/07/21
 }
 
-#pragma mark -NSObject
+//	MARK: - NSObject
 
 - (id)init
 {
 	return [self initWithWindowNibName:@"PGURL"];
 }
 
-#pragma mark -NSObject(NSControlSubclassNotifications)
+//	MARK: - NSObject(NSControlSubclassNotifications)
 
 - (void)controlTextDidChange:(NSNotification *)aNotification
 {
 	[self enableOKButton];	//	[OKButton setEnabled:[NSURL PG_URLWithString:[URLField stringValue]] != nil];	2021/07/21
 }
 
-#pragma mark -<NSWindowDelegate>
+//	MARK: - <NSWindowDelegate>
 
 - (NSRect)windowWillUseStandardFrame:(NSWindow *)window defaultFrame:(NSRect)defaultFrame
 {
