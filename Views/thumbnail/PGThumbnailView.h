@@ -67,6 +67,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (void)toggleSelectionOfItem:(id)item;
 - (void)moveUp:(BOOL)up byExtendingSelection:(BOOL)ext;
 //- (void)selectAll;	//	2023/09/18
+- (BOOL)selectActiveNodeIfDisplayedInThisView;
 
 - (NSUInteger)indexOfItemAtPoint:(NSPoint)p;
 - (NSRect)frameOfItemAtIndex:(NSUInteger)index withMargin:(BOOL)flag;
