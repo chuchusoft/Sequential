@@ -5,7 +5,13 @@
 - in the thumbnail view, the selection color of selected siblings and parents
   of the active (displayed) item is now distinct from that of the active item.
 - when multiple documents are open, the thumbnail view is now drawn using the
-  correct highlight colors for the main (active) window and inactive windows.
+  correct system highlight colors for the main (active) window and inactive
+  windows.
+- when you click on a thumbnail folder that is not a parent of the currently
+  displayed image and then click back to the thumbnail folder that is the
+  parent of the currently displayed image, the thumbnail of the currently
+  displayed image is now selected and the thumbnail is scrolled into view
+  (vertically centered).
 
 2.4.0 (2023-11-02)
 - PDF image drawing was being cached in a layer which resulted in a sub-optimal
