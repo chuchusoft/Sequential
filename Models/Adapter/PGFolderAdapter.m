@@ -75,7 +75,11 @@ static NSArray *PGIgnoredPaths = nil;
 	BOOL const b = [URL getResourceValue:&value forKey:NSURLFileResourceTypeKey error:&error];
 	if(!b || error || ![value isEqual:NSURLFileResourceTypeDirectory])
 		return nil;
+#if __has_feature(objc_arc)
+	return [[PGDiskFolderDataProvider alloc] initWithResourceIdentifier:ident displayableName:name];
+#else
 	return [[[PGDiskFolderDataProvider alloc] initWithResourceIdentifier:ident displayableName:name] autorelease];
+#endif
 }
 
 #pragma mark -PGFolderAdapter
@@ -119,7 +123,11 @@ IsVisibleInFinder(NSURL* pageURL) {
 		return;
 
 	[[self document] setProcessingNodes:YES];
+#if __has_feature(objc_arc)
+	NSMutableArray *const oldPages = [[self unsortedChildren] mutableCopy];
+#else
 	NSMutableArray *const oldPages = [[[self unsortedChildren] mutableCopy] autorelease];
+#endif
 	NSMutableArray *const newPages = [NSMutableArray array];
 	NSString *const path = [URL path];
 	for(NSString *const pathComponent in [[NSFileManager defaultManager] contentsOfDirectoryAtPath:path error:NULL]) {
@@ -135,7 +143,11 @@ IsVisibleInFinder(NSURL* pageURL) {
 			[oldPages removeObjectIdenticalTo:node];
 			[node noteFileEventDidOccurDirect:NO];
 		} else {
+#if __has_feature(objc_arc)
+			node = [[PGNode alloc] initWithParent:self identifier:pageIdent];
+#else
 			node = [[[PGNode alloc] initWithParent:self identifier:pageIdent] autorelease];
+#endif
 			[node setDataProvider:[PGDataProvider providerWithResourceIdentifier:pageIdent]];
 		}
 		if(node) [newPages addObject:node];
