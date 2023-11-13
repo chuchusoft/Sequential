@@ -61,6 +61,32 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 	return NSMakePoint(CLAMP(NSMinX(aRect), aPoint.x, NSMaxX(aRect)), CLAMP(NSMinY(aRect), aPoint.y, NSMaxY(aRect)));
 }
 
+#if __has_feature(objc_arc)
+
+@interface PGClipView()
+
+@property (nonatomic, assign) BOOL backgroundIsComplex;
+@property (nonatomic, assign) NSPoint position;
+@property (nonatomic, assign) NSUInteger documentViewIsResizing;
+@property (nonatomic, assign) BOOL firstMouse;
+@property (nonatomic, assign) NSUInteger scrollCount;
+
+@property (nonatomic, assign) NSPoint startPosition;
+@property (nonatomic, assign) NSPoint targetPosition;
+@property (nonatomic, assign) CGFloat animationProgress;
+@property (nonatomic, strong) NSTimer *animationTimer;
+@property (nonatomic, assign) NSTimeInterval lastAnimationTime;
+
+- (BOOL)_setPosition:(NSPoint)aPoint scrollEnclosingClipViews:(BOOL)scroll markForRedisplay:(BOOL)redisplay;
+- (BOOL)_scrollTo:(NSPoint)aPoint;
+- (void)_scrollOneFrame;
+- (void)_beginPreliminaryDrag:(NSValue *)val;
+- (void)_delayedEndGesture;
+
+@end
+
+#else
+
 @interface PGClipView(Private)
 
 - (BOOL)_setPosition:(NSPoint)aPoint scrollEnclosingClipViews:(BOOL)scroll markForRedisplay:(BOOL)redisplay;
@@ -71,27 +97,42 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 
 @end
 
+#endif
+
+//	MARK: -
 @implementation PGClipView
 
-#pragma mark -PGClipView
-
+#if __has_feature(objc_arc)
+@synthesize documentView;	//	IBOutlet
+@synthesize acceptsFirstResponder = _acceptsFirstResponder;
+#else
+@synthesize documentView;	//	IBOutlet
+@synthesize acceptsFirstResponder = _acceptsFirstResponder;
 @synthesize delegate;
-@synthesize documentView;
+//@synthesize documentFrame = _documentFrame;
+//@synthesize boundsInset = _boundsInset;
+//@synthesize backgroundColor = _backgroundColor;
+//@synthesize showsBorder = _showsBorder;
+//@synthesize cursor = _cursor;
+//@synthesize allowsAnimation = _allowsAnimation;
+#endif
 - (void)setDocumentView:(NSView *)aView
 {
 	if(aView == documentView) return;
 	[documentView PG_removeObserver:self name:NSViewFrameDidChangeNotification];
 	[documentView removeFromSuperview];
+#if __has_feature(objc_arc)
+	documentView = aView;
+#else
 	[documentView release];
 	documentView = [aView retain];
+#endif
 	if(!documentView) return;
 	[self addSubview:documentView];
 	[documentView PG_addObserver:self selector:@selector(viewFrameDidChange:) name:NSViewFrameDidChangeNotification];
 	[self viewFrameDidChange:nil];
 	[documentView setPostsFrameChangedNotifications:YES];
 }
-@synthesize documentFrame = _documentFrame;
-@synthesize boundsInset = _boundsInset;
 - (void)setBoundsInset:(PGInset)inset
 {
 	NSPoint const p = [self position];
@@ -104,11 +145,12 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 {
 	return PGInsetRect([self bounds], _boundsInset);
 }
-@synthesize backgroundColor = _backgroundColor;
 - (void)setBackgroundColor:(NSColor *)aColor
 {
 	if(PGEqualObjects(aColor, _backgroundColor)) return;
+#if !__has_feature(objc_arc)
 	[_backgroundColor release];
+#endif
 	_backgroundColor = [aColor copy];
 	_backgroundIsComplex = !_backgroundColor ||
 	//	PGEqualObjects([_backgroundColor colorSpaceName], NSPatternColorSpace);
@@ -120,13 +162,15 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 		while(i--) [self setNeedsDisplayInRect:rects[i]];
 	} else [self setNeedsDisplay:YES];
 }
-@synthesize showsBorder = _showsBorder;
-@synthesize cursor = _cursor;
 - (void)setCursor:(NSCursor *)cursor
 {
 	if(cursor == _cursor) return;
+#if __has_feature(objc_arc)
+	_cursor = cursor;
+#else
 	[_cursor release];
 	_cursor = [cursor retain];
+#endif
 	[[self window] invalidateCursorRectsForView:self];
 }
 - (BOOL)isScrolling
@@ -144,10 +188,8 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 		if(!--_scrollCount) [self PG_viewDidScrollInClipView:self];
 	}
 }
-@synthesize allowsAnimation = _allowsAnimation;
-@synthesize acceptsFirstResponder = _acceptsFirstResponder;
 
-#pragma mark -
+//	MARK: -
 
 - (NSPoint)position
 {
@@ -175,7 +217,7 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 	return NSMakeSize(diff.width * 2.0f / NSWidth(r), diff.height * 2.0f / NSHeight(r));
 }
 
-#pragma mark -
+//	MARK: -
 
 - (BOOL)scrollTo:(NSPoint)aPoint animation:(PGAnimationType)type
 {
@@ -190,7 +232,15 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 	_animationProgress = 0.0f;
 	if(!_animationTimer) {
 		self.scrolling = YES;
+#if __has_feature(objc_arc)
+		_animationTimer = [self PG_performSelector:@selector(_scrollOneFrame)
+										withObject:nil
+										  fireDate:nil
+										  interval:PGAnimationFramerate
+										   options:PGRepeatOnInterval];
+#else
 		_animationTimer = [[self PG_performSelector:@selector(_scrollOneFrame) withObject:nil fireDate:nil interval:PGAnimationFramerate options:PGRepeatOnInterval] retain];
+#endif
 	}
 	return YES;
 }
@@ -232,14 +282,16 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 {
 	if(!_animationTimer) return;
 	[_animationTimer invalidate];
+#if !__has_feature(objc_arc)
 	[_animationTimer release];
+#endif
 	_animationTimer = nil;
 	_animationProgress = 0.0f;
 	_lastAnimationTime = 0.0f;
 	self.scrolling = NO;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (NSRect)documentFrameWithBorder:(BOOL)flag
 {
@@ -309,7 +361,7 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 	return YES;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (BOOL)handleMouseDown:(NSEvent *)firstEvent
 {
@@ -459,7 +511,7 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 	[self scrollTo:position animation:PGPreferAnimation];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)viewFrameDidChange:(NSNotification *)aNotif
 {
@@ -472,7 +524,7 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 	_documentViewIsResizing--;
 }
 
-#pragma mark -PGClipView(Private)
+//	MARK: -PGClipView(Private)
 
 - (BOOL)_setPosition:(NSPoint)aPoint scrollEnclosingClipViews:(BOOL)scroll markForRedisplay:(BOOL)redisplay
 {
@@ -513,7 +565,7 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 	[[self delegate] clipViewGestureDidEnd:self];
 }
 
-#pragma mark -NSView
+//	MARK: - NSView
 
 - (id)initWithFrame:(NSRect)aRect
 {
@@ -526,7 +578,7 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 	return self;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (BOOL)isOpaque
 {
@@ -582,14 +634,14 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 	if(![self _setPosition:PGOffsetPointByXY(_position, 0.0f, heightDiff) scrollEnclosingClipViews:NO markForRedisplay:YES]) [self PG_postNotificationName:PGClipViewBoundsDidChangeNotification];
 }
 
-#pragma mark -NSView(PGClipViewAdditions)
+//	MARK: - NSView(PGClipViewAdditions)
 
 - (PGClipView *)PG_clipView
 {
 	return self;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)PG_scrollRectToVisible:(NSRect)aRect forView:(NSView *)view type:(PGScrollToRectType)type
 {
@@ -630,21 +682,21 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 	if(clipView == self || !_scrollCount) [super PG_viewDidScrollInClipView:clipView];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (NSView *)PG_deepestViewAtPoint:(NSPoint)aPoint
 {
 	return [super hitTest:aPoint];
 }
 
-#pragma mark -NSView(PGZooming)
+//	MARK: - NSView(PGZooming)
 
 - (NSSize)PG_zoomedBoundsSize
 {
 	return PGInsetSize([super PG_zoomedBoundsSize], PGInvertInset([self boundsInset]));
 }
 
-#pragma mark -NSResponder
+//	MARK: - NSResponder
 
 - (BOOL)acceptsFirstMouse:(NSEvent *)anEvent
 {
@@ -670,7 +722,7 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 	} else [self scrollBy:NSMakeSize(x * PGMouseWheelScrollFactor, y * PGMouseWheelScrollFactor) animation:PGNoAnimation];
 }
 
-#pragma mark -
+//	MARK: -
 
 // Private, invoked by guestures on new laptop trackpads.
 - (void)beginGestureWithEvent:(NSEvent *)anEvent
@@ -694,7 +746,7 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 	[[self delegate] clipViewGestureDidEnd:self];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)keyDown:(NSEvent *)anEvent
 {
@@ -797,16 +849,18 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 	[self moveToEndOfDocument:sender];
 }
 
-#pragma mark -NSObject
+//	MARK: - NSObject
 
 - (void)dealloc
 {
 	[self PG_removeObserver];
 	[self stopAnimatedScrolling];
+#if !__has_feature(objc_arc)
 	[documentView release];
 	[_backgroundColor release];
 	[_cursor release];
 	[super dealloc];
+#endif
 }
 
 @end
