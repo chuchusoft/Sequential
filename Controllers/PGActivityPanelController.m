@@ -34,43 +34,79 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import "PGFoundationAdditions.h"
 #import "PGGeometry.h"
 
+#if __has_feature(objc_arc)
+
+@interface PGActivityPanelController ()
+
+@property (nonatomic, weak) IBOutlet NSOutlineView *activityOutline;
+@property (nonatomic, weak) IBOutlet NSTableColumn *identifierColumn;
+@property (nonatomic, weak) IBOutlet NSTableColumn *progressColumn;
+@property (nonatomic, weak) IBOutlet NSButton      *cancelButton;
+@property (nonatomic, strong) NSTimer *updateTimer;
+
+- (void)_update;
+
+@end
+
+#else
+
 @interface PGActivityPanelController(Private)
 
 - (void)_update;
 
 @end
 
-#pragma mark -
+#endif
+
+//	MARK: -
 @implementation PGActivityPanelController
 
 - (IBAction)cancelLoad:(id)sender
 {
+#if __has_feature(objc_arc)
+	NSIndexSet *const indexes = [_activityOutline selectedRowIndexes];
+#else
 	NSIndexSet *const indexes = [activityOutline selectedRowIndexes];
+#endif
 	NSUInteger i = [indexes firstIndex];
-	for(; NSNotFound != i; i = [indexes indexGreaterThanIndex:i]) [[activityOutline itemAtRow:i] cancel:sender];
+	for(; NSNotFound != i; i = [indexes indexGreaterThanIndex:i])
+#if __has_feature(objc_arc)
+		[[_activityOutline itemAtRow:i] cancel:sender];
+#else
+		[[activityOutline itemAtRow:i] cancel:sender];
+#endif
 }
 
-#pragma mark -PGActivityPanelController(Private)
+//	MARK: - PGActivityPanelController(Private)
 
 - (void)_update
 {
+#if __has_feature(objc_arc)
+	[_activityOutline reloadData];
+	[_activityOutline expandItem:nil expandChildren:YES];
+#else
 	[activityOutline reloadData];
 	[activityOutline expandItem:nil expandChildren:YES];
+#endif
 }
 
 - (void)_enableCancelButton
 {
+#if __has_feature(objc_arc)
+	[_cancelButton setEnabled:[[_activityOutline selectedRowIndexes] count] > 0];
+#else
 	[cancelButton setEnabled:[[activityOutline selectedRowIndexes] count] > 0];
+#endif
 }
 
-#pragma mark -NSObject(NSOutlineViewNotifications)
+//	MARK: - NSObject(NSOutlineViewNotifications)
 
 - (void)outlineViewSelectionDidChange:(NSNotification *)notification
 {
-	[self _enableCancelButton];	//	[cancelButton setEnabled:[[activityOutline selectedRowIndexes] count] > 0];
+	[self _enableCancelButton];	//	[_cancelButton setEnabled:[[_activityOutline selectedRowIndexes] count] > 0];
 }
 
-#pragma mark -PGFloatingPanelController
+//	MARK: - PGFloatingPanelController
 
 - (NSString *)nibName
 {
@@ -78,34 +114,46 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 }
 - (void)windowWillShow
 {
+#if __has_feature(objc_arc)
+	_updateTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 target:self selector:@selector(_update) userInfo:nil repeats:YES];
+#else
 	_updateTimer = [[NSTimer scheduledTimerWithTimeInterval:1.0 target:self selector:@selector(_update) userInfo:nil repeats:YES] retain];
+#endif
 	[self _update];
 }
 - (void)windowWillClose
 {
 	[_updateTimer invalidate];
+#if !__has_feature(objc_arc)
 	[_updateTimer release];
+#endif
 	_updateTimer = nil;
 }
 
-#pragma mark -NSWindowController
+//	MARK: - NSWindowController
 
 - (void)windowDidLoad
 {
 	[super windowDidLoad];
+#if __has_feature(objc_arc)
+	[_progressColumn setDataCell:[PGProgressIndicatorCell new]];
+#else
 	[progressColumn setDataCell:[[[PGProgressIndicatorCell alloc] init] autorelease]];
+#endif
 	[self _enableCancelButton];	//	[self outlineViewSelectionDidChange:nil];
 }
 
-#pragma mark -NSObject
+//	MARK: - NSObject
 
 - (void)dealloc
 {
 	[self windowWillClose];
+#if !__has_feature(objc_arc)
 	[super dealloc];
+#endif
 }
 
-#pragma mark id<NSOutlineViewDataSource>
+//	MARK: - id<NSOutlineViewDataSource>
 
 - (NSInteger)outlineView:(NSOutlineView *)outlineView numberOfChildrenOfItem:(nullable id)item
 {
@@ -127,22 +175,39 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
  objectValueForTableColumn:(nullable NSTableColumn *)tableColumn
 					byItem:(nullable id)item
 {
-	if(tableColumn == identifierColumn) {
+#if __has_feature(objc_arc)
+	if(tableColumn == _identifierColumn)
+#else
+	if(tableColumn == identifierColumn)
+#endif
+	{
 		static NSDictionary *attrs = nil;
 		if(!attrs) {
+#if __has_feature(objc_arc)
+			NSMutableParagraphStyle *const style = [[NSParagraphStyle defaultParagraphStyle] mutableCopy];
+#else
 			NSMutableParagraphStyle *const style = [[[NSParagraphStyle defaultParagraphStyle] mutableCopy] autorelease];
+#endif
 			[style setTighteningFactorForTruncation:0.3f];
 			[style setLineBreakMode:NSLineBreakByTruncatingMiddle];
 			attrs = [[NSDictionary alloc] initWithObjectsAndKeys:style, NSParagraphStyleAttributeName, nil];
 		}
+#if __has_feature(objc_arc)
+		return [[NSAttributedString alloc] initWithString:[item activityDescription] attributes:attrs];
+#else
 		return [[[NSAttributedString alloc] initWithString:[item activityDescription] attributes:attrs] autorelease];
+#endif
+#if __has_feature(objc_arc)
+	} else if(tableColumn == _progressColumn) {
+#else
 	} else if(tableColumn == progressColumn) {
+#endif
 		return [NSNumber numberWithDouble:[(PGActivity*) item progress]];
 	}
 	return nil;
 }
 
-#pragma mark id<NSOutlineViewDelegate>
+//	MARK: - id<NSOutlineViewDelegate>
 
 #if 1
 // View Based OutlineView: See the delegate method -tableView:viewForTableColumn:row: in NSTableView.
@@ -150,7 +215,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 			  viewForTableColumn:(nullable NSTableColumn *)tableColumn
 							item:(id)item
 {
+#if __has_feature(objc_arc)
+	NSTextField*	result = [NSTextField new];
+#else
 	NSTextField*	result = [[NSTextField new] autorelease];
+#endif
 	result.drawsBackground	=	NO;
 	result.bordered			=	NO;
 	result.bezeled			=	NO;
@@ -159,7 +228,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	result.font				=	[NSFont systemFontOfSize:0.0];
 	result.alignment		=	NSTextAlignmentLeft;
 
-	if(tableColumn == progressColumn) {
+#if __has_feature(objc_arc)
+	if(tableColumn == _progressColumn)
+#else
+	if(tableColumn == progressColumn)
+#endif
+	{
 		PGActivity*		ai		=	(PGActivity*) item;
 		if(![ai progress] || 0 != [[ai childActivities:YES] count])
 			return nil;
