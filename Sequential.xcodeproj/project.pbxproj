@@ -66,7 +66,7 @@
 		0E246B4310887CF200C30936 /* PGFoundationAdditions.m in Sources */ = {isa = PBXBuildFile; fileRef = 0E246B4210887CF200C30936 /* PGFoundationAdditions.m */; };
 		0E246B4610887DC600C30936 /* PGAppKitAdditions.m in Sources */ = {isa = PBXBuildFile; fileRef = 0E246B4510887DC600C30936 /* PGAppKitAdditions.m */; };
 		0E246BBD108880F800C30936 /* PGDebug.m in Sources */ = {isa = PBXBuildFile; fileRef = 0E246BBC108880F800C30936 /* PGDebug.m */; };
-		0E2500C20FA4755A002CCCBA /* PGDelayedPerforming.m in Sources */ = {isa = PBXBuildFile; fileRef = 0E2500C10FA4755A002CCCBA /* PGDelayedPerforming.m */; };
+		0E2500C20FA4755A002CCCBA /* PGDelayedPerforming.m in Sources */ = {isa = PBXBuildFile; fileRef = 0E2500C10FA4755A002CCCBA /* PGDelayedPerforming.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		0E255B9B0E3A9A1E00EDF04C /* PGTimerPanelController.m in Sources */ = {isa = PBXBuildFile; fileRef = 0E255B9A0E3A9A1E00EDF04C /* PGTimerPanelController.m */; };
 		0E255BA70E3A9D2E00EDF04C /* PGTimerButton.m in Sources */ = {isa = PBXBuildFile; fileRef = 0E255BA60E3A9D2E00EDF04C /* PGTimerButton.m */; };
 		0E2D08790DD2B4F800EC128A /* PGRoundedBackgroundView.m in Sources */ = {isa = PBXBuildFile; fileRef = 0E2D08780DD2B4F800EC128A /* PGRoundedBackgroundView.m */; };
@@ -92,7 +92,6 @@
 		0E9016AB0DF44A7E004B6F69 /* PGColorWell.m in Sources */ = {isa = PBXBuildFile; fileRef = 0E9016AA0DF44A7E004B6F69 /* PGColorWell.m */; };
 		0E90195C0DF55F50004B6F69 /* PGDocumentWindow.m in Sources */ = {isa = PBXBuildFile; fileRef = 0E90195A0DF55F50004B6F69 /* PGDocumentWindow.m */; };
 		0E92E1360E2CA88400276801 /* PGGeometry.m in Sources */ = {isa = PBXBuildFile; fileRef = 0E92E1350E2CA88400276801 /* PGGeometry.m */; };
-		0E933D18100DD53800B58A9E /* History.txt in Resources */ = {isa = PBXBuildFile; fileRef = 0E3378E8100C82B700373E83 /* History.txt */; };
 		0E94F5250DAA6B0F00A23F73 /* PGWindowController.m in Sources */ = {isa = PBXBuildFile; fileRef = 0E94F5240DAA6B0F00A23F73 /* PGWindowController.m */; };
 		0E94F9CC0DAD37D000A23F73 /* PGPrefObject.m in Sources */ = {isa = PBXBuildFile; fileRef = 0E94F9CB0DAD37D000A23F73 /* PGPrefObject.m */; };
 		0E94FBAF0DAE739700A23F73 /* PGDisplayController.m in Sources */ = {isa = PBXBuildFile; fileRef = 0E94FBAE0DAE739700A23F73 /* PGDisplayController.m */; };
@@ -144,6 +143,7 @@
 		0EF543240DC1291600905391 /* PGFolderAdapter.m in Sources */ = {isa = PBXBuildFile; fileRef = 0EF543230DC1291600905391 /* PGFolderAdapter.m */; };
 		0EF9B2550FA348F700B7E16A /* PGIconTextFieldCell.m in Sources */ = {isa = PBXBuildFile; fileRef = 0EF9B2540FA348F700B7E16A /* PGIconTextFieldCell.m */; };
 		4B2462E02ADAC51700BA81EF /* PGThumbnailInfoView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4B2462DE2ADAC51700BA81EF /* PGThumbnailInfoView.m */; };
+		4B86CC832B01E93000268688 /* History.txt in Resources */ = {isa = PBXBuildFile; fileRef = 0E3378E8100C82B700373E83 /* History.txt */; };
 		4BD905F82AE4D36F001FECBD /* PGResourceDataProvider.m in Sources */ = {isa = PBXBuildFile; fileRef = 4BD905F72AE4D36F001FECBD /* PGResourceDataProvider.m */; };
 		4BEC932729152136009B5F59 /* libUniversalDetector.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F1601B8926D2C8380012FD2B /* libUniversalDetector.a */; };
 		8D15AC310486D014006FF6A4 /* PGDocument.m in Sources */ = {isa = PBXBuildFile; fileRef = 2A37F4ACFDCFA73011CA2CEA /* PGDocument.m */; settings = {ATTRIBUTES = (); }; };
@@ -169,12 +169,19 @@
 			remoteGlobalIDString = 8D15AC270486D014006FF6A4;
 			remoteInfo = Sequential;
 		};
-		4BEC932529152123009B5F59 /* PBXContainerItemProxy */ = {
+		4B36EB202AFA4C00007CA113 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = F1E5351026AD98800057A129 /* UniversalDetector.xcodeproj */;
 			proxyType = 1;
 			remoteGlobalIDString = 1B23E0861190F29400620319;
 			remoteInfo = libUniversalDetector.a;
+		};
+		4B36EB222AFA4C00007CA113 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0E20FCC6109652CE007EE24A /* XADMaster.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 1B34A97411C2FD0500396C26;
+			remoteInfo = libXADMaster.a;
 		};
 		F1601B8626D2C8380012FD2B /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -210,13 +217,6 @@
 			proxyType = 2;
 			remoteGlobalIDString = 1B0DDCAB0A2D0AD10009B697;
 			remoteInfo = DetectorTest;
-		};
-		F1CA6DD426BA57B200ECE823 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 0E20FCC6109652CE007EE24A /* XADMaster.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = 1B34A97411C2FD0500396C26;
-			remoteInfo = libXADMaster.a;
 		};
 		F1E534FB26AD801F0057A129 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -763,38 +763,15 @@
 		2A37F4ABFDCFA73011CA2CEA /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				4B86CC822AFF398500268688 /* Node */,
+				4B86CC802AFF390F00268688 /* Adapter */,
+				4B86CC812AFF393700268688 /* DataProvider */,
 				0E94F9CA0DAD37D000A23F73 /* PGPrefObject.h */,
 				0E94F9CB0DAD37D000A23F73 /* PGPrefObject.m */,
 				2A37F4AEFDCFA73011CA2CEA /* PGDocument.h */,
 				2A37F4ACFDCFA73011CA2CEA /* PGDocument.m */,
-				B573CFF3122AC22200F4B7CA /* PGNodeParenting.h */,
-				0EF5431C0DC128B600905391 /* PGNode.h */,
-				0EF5431D0DC128B600905391 /* PGNode.m */,
-				0E8680A6113A079600B78EAA /* PGResourceAdapting.h */,
-				0EE646040DC7C6E100A90F86 /* PGResourceAdapter.h */,
-				0EE646050DC7C6E100A90F86 /* PGResourceAdapter.m */,
-				0EE645A90DC6508C00A90F86 /* PGWebAdapter.h */,
-				0EE645AA0DC6508C00A90F86 /* PGWebAdapter.m */,
-				0EE647700DC8FA3A00A90F86 /* PGContainerAdapter.h */,
-				0EE647710DC8FA3A00A90F86 /* PGContainerAdapter.m */,
-				0EF543220DC1291600905391 /* PGFolderAdapter.h */,
-				0EF543230DC1291600905391 /* PGFolderAdapter.m */,
-				0EE646A80DC8416F00A90F86 /* PGHTMLAdapter.h */,
-				0EE646A90DC8416F00A90F86 /* PGHTMLAdapter.m */,
-				B581795A121490A60041F0F4 /* PGXMLAdapter.h */,
-				B581795B121490A60041F0F4 /* PGXMLAdapter.m */,
-				0ED4A4180DCBFDDA007C5A77 /* PGArchiveAdapter.h */,
-				0ED4A4190DCBFDDA007C5A77 /* PGArchiveAdapter.m */,
-				0ED4A44B0DCC628F007C5A77 /* PGPDFAdapter.h */,
-				0ED4A44C0DCC628F007C5A77 /* PGPDFAdapter.m */,
-				0EE6476D0DC8F96C00A90F86 /* PGGenericImageAdapter.h */,
-				0EE6476E0DC8F96C00A90F86 /* PGGenericImageAdapter.m */,
 				0EE761790DDB7BDE00ED8ABB /* PGResourceIdentifier.h */,
 				0EE7617A0DDB7BDE00ED8ABB /* PGResourceIdentifier.m */,
-				0ECA9B661136CEF600BAFF5E /* PGDataProvider.h */,
-				0ECA9B671136CEF600BAFF5E /* PGDataProvider.m */,
-				4BD906062AE4D3E6001FECBD /* PGResourceDataProvider.h */,
-				4BD905F72AE4D36F001FECBD /* PGResourceDataProvider.m */,
 				0ECF36E60C7DC4FC0009EB00 /* PGSubscription.h */,
 				0ECF36E70C7DC4FC0009EB00 /* PGSubscription.m */,
 				0E01793E10FBEDBB0017FA5A /* PGActivity.h */,
@@ -898,8 +875,6 @@
 			children = (
 				0E04EBCC0C253BB000078EC2 /* PGAlertView.h */,
 				0E04EBCD0C253BB000078EC2 /* PGAlertView.m */,
-				0E04E98C0C23BA7100078EC2 /* PGBezelPanel.h */,
-				0E04E98D0C23BA7100078EC2 /* PGBezelPanel.m */,
 				4B2462DA2ADAC15C00BA81EF /* PGColorWell.h */,
 				0E9016AA0DF44A7E004B6F69 /* PGColorWell.m */,
 				0E7D74440C9ED641004AA269 /* PGDragHighlightView.h */,
@@ -951,6 +926,53 @@
 			path = thumbnail;
 			sourceTree = "<group>";
 		};
+		4B86CC802AFF390F00268688 /* Adapter */ = {
+			isa = PBXGroup;
+			children = (
+				0E8680A6113A079600B78EAA /* PGResourceAdapting.h */,
+				0EE646040DC7C6E100A90F86 /* PGResourceAdapter.h */,
+				0EE646050DC7C6E100A90F86 /* PGResourceAdapter.m */,
+				0EE645A90DC6508C00A90F86 /* PGWebAdapter.h */,
+				0EE645AA0DC6508C00A90F86 /* PGWebAdapter.m */,
+				0EE647700DC8FA3A00A90F86 /* PGContainerAdapter.h */,
+				0EE647710DC8FA3A00A90F86 /* PGContainerAdapter.m */,
+				0EF543220DC1291600905391 /* PGFolderAdapter.h */,
+				0EF543230DC1291600905391 /* PGFolderAdapter.m */,
+				0EE646A80DC8416F00A90F86 /* PGHTMLAdapter.h */,
+				0EE646A90DC8416F00A90F86 /* PGHTMLAdapter.m */,
+				B581795A121490A60041F0F4 /* PGXMLAdapter.h */,
+				B581795B121490A60041F0F4 /* PGXMLAdapter.m */,
+				0ED4A4180DCBFDDA007C5A77 /* PGArchiveAdapter.h */,
+				0ED4A4190DCBFDDA007C5A77 /* PGArchiveAdapter.m */,
+				0ED4A44B0DCC628F007C5A77 /* PGPDFAdapter.h */,
+				0ED4A44C0DCC628F007C5A77 /* PGPDFAdapter.m */,
+				0EE6476D0DC8F96C00A90F86 /* PGGenericImageAdapter.h */,
+				0EE6476E0DC8F96C00A90F86 /* PGGenericImageAdapter.m */,
+			);
+			path = Adapter;
+			sourceTree = "<group>";
+		};
+		4B86CC812AFF393700268688 /* DataProvider */ = {
+			isa = PBXGroup;
+			children = (
+				0ECA9B661136CEF600BAFF5E /* PGDataProvider.h */,
+				0ECA9B671136CEF600BAFF5E /* PGDataProvider.m */,
+				4BD906062AE4D3E6001FECBD /* PGResourceDataProvider.h */,
+				4BD905F72AE4D36F001FECBD /* PGResourceDataProvider.m */,
+			);
+			path = DataProvider;
+			sourceTree = "<group>";
+		};
+		4B86CC822AFF398500268688 /* Node */ = {
+			isa = PBXGroup;
+			children = (
+				B573CFF3122AC22200F4B7CA /* PGNodeParenting.h */,
+				0EF5431C0DC128B600905391 /* PGNode.h */,
+				0EF5431D0DC128B600905391 /* PGNode.m */,
+			);
+			path = Node;
+			sourceTree = "<group>";
+		};
 		4BC9AEAC2AF28A51001F9CBC /* distribution */ = {
 			isa = PBXGroup;
 			children = (
@@ -995,6 +1017,8 @@
 				0E246B4510887DC600C30936 /* PGAppKitAdditions.m */,
 				F1E5354A26AE74110057A129 /* PGFadeOutPanel.h */,
 				F1E5354F26AE74110057A129 /* PGFadeOutPanel.m */,
+				0E04E98C0C23BA7100078EC2 /* PGBezelPanel.h */,
+				0E04E98D0C23BA7100078EC2 /* PGBezelPanel.m */,
 			);
 			path = AppKitAdditions;
 			sourceTree = "<group>";
@@ -1013,8 +1037,8 @@
 			buildRules = (
 			);
 			dependencies = (
-				F1CA6DD526BA57B200ECE823 /* PBXTargetDependency */,
-				4BEC932629152123009B5F59 /* PBXTargetDependency */,
+				4B36EB212AFA4C00007CA113 /* PBXTargetDependency */,
+				4B36EB232AFA4C00007CA113 /* PBXTargetDependency */,
 			);
 			name = Sequential;
 			productInstallPath = "$(HOME)/Applications";
@@ -1216,11 +1240,11 @@
 				0E9012A50DF22636004B6F69 /* Mirror-Black.png in Resources */,
 				0E9012A60DF22636004B6F69 /* Mirror-White.png in Resources */,
 				0E88D5A30E30C2E900871528 /* Corner-Bottom-Left.png in Resources */,
+				4B86CC832B01E93000268688 /* History.txt in Resources */,
 				0E88D5A40E30C2E900871528 /* Corner-Bottom-Right.png in Resources */,
 				0E88D5A50E30C2E900871528 /* Corner-Top-Left.png in Resources */,
 				0E88D5A60E30C2E900871528 /* Corner-Top-Right.png in Resources */,
 				0E04EF9A0F558FE7002FD4F2 /* dsa_pub.pem in Resources */,
-				0E933D18100DD53800B58A9E /* History.txt in Resources */,
 				0E3378FA100C83C400373E83 /* License.txt in Resources */,
 				0E8A1B8610155DDE00C23B34 /* Credits.rtf in Resources */,
 				0EBED53B102FE2070013748A /* Checkerboard.png in Resources */,
@@ -1349,15 +1373,15 @@
 			target = 8D15AC270486D014006FF6A4 /* Sequential */;
 			targetProxy = 0E04EFA50F5592CE002FD4F2 /* PBXContainerItemProxy */;
 		};
-		4BEC932629152123009B5F59 /* PBXTargetDependency */ = {
+		4B36EB212AFA4C00007CA113 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = libUniversalDetector.a;
-			targetProxy = 4BEC932529152123009B5F59 /* PBXContainerItemProxy */;
+			targetProxy = 4B36EB202AFA4C00007CA113 /* PBXContainerItemProxy */;
 		};
-		F1CA6DD526BA57B200ECE823 /* PBXTargetDependency */ = {
+		4B36EB232AFA4C00007CA113 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = libXADMaster.a;
-			targetProxy = F1CA6DD426BA57B200ECE823 /* PBXContainerItemProxy */;
+			targetProxy = 4B36EB222AFA4C00007CA113 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -1579,6 +1603,7 @@
 		C05733C808A9546B00998B17 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_ENABLE_OBJC_ARC = YES;
 				FRAMEWORK_SEARCH_PATHS = ../;
 				INFOPLIST_FILE = Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
@@ -1594,6 +1619,7 @@
 		C05733C908A9546B00998B17 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_ENABLE_OBJC_ARC = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				FRAMEWORK_SEARCH_PATHS = ../;
 				INFOPLIST_FILE = Info.plist;
