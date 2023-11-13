@@ -27,9 +27,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 // Views
 @class PGBezelPanel;
 
+#if __has_feature(objc_arc)
+
+@interface PGDragHighlightView ()
+
+@property (nonatomic, strong) NSBezierPath *highlightPath;
+
+@end
+
+#endif
+
+//	MARK: -
 @implementation PGDragHighlightView
 
-#pragma mark -NSView
+//	MARK: - NSView
 
 - (BOOL)isOpaque
 {
@@ -38,7 +49,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (void)drawRect:(NSRect)aRect
 {
 	if(!_highlightPath) {
+#if __has_feature(objc_arc)
+		_highlightPath = [NSBezierPath bezierPathWithRect:NSInsetRect([self bounds], 2.0f, 2.0f)];
+#else
 		_highlightPath = [[NSBezierPath bezierPathWithRect:NSInsetRect([self bounds], 2.0f, 2.0f)] retain];
+#endif
 		[_highlightPath setLineWidth:4];
 		[_highlightPath setLineJoinStyle:NSRoundLineJoinStyle];
 	}
@@ -53,19 +68,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[_highlightPath stroke];
 }
 
-#pragma mark -NSObject
+//	MARK: - NSObject
 
+#if !__has_feature(objc_arc)
 - (void)dealloc
 {
 	[_highlightPath release];
 	[super dealloc];
 }
+#endif
 
-#pragma mark -<PGBezelPanelContentView>
+//	MARK: - <PGBezelPanelContentView>
 
 - (NSRect)bezelPanel:(PGBezelPanel *)sender frameForContentRect:(NSRect)aRect scale:(CGFloat)scaleFactor
 {
+#if !__has_feature(objc_arc)
 	[_highlightPath release];
+#endif
 	_highlightPath = nil;
 	return aRect;
 }
