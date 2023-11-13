@@ -44,7 +44,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #else
 
 @property (readonly) NSUInteger numberOfColumns;
-@property (readonly, copy) NSArray *views;
+@property (readonly) NSArray *views;	//	was copy, now strong (to silence a static analyzer warning)
 @property (readonly) id lastView;
 @property (nonatomic, assign) CGFloat columnWidth;
 
