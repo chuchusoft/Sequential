@@ -392,7 +392,8 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 	NSUInteger const count = [selection count];
 	(void)[[self displayController] tryToSetActiveNode:[(count == 1 ? item : [(PGNode *)item parentNode]) viewableAncestor] forward:YES];
 
-	//	2023/10/02 when > 1 node is selected, show and update the Info window otherwise hide it
+	//	2023/10/02 when > 1 node is selected, show and update the Info window
+	//	otherwise hide it
 	BOOL const showInfoWindow = count > 1;
 	_infoView.hidden = !showInfoWindow;
 	if(showInfoWindow) {
@@ -415,6 +416,13 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 		[(PGThumbnailInfoView*)_infoView setImageCount:count byteSizeTotal:byteSizeTotal];
 		[self _updateInfoWindowFrame:showInfoWindow];
 	}
+/*	else {	//	show the address of the active node (this is a debugging aid)
+		static uint8_t ii = 0;
+		[(PGThumbnailInfoView*)_infoView setImageCount:++ii % 10
+										 byteSizeTotal:_displayController.activeNode];
+		_infoView.hidden = NO;
+		[self _updateInfoWindowFrame:YES];
+	}	*/
 }
 - (void)thumbnailBrowser:(PGThumbnailBrowser *)sender numberOfColumnsDidChangeFrom:(NSUInteger)oldCount
 {
