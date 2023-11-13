@@ -37,12 +37,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 @end
 
 @interface PGPDFPageDataProvider : PGDataProvider
+#if !__has_feature(objc_arc)
 {
 	@private
 	NSPDFImageRep *_mainRep;
 	NSPDFImageRep *_threadRep;
 	NSInteger _pageIndex;
 }
+#endif
 
 - (id)initWithMainRep:(NSPDFImageRep *)mainRep threadRep:(NSPDFImageRep *)threadRep pageIndex:(NSInteger)page;
 @property(readonly) NSPDFImageRep *mainRep;
@@ -51,25 +53,33 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
-#pragma mark -
+//	MARK: -
 @implementation PGPDFAdapter
 
-#pragma mark -PGContainerAdapter
+//	MARK: - PGContainerAdapter
 
 - (PGRecursionPolicy)descendantRecursionPolicy
 {
 	return PGRecurseToAnyDepth;
 }
 
-#pragma mark -PGResourceAdapter
+//	MARK: - PGResourceAdapter
 
 - (void)load
 {
 	NSData *const data = [self data];
 	if(!data || ![NSPDFImageRep canInitWithData:data]) return [[self node] loadFinishedForAdapter:self];
+#if __has_feature(objc_arc)
+	NSPDFImageRep *const mainRep = [[NSPDFImageRep alloc] initWithData:data];
+#else
 	NSPDFImageRep *const mainRep = [[[NSPDFImageRep alloc] initWithData:data] autorelease];
+#endif
 	if(!mainRep) return [[self node] fallbackFromFailedAdapter:self];
+#if __has_feature(objc_arc)
+	NSPDFImageRep *const threadRep = [mainRep copy];
+#else
 	NSPDFImageRep *const threadRep = [[mainRep copy] autorelease];
+#endif
 
 	NSDictionary *const localeDict = [[NSUserDefaults standardUserDefaults] dictionaryRepresentation];
 	NSUInteger const pageCount = [mainRep pageCount];
@@ -77,9 +87,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	for(NSUInteger i = 0; i < pageCount; i++) {
 		PGDisplayableIdentifier *const identifier = [[[[self node] identifier] subidentifierWithIndex:i] displayableIdentifier];
 		[identifier setNaturalDisplayName:[[NSNumber numberWithUnsignedInteger:i + 1] descriptionWithLocale:localeDict]];
+#if __has_feature(objc_arc)
+		PGNode *const node = [[PGNode alloc] initWithParent:self identifier:identifier];
+#else
 		PGNode *const node = [[[PGNode alloc] initWithParent:self identifier:identifier] autorelease];
+#endif
 		if(!node) continue;
+#if __has_feature(objc_arc)
+		[node setDataProvider:[[PGPDFPageDataProvider alloc] initWithMainRep:mainRep threadRep:threadRep pageIndex:i]];
+#else
 		[node setDataProvider:[[[PGPDFPageDataProvider alloc] initWithMainRep:mainRep threadRep:threadRep pageIndex:i] autorelease]];
+#endif
 		[nodes addObject:node];
 	}
 	[self setUnsortedChildren:nodes presortedOrder:PGSortInnateOrder];
@@ -113,10 +131,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
-#pragma mark -
+//	MARK: -
 @implementation PGPDFPageAdapter
 
-#pragma mark -PGResourceAdapter
+//	MARK: - PGResourceAdapter
 
 - (BOOL)isResolutionIndependent
 {
@@ -131,7 +149,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	return [self node];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (BOOL)adapterIsViewable
 {
@@ -144,14 +162,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[[self node] readFinishedWithImageRep:rep];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (BOOL)canGenerateRealThumbnail
 {
 	return YES;
 }
 
-#pragma mark - <PGResourceAdapterImageGeneration>
+//	MARK: - <PGResourceAdapterImageGeneration>
 
 //	main image is created in -read so only need to create thumbnail image
 - (void)generateImagesInOperation:(NSOperation *)operation
@@ -179,7 +197,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
-#pragma mark -
+//	MARK: -
+
+#if __has_feature(objc_arc)
+
+@interface PGPDFPageDataProvider ()
+
+@property (nonatomic, strong) NSPDFImageRep *mainRep;
+@property (nonatomic, strong) NSPDFImageRep *threadRep;
+@property (nonatomic, assign) NSInteger pageIndex;
+
+@end
+
+#endif
+
+//	MARK: -
 @implementation PGPDFPageDataProvider
 
 - (id)initWithMainRep:(NSPDFImageRep *)mainRep threadRep:(NSPDFImageRep *)threadRep pageIndex:(NSInteger)page
@@ -188,13 +220,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	NSParameterAssert(threadRep);
 
 	if((self = [super init])) {
+#if __has_feature(objc_arc)
+		_mainRep = mainRep;
+		_threadRep = threadRep;
+#else
 		_mainRep = [mainRep retain];
 		_threadRep = [threadRep retain];
+#endif
 		_pageIndex = page;
 	}
 	return self;
 }
 
+#if !__has_feature(objc_arc)
 - (void)dealloc
 {
 	[_mainRep release];
@@ -205,8 +243,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 @synthesize mainRep = _mainRep;
 @synthesize threadRep = _threadRep;
 @synthesize pageIndex = _pageIndex;
+#endif
 
-#pragma mark -PGDataProvider(PGResourceAdapterLoading)
+//	MARK: - PGDataProvider(PGResourceAdapterLoading)
 
 - (NSArray *)adapterClassesForNode:(PGNode *)node
 {
