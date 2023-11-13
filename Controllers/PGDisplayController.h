@@ -31,6 +31,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 // Views
 #import "PGDocumentWindow.h"
 #import "PGClipView.h"
+
+#if !__has_feature(objc_arc)
 @class PGImageView;
 @class PGBezelPanel;
 @class PGLoadingGraphic;
@@ -39,6 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 // Controllers
 @class PGThumbnailController;
+#endif
 
 // Other Sources
 #import "PGGeometryTypes.h"
@@ -47,11 +50,9 @@ extern NSString *const PGDisplayControllerActiveNodeDidChangeNotification;
 extern NSString *const PGDisplayControllerActiveNodeWasReadNotification;
 extern NSString *const PGDisplayControllerTimerDidChangeNotification;
 
-@interface PGDisplayController : NSWindowController <
-#ifdef MAC_OS_X_VERSION_10_6
-NSWindowDelegate,
-#endif
-PGClipViewDelegate, PGDocumentWindowDelegate>
+@interface PGDisplayController : NSWindowController <NSWindowDelegate,
+	PGClipViewDelegate, PGDocumentWindowDelegate>
+#if !__has_feature(objc_arc)
 {
 	@private
 	IBOutlet PGClipView *clipView;
@@ -84,6 +85,7 @@ PGClipViewDelegate, PGDocumentWindowDelegate>
 	NSDate *_nextTimerFireDate;
 	NSTimer *_timer;
 }
+#endif
 
 + (NSArray *)pasteboardTypes;
 
@@ -136,6 +138,23 @@ PGClipViewDelegate, PGDocumentWindowDelegate>
 - (IBAction)reload:(id)sender;
 - (IBAction)decrypt:(id)sender;
 
+#if __has_feature(objc_arc)
+@property (readonly) PGDocument *activeDocument;
+@property (readonly) PGNode *activeNode;
+@property (readonly) NSWindow *windowForSheet;
+@property (nonatomic, copy) NSSet *selectedNodes;	//	2023/10/02 was readonly
+@property (readonly) PGNode *selectedNode;
+@property (readonly, weak) PGClipView *clipView;
+@property (readonly) PGPageLocation initialLocation;
+@property (readonly, getter = isReading) BOOL reading;
+@property (readonly, getter = isDisplayingImage) BOOL displayingImage;
+@property (readonly) BOOL canShowInfo;
+@property (readonly) BOOL shouldShowInfo;
+@property (readonly) BOOL loadingIndicatorShown;
+@property (nonatomic, assign) BOOL findPanelShown;
+@property (readonly) NSDate *nextTimerFireDate;
+@property (nonatomic, assign) BOOL timerRunning;
+#else
 @property(readonly) PGDocument *activeDocument;
 @property(readonly) PGNode *activeNode;
 @property(readonly) NSWindow *windowForSheet;
@@ -151,6 +170,7 @@ PGClipViewDelegate, PGDocumentWindowDelegate>
 @property(assign) BOOL findPanelShown;
 @property(readonly) NSDate *nextTimerFireDate;
 @property(assign) BOOL timerRunning;
+#endif
 
 - (BOOL)setActiveDocument:(PGDocument *)document closeIfAppropriate:(BOOL)flag; // Returns YES if the window was closed.
 - (void)activateDocument:(PGDocument *)document;
