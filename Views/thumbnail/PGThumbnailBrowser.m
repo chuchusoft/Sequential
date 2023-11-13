@@ -262,7 +262,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		[nextView setSelection:nil];
 		[nextView setRepresentedObject:selectedItem];
 		[nextView reloadData];
-		[self scrollToTopOfColumnWithView:nextView];
+
+		if(![nextView selectActiveNodeIfDisplayedInThisView])
+			[self scrollToTopOfColumnWithView:nextView];
 	} else
 		[self _addColumnWithItem:selectedItem];
 	[self scrollToLastColumnAnimate:YES];
