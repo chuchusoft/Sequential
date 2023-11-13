@@ -37,6 +37,24 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import "PGDelayedPerforming.h"
 #import "PGFoundationAdditions.h"
 
+// Models
+#import "PGDocument.h"
+
+#if __has_feature(objc_arc)
+
+@interface PGFullscreenController ()
+
+@property (nonatomic, assign) BOOL isExitingFullscreen;
+@property (nonatomic, strong) NSMutableArray *shieldWindows;
+
+- (void)_setMenuBarHidden:(BOOL)hidden delayed:(BOOL)delayed; // Delaying prevents the menu bar from messing up when the application unhides on Leopard.
+- (void)_hideMenuBar;
+- (void)_showMenuBar;
+
+@end
+
+#else
+
 @interface PGFullscreenController(Private)
 
 - (void)_setMenuBarHidden:(BOOL)hidden delayed:(BOOL)delayed; // Delaying prevents the menu bar from messing up when the application unhides on Leopard.
@@ -45,6 +63,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+#endif
+
+//	MARK: -
 @implementation PGFullscreenController
 
 #pragma mark +PGFullscreenController
@@ -56,7 +77,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	return sharedFullscreenController;
 }
 
-#pragma mark -PGFullscreenController
+//	MARK: - PGFullscreenController
 
 - (void)prepareToExitFullscreen
 {
@@ -77,7 +98,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[(PGFullscreenWindow *)self.window resizeToUseEntireScreen];
 }
 
-#pragma mark -PGFullscreenController(Private)
+//	MARK: - PGFullscreenController(Private)
 
 - (void)_setMenuBarHidden:(BOOL)hidden delayed:(BOOL)delayed
 {
@@ -96,13 +117,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	SetSystemUIMode(kUIModeNormal, kNilOptions);
 }
 
-#pragma mark -PGDisplayController
+//	MARK: - PGDisplayController
 
 - (BOOL)setActiveDocument:(PGDocument *)document closeIfAppropriate:(BOOL)flag
 {
 	if(document || _isExitingFullscreen) return [super setActiveDocument:document closeIfAppropriate:NO];
 	if(![self activeDocument]) return NO;
+#if __has_feature(objc_arc)
+	NSMutableArray *const docs = [[[PGDocumentController sharedDocumentController] documents] mutableCopy];
+#else
 	NSMutableArray *const docs = [[[[PGDocumentController sharedDocumentController] documents] mutableCopy] autorelease];
+#endif
 	PGDocument *const nextDoc = [[PGDocumentController sharedDocumentController] next:YES documentBeyond:[self activeDocument]];
 	[docs removeObjectIdenticalTo:[self activeDocument]];
 	[super setActiveDocument:nextDoc closeIfAppropriate:NO]; // PGDocumentController knows when to close us, so don't close ourselves.
@@ -113,7 +138,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	return nil;
 }
 
-#pragma mark -PGDisplayController(PGThumbnailControllerCallbacks)
+//	MARK: - PGDisplayController(PGThumbnailControllerCallbacks)
 
 - (void)thumbnailPanelDidBecomeKey:(NSNotification *)aNotif
 {
@@ -124,7 +149,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[self windowDidResignKey:aNotif];
 }
 
-#pragma mark -NSWindowController
+//	MARK: - NSWindowController
 
 - (BOOL)shouldCascadeWindows
 {
@@ -132,8 +157,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 }
 - (void)windowDidLoad
 {
+#if __has_feature(objc_arc)
+	NSWindow *const window = [[PGFullscreenWindow alloc] initWithScreen:[PGPreferenceWindowController.sharedPrefController displayScreen]];
+	NSView *const content = self.window.contentView;
+#else
 	NSWindow *const window = [[[PGFullscreenWindow alloc] initWithScreen:[[PGPreferenceWindowController sharedPrefController] displayScreen]] autorelease];
 	NSView *const content = [[[[self window] contentView] retain] autorelease];
+#endif
 	[[self window] setContentView:nil];
 	[window setContentView:content];
 	[window setDelegate:[[self window] delegate]];
@@ -149,7 +179,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	if(!_isExitingFullscreen) for(PGDocument *const doc in [[PGDocumentController sharedDocumentController] documents]) [doc close];
 }
 
-#pragma mark -NSObject
+//	MARK: - NSObject
 
 - (id)init
 {
@@ -163,11 +193,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[self PG_cancelPreviousPerformRequests];
 	[self PG_removeObserver];
 	[_shieldWindows makeObjectsPerformSelector:@selector(close)];
+#if !__has_feature(objc_arc)
 	[_shieldWindows release];
 	[super dealloc];
+#endif
 }
 
-#pragma mark -<NSWindowDelegate>
+//	MARK: - <NSWindowDelegate>
 
 - (void)windowDidBecomeMain:(NSNotification *)aNotif
 {
@@ -188,11 +220,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 	if(!dim) return;
 	[_shieldWindows makeObjectsPerformSelector:@selector(close)];
+#if !__has_feature(objc_arc)
 	[_shieldWindows release];
-	_shieldWindows = [[NSMutableArray alloc] init];
+#endif
+	_shieldWindows = [NSMutableArray new];
 	for(NSScreen *const screen in [NSScreen screens]) {
 		if(displayScreen == screen) continue;
+#if __has_feature(objc_arc)
+		NSWindow *const w = [[NSWindow alloc] initWithContentRect:[screen frame]
+		// Use borderless windows instead of CGSetDisplayTransferByFormula() so that
+		// 1. the menu bar remains visible (if it's on a different screen), and
+		// 2. the user can't click on things that can't be seen.
+														styleMask:NSWindowStyleMaskBorderless
+														  backing:NSBackingStoreBuffered
+															defer:YES];
+#else
 		NSWindow *const w = [[[NSWindow alloc] initWithContentRect:[screen frame] styleMask:NSWindowStyleMaskBorderless backing:NSBackingStoreBuffered defer:YES] autorelease]; // Use borderless windows instead of CGSetDisplayTransferByFormula() so that 1. the menu bar remains visible (if it's on a different screen), and 2. the user can't click on things that can't be seen.
+#endif
 		[w setReleasedWhenClosed:NO];
 		[w setBackgroundColor:[NSColor blackColor]];
 		[w setHasShadow:NO];
@@ -207,11 +251,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		return;
 	[self _setMenuBarHidden:NO delayed:YES];
 	[_shieldWindows makeObjectsPerformSelector:@selector(close)];
+#if !__has_feature(objc_arc)
 	[_shieldWindows release];
+#endif
 	_shieldWindows = nil;
 }
 
-#pragma mark -<PGDocumentWindowDelegate>
+//	MARK: - <PGDocumentWindowDelegate>
 
 - (NSDragOperation)window:(PGDocumentWindow *)window dragOperationForInfo:(id<NSDraggingInfo>)info
 {
@@ -252,7 +298,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	return NO;
 }
 
-#pragma mark -<PGFullscreenWindowDelegate>
+//	MARK: - <PGFullscreenWindowDelegate>
 
 - (void)closeWindowContent:(PGFullscreenWindow *)sender
 {
