@@ -931,30 +931,55 @@ SetPtrEqualsSet(CFSetRef cfSet, NSSet *const nsSet) {
 
 @implementation PGThumbnailView
 
-- (void)_invalidate:(NSSet*)items {
-	for(id const item in items) {
-		NSUInteger const i = [_items indexOfObjectIdenticalTo:item];
-		NSAssert(NSNotFound != i, @"i");
-		NSRect const r = [self frameOfItemAtIndex:i withMargin:YES];
-		[self setNeedsDisplayInRect:r];
-	}
-}
-
-#if !__has_feature(objc_arc)
-@synthesize dataSource;
-@synthesize delegate;
-@synthesize representedObject;
-//@synthesize thumbnailOrientation = _thumbnailOrientation;
-//@synthesize items = _items;
-#endif
-- (void)setThumbnailOrientation:(PGOrientation)orientation
+- (id)initWithFrame:(NSRect)aRect
 {
-	if(orientation == _thumbnailOrientation) return;
-	_thumbnailOrientation = orientation;
-	[self setNeedsDisplay:YES];
+	if((self = [super initWithFrame:aRect])) {
+#if __has_feature(objc_arc) && defined(SELECTION_IVAR_ORIGINAL_NSMUTABLESET)	//	[1]
+		// [NSMutableSet new] creates the wrong kind of mutable set
+		// because inserted objects are NOT to be retained; the code
+		// in this class requires that behavior so it must be created
+		// as a CF object which is then transferred to ARC to manage
+	//	_selection = [NSMutableSet new];  <=== wrong
+		_selection = (NSMutableSet *)CFBridgingRelease(CFSetCreateMutable(kCFAllocatorDefault, 0, NULL));
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_NSSET)	//	[2]
+		_selection = [NSSet set];
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_SPECIAL_CFMUTABLESET)	//	[3]
+		_mutableSelection = CFSetCreateMutable(kCFAllocatorDefault, 0, NULL);
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_SPECIAL_NSMUTABLESET)	//	[4]
+		_mutableSelection = (NSMutableSet *)CFBridgingRelease(CFSetCreateMutable(kCFAllocatorDefault, 0, NULL));
+#else
+		_selection = (NSMutableSet *)CFSetCreateMutable(kCFAllocatorDefault, 0, NULL);
+#endif
+		[NSNotificationCenter.defaultCenter addObserver:self
+											   selector:@selector(systemColorsDidChange:)
+												   name:NSSystemColorsDidChangeNotification
+												 object:nil];
+
+		//	2022/10/15
+		NSUserDefaults *sud = NSUserDefaults.standardUserDefaults;
+		[sud addObserver:self forKeyPath:PGShowThumbnailImageNameKey options:kNilOptions context:NULL];
+		[sud addObserver:self forKeyPath:PGShowThumbnailImageSizeKey options:kNilOptions context:NULL];
+		[sud addObserver:self forKeyPath:PGShowThumbnailContainerNameKey options:kNilOptions context:NULL];
+		[sud addObserver:self forKeyPath:PGShowThumbnailContainerChildCountKey options:kNilOptions context:NULL];
+		[sud addObserver:self forKeyPath:PGShowThumbnailContainerChildSizeTotalKey options:kNilOptions context:NULL];
+		[sud addObserver:self forKeyPath:PGThumbnailSizeFormatKey options:kNilOptions context:NULL];
+	}
+	return self;
 }
 
 //	MARK: - private selection methods
+
+- (void)_invalidateItem:(id)item {
+	NSUInteger const i = [_items indexOfObjectIdenticalTo:item];
+	NSAssert(NSNotFound != i, @"i");
+	NSRect const r = [self frameOfItemAtIndex:i withMargin:YES];
+	[self setNeedsDisplayInRect:r];
+}
+
+- (void)_invalidateItems:(NSSet*)items {
+	for(id const item in items)
+		[self _invalidateItem:item];
+}
 
 - (NSUInteger)_selectionCount {
 #if __has_feature(objc_arc) && defined(SELECTION_IVAR_ORIGINAL_NSMUTABLESET)	//	[1]
@@ -1167,10 +1192,10 @@ SetPtrEqualsSet(CFSetRef cfSet, NSSet *const nsSet) {
 - (void)setSelection:(NSSet *)items
 {
 #if __has_feature(objc_arc) && defined(SELECTION_IVAR_ORIGINAL_NSMUTABLESET)	//	[1]
-	if(items == _selection)
+	if([_selection isEqualToSet:items])
 		return;
 #elif __has_feature(objc_arc) && defined(SELECTION_IVAR_NSSET)	//	[2]
-	if(items == _selection)
+	if([_selection isEqualToSet:items])
 		return;
 #elif __has_feature(objc_arc) && defined(SELECTION_IVAR_SPECIAL_CFMUTABLESET)	//	[3]
 	NSAssert((__bridge void *)items != _mutableSelection, @"");
@@ -1183,22 +1208,21 @@ SetPtrEqualsSet(CFSetRef cfSet, NSSet *const nsSet) {
 	if([_mutableSelection isEqualToSet:items])
 		return;	//	contents are identical (all pointer match)
 #else
-	if(items == _selection)
+	if(items == _selection)	//	NB: original code uses an incorrect test
 		return;
 #endif
-
-	{
+	if(items) {
 		NSMutableSet *const removedItems = [self _mutableCopyOfSelection];
 		[removedItems minusSet:items];
-		[self _invalidate:removedItems];
+		[self _invalidateItems:removedItems];
 #if !__has_feature(objc_arc)
 		[removedItems release];
 #endif
 	}
-	{
+	if(items) {
 		NSMutableSet *const addedItems = [items mutableCopy];
 		[addedItems minusSet:[self _immutableSelection]];
-		[self _invalidate:addedItems];
+		[self _invalidateItems:addedItems];
 #if !__has_feature(objc_arc)
 		[addedItems release];
 #endif
@@ -1238,7 +1262,7 @@ SetPtrEqualsSet(CFSetRef cfSet, NSSet *const nsSet) {
 	[self _selectItem:item];
 #elif __has_feature(objc_arc) && defined(SELECTION_IVAR_NSSET)	//	[2]
 	if(!flag) {
-		[self _invalidate:_selection];
+		[self _invalidateItems:_selection];
 		_selection = [NSSet setWithObject:item];
 	} else {
 		[self _selectItem:item];
@@ -1297,6 +1321,26 @@ SetPtrEqualsSet(CFSetRef cfSet, NSSet *const nsSet) {
 		break;
 	}
 }
+- (BOOL)selectActiveNodeIfDisplayedInThisView {
+	//	if this view has the active node but it isn't selected
+	//	then select the active node and return true
+	//	else return false
+	id const activeNode = [self.dataSource activeNodeForThumbnailView:self];
+	BOOL const mustSelectActiveNode = nil != activeNode &&
+		[_items containsObject:activeNode] && ![self _isItemSelected:activeNode];
+	if(mustSelectActiveNode) {
+		[self _selectItem:activeNode];
+		[self _validateSelection];
+
+		[self _invalidateItem:activeNode];
+
+		_selectionAnchor = activeNode;
+		[self _scrollToSelectionAnchor:PGScrollCenterToRect];
+
+	//	[[self delegate] thumbnailViewSelectionDidChange:self];	<== do not do this; this call executes during a similar notification
+	}
+	return mustSelectActiveNode;
+}
 /* - (void)selectAll {
 	//	2023/09/18 option-clicking selects the item's direct children;
 	//	this method implements the select-all-direct-children
@@ -1307,8 +1351,21 @@ SetPtrEqualsSet(CFSetRef cfSet, NSSet *const nsSet) {
 	[self _selectItemsFrom:count to:0];
 } */
 
-//	MARK: -
+//	MARK: - PGThumbnailView
 
+#if !__has_feature(objc_arc)
+@synthesize dataSource;
+@synthesize delegate;
+@synthesize representedObject;
+//@synthesize thumbnailOrientation = _thumbnailOrientation;
+//@synthesize items = _items;
+#endif
+- (void)setThumbnailOrientation:(PGOrientation)orientation
+{
+	if(orientation == _thumbnailOrientation) return;
+	_thumbnailOrientation = orientation;
+	[self setNeedsDisplay:YES];
+}
 - (NSUInteger)indexOfItemAtPoint:(NSPoint)p
 {
 	return floor(p.y / PGThumbnailTotalHeight);
@@ -1352,7 +1409,7 @@ SetPtrEqualsSet(CFSetRef cfSet, NSSet *const nsSet) {
 }
 
 - (void)selectionNeedsDisplay {	//	2023/11/23
-	[self _invalidate:[self _immutableSelection]];
+	[self _invalidateItems:[self _immutableSelection]];
 }
 
 //	MARK: -
@@ -1411,6 +1468,9 @@ SetPtrEqualsSet(CFSetRef cfSet, NSSet *const nsSet) {
 			break;
 		}
 }
+
+//	MARK: - private drawing
+
 - (NSColor *)_backgroundColorWithType:(PGBackgroundType)type
 {
 	if(PGBackgroundColors[type]) return PGBackgroundColors[type];
@@ -1456,7 +1516,9 @@ SetPtrEqualsSet(CFSetRef cfSet, NSSet *const nsSet) {
 				PGBackground_Selected_NotActive_MainWindow == type ||
 				PGBackground_Selected_ParentOfActive_NotMainWindow == type ||
 				PGBackground_Selected_NotActive_NotMainWindow == type)
-				c = [c highlightWithLevel:0.60f];
+				c = [c highlightWithLevel:0.80f];
+			else if (PGBackground_Selected_Active_NotMainWindow == type)
+				c = [c highlightWithLevel:0.40f];
 
 			[[c colorWithAlphaComponent:0.5f] set];
 			NSRectFillUsingOperation(r, NSCompositingOperationSourceOver);
@@ -1528,44 +1590,6 @@ NSLog(@"view %p [%@], has window: %p [%@] \"%@\", is key %c, is 1st responder %c
 
 //	MARK: - NSView
 
-- (id)initWithFrame:(NSRect)aRect
-{
-	if((self = [super initWithFrame:aRect])) {
-#if __has_feature(objc_arc) && defined(SELECTION_IVAR_ORIGINAL_NSMUTABLESET)	//	[1]
-		// [NSMutableSet new] creates the wrong kind of mutable set
-		// because inserted objects are NOT to be retained; the code
-		// in this class requires that behavior so it must be created
-		// as a CF object which is then transferred to ARC to manage
-	//	_selection = [NSMutableSet new];  <=== wrong
-		_selection = (NSMutableSet *)CFBridgingRelease(CFSetCreateMutable(kCFAllocatorDefault, 0, NULL));
-#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_NSSET)	//	[2]
-		_selection = [NSSet set];
-#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_SPECIAL_CFMUTABLESET)	//	[3]
-		_mutableSelection = CFSetCreateMutable(kCFAllocatorDefault, 0, NULL);
-#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_SPECIAL_NSMUTABLESET)	//	[4]
-		_mutableSelection = (NSMutableSet *)CFBridgingRelease(CFSetCreateMutable(kCFAllocatorDefault, 0, NULL));
-#else
-		_selection = (NSMutableSet *)CFSetCreateMutable(kCFAllocatorDefault, 0, NULL);
-#endif
-		[NSNotificationCenter.defaultCenter addObserver:self
-											   selector:@selector(systemColorsDidChange:)
-												   name:NSSystemColorsDidChangeNotification
-												 object:nil];
-
-		//	2022/10/15
-		NSUserDefaults *sud = NSUserDefaults.standardUserDefaults;
-		[sud addObserver:self forKeyPath:PGShowThumbnailImageNameKey options:kNilOptions context:NULL];
-		[sud addObserver:self forKeyPath:PGShowThumbnailImageSizeKey options:kNilOptions context:NULL];
-		[sud addObserver:self forKeyPath:PGShowThumbnailContainerNameKey options:kNilOptions context:NULL];
-		[sud addObserver:self forKeyPath:PGShowThumbnailContainerChildCountKey options:kNilOptions context:NULL];
-		[sud addObserver:self forKeyPath:PGShowThumbnailContainerChildSizeTotalKey options:kNilOptions context:NULL];
-		[sud addObserver:self forKeyPath:PGThumbnailSizeFormatKey options:kNilOptions context:NULL];
-	}
-	return self;
-}
-
-//	MARK: -
-
 - (BOOL)isFlipped
 {
 	return YES;
@@ -1618,6 +1642,10 @@ NSLog(@"view %p [%@], has window: %p [%@] \"%@\", is key %c, is 1st responder %c
 #if 1
 	id activeNode = [self.dataSource activeNodeForThumbnailView:self];
 #endif
+#if 0	//	debugging
+NSMutableString *logStr = [NSMutableString stringWithFormat:@"self %p activeNode %p sel.count %lu",
+(__bridge const void *)self, (__bridge const void *)activeNode, [self _selectionCount]];
+#endif	//	debugging
 	for(; i < [_items count]; i++) {
 		NSRect const frameWithMargin = [self frameOfItemAtIndex:i withMargin:YES];
 		if(!PGIntersectsRectList(frameWithMargin, rects, count)) continue;
@@ -1625,6 +1653,12 @@ NSLog(@"view %p [%@], has window: %p [%@] \"%@\", is key %c, is 1st responder %c
 		if([self _isItemSelected:item]) {
 			[nilShadow set];
 #if 1
+	#if 0	//	debugging
+if(activeNode == item)
+	[logStr appendFormat:@" [%lu]%p*", i, (__bridge const void *)item];
+else
+	[logStr appendFormat:@" [%lu]%p", i, (__bridge const void *)item];
+	#endif	//	debugging
 			PGBackgroundType bgType;
 			if ([self _isDisplayControllerTheMainWindow]) {
 				if(activeNode == item)
@@ -1649,6 +1683,12 @@ NSLog(@"view %p [%@], has window: %p [%@] \"%@\", is key %c, is 1st responder %c
 			NSRectFill(frameWithMargin);
 			[shadow set];
 		}
+#if 0	//	debugging
+else {
+if(activeNode == item)
+	[logStr appendFormat:@" [%lu]%p!", i, (__bridge const void *)item];
+}
+#endif	//	debugging
 		NSImage *const thumb = [[self dataSource] thumbnailView:self thumbnailForItem:item];
 		if(!thumb) {
 			[NSBezierPath PG_drawSpinnerInRect:NSInsetRect([self frameOfItemAtIndex:i withMargin:NO], 20.0f, 20.0f)
@@ -1918,6 +1958,9 @@ NSLog(@"view %p [%@], has window: %p [%@] \"%@\", is key %c, is 1st responder %c
 			}
 		}
 	}
+#if 0	//	debugging
+NSLog(@"%@", logStr);
+#endif	//	debugging
 	[nilShadow set];
 }
 
