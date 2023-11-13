@@ -63,6 +63,32 @@ static PreferencePaneIdentifierAndIconImageName PGPanes[3] = {
 
 static PGPreferenceWindowController *PGSharedPrefController = nil;
 
+//	MARK: -
+
+#if __has_feature(objc_arc)
+
+@interface PGPreferenceWindowController ()
+
+@property (nonatomic, weak) IBOutlet NSView *generalView;
+@property (nonatomic, weak) IBOutlet NSColorWell *customColorWell;	//	2023/08/17 added
+@property (nonatomic, weak) IBOutlet NSPopUpButton *screensPopUp;
+
+@property (nonatomic, weak) IBOutlet NSView *thumbnailView;	//	2023/10/01 added
+
+@property (nonatomic, weak) IBOutlet NSView *navigationView;
+@property (nonatomic, weak) IBOutlet NSTextField *secondaryMouseActionLabel;
+
+@property (nonatomic, weak) IBOutlet NSView *updateView;
+
+- (NSString *)_titleForPane:(NSString *)identifier;
+- (void)_setCurrentPane:(NSString *)identifier;
+- (void)_updateSecondaryMouseActionLabel;
+- (void)_enableColorWell;
+
+@end
+
+#else
+
 @interface PGPreferenceWindowController(Private)
 
 - (NSString *)_titleForPane:(NSString *)identifier;
@@ -72,16 +98,23 @@ static PGPreferenceWindowController *PGSharedPrefController = nil;
 
 @end
 
+#endif
+
+//	MARK: -
 @implementation PGPreferenceWindowController
 
 #pragma mark +PGPreferenceWindowController
 
 + (id)sharedPrefController
 {
+#if __has_feature(objc_arc)
+	return PGSharedPrefController ? PGSharedPrefController : [self new];
+#else
 	return PGSharedPrefController ? PGSharedPrefController : [[[self alloc] init] autorelease];
+#endif
 }
 
-#pragma mark -PGPreferenceWindowController
+//	MARK: - PGPreferenceWindowController
 
 - (IBAction)changeDisplayScreen:(id)sender
 {
@@ -96,7 +129,7 @@ static PGPreferenceWindowController *PGSharedPrefController = nil;
 	[self _setCurrentPane:[sender itemIdentifier]];
 }
 
-#pragma mark -
+//	MARK: -
 
 static
 BOOL
@@ -108,7 +141,11 @@ PreferenceIsCustomColor(void) {
 }
 
 - (void)_enableColorWell {
+#if __has_feature(objc_arc)
+	_customColorWell.enabled	=	PreferenceIsCustomColor();
+#else
 	customColorWell.enabled	=	PreferenceIsCustomColor();
+#endif
 }
 
 - (NSColor *)backgroundPatternColor
@@ -131,19 +168,25 @@ PreferenceIsCustomColor(void) {
 	return [[[NSUserDefaults standardUserDefaults] objectForKey:@"PGBackgroundPattern"] unsignedIntegerValue] == PGCheckerboardPattern ? [color PG_checkerboardPatternColor] : color;
 #endif
 }
+#if !__has_feature(objc_arc)
 - (NSScreen *)displayScreen
 {
 	return [[_displayScreen retain] autorelease];
 }
+#endif
 - (void)setDisplayScreen:(NSScreen *)aScreen
 {
+#if __has_feature(objc_arc)
+	_displayScreen = aScreen;
+#else
 	[_displayScreen autorelease];
 	_displayScreen = [aScreen retain];
+#endif
 	[[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithUnsignedInteger:[[NSScreen screens] indexOfObjectIdenticalTo:aScreen]] forKey:PGDisplayScreenIndexKey];
 	[self PG_postNotificationName:PGPreferenceWindowControllerDisplayScreenDidChangeNotification];
 }
 
-#pragma mark -PGPreferenceWindowController(Private)
+//	MARK: - PGPreferenceWindowController(Private)
 
 - (NSString *)_titleForPane:(NSString *)identifier
 {
@@ -156,9 +199,15 @@ PreferenceIsCustomColor(void) {
 - (void)_setCurrentPane:(NSString *)identifier
 {
 	NSView *newView = nil;
+#if __has_feature(objc_arc)
+	if(PGEqualObjects(identifier, PGGeneralPaneIdentifier)) newView = _generalView;
+	else if(PGEqualObjects(identifier, PGThumbnailPaneIdentifier)) newView = _thumbnailView;
+	else if(PGEqualObjects(identifier, PGNavigationPaneIdentifier)) newView = _navigationView;
+#else
 	if(PGEqualObjects(identifier, PGGeneralPaneIdentifier)) newView = generalView;
 	else if(PGEqualObjects(identifier, PGThumbnailPaneIdentifier)) newView = thumbnailView;
 	else if(PGEqualObjects(identifier, PGNavigationPaneIdentifier)) newView = navigationView;
+#endif
 	NSAssert(newView, @"Invalid identifier.");
 	NSWindow *const w = [self window];
 	[w setTitle:[self _titleForPane:identifier]];
@@ -195,15 +244,27 @@ PreferenceIsCustomColor(void) {
 		case PGLeftRightAction: label = @"Secondary click goes right."; break;
 		case PGRightLeftAction: label = @"Secondary click goes left."; break;
 	}
+#if __has_feature(objc_arc)
+	[_secondaryMouseActionLabel setStringValue:NSLocalizedString(label, @"Informative string for secondary mouse button action.")];
+#else
 	[secondaryMouseActionLabel setStringValue:NSLocalizedString(label, @"Informative string for secondary mouse button action.")];
+#endif
 }
 
 - (void)_onScreenParametersChanged
 {
 	NSArray *const screens = [NSScreen screens];
+#if __has_feature(objc_arc)
+	[_screensPopUp removeAllItems];
+#else
 	[screensPopUp removeAllItems];
+#endif
 	BOOL const hasScreens = [screens count] != 0;
+#if __has_feature(objc_arc)
+	[_screensPopUp setEnabled:hasScreens];
+#else
 	[screensPopUp setEnabled:hasScreens];
+#endif
 	if(!hasScreens) return [self setDisplayScreen:nil];
 
 	NSScreen *const currentScreen = [self displayScreen];
@@ -213,25 +274,43 @@ PreferenceIsCustomColor(void) {
 		[self setDisplayScreen:[screens objectAtIndex:NSNotFound == i ? 0 : i]];
 	} else [self setDisplayScreen:[self displayScreen]]; // Post PGPreferenceWindowControllerDisplayScreenDidChangeNotification.
 
+#if __has_feature(objc_arc)
+	NSMenu *const screensMenu = [_screensPopUp menu];
+#else
 	NSMenu *const screensMenu = [screensPopUp menu];
+#endif
 	for(i = 0; i < [screens count]; i++) {
 		NSScreen *const screen = [screens objectAtIndex:i];
+#if __has_feature(objc_arc)
+		NSMenuItem *const item = [[NSMenuItem alloc] initWithTitle:[NSString stringWithFormat:@"%@ (%lux%lu)", (i ? [NSString stringWithFormat:NSLocalizedString(@"Screen %lu", @"Non-primary screens. %lu is replaced with the screen number."), (unsigned long)i + 1] : NSLocalizedString(@"Main Screen", @"The primary screen.")), (unsigned long)NSWidth([screen frame]), (unsigned long)NSHeight([screen frame])] action:@selector(changeDisplayScreen:) keyEquivalent:@""];
+#else
 		NSMenuItem *const item = [[[NSMenuItem alloc] initWithTitle:[NSString stringWithFormat:@"%@ (%lux%lu)", (i ? [NSString stringWithFormat:NSLocalizedString(@"Screen %lu", @"Non-primary screens. %lu is replaced with the screen number."), (unsigned long)i + 1] : NSLocalizedString(@"Main Screen", @"The primary screen.")), (unsigned long)NSWidth([screen frame]), (unsigned long)NSHeight([screen frame])] action:@selector(changeDisplayScreen:) keyEquivalent:@""] autorelease];
+#endif
 		[item setRepresentedObject:screen];
 		[item setTarget:self];
 		[screensMenu addItem:item];
-		if([self displayScreen] == screen) [screensPopUp selectItem:item];
+		if([self displayScreen] == screen)
+#if __has_feature(objc_arc)
+			[_screensPopUp selectItem:item];
+#else
+			[screensPopUp selectItem:item];
+#endif
 	}
 }
 
-#pragma mark -NSWindowController
+//	MARK: - NSWindowController
 
 - (void)windowDidLoad
 {
 	[super windowDidLoad];
 	NSWindow *const w = [self window];
 
+#if __has_feature(objc_arc)
+	NSToolbar *const toolbar = [[NSToolbar alloc] initWithIdentifier:@"PGPreferenceWindowControllerToolbar"];
+#else
+	//	TODO: why is there a cast here? Not sure what its purpose is...
 	NSToolbar *const toolbar = [[(NSToolbar *)[NSToolbar alloc] initWithIdentifier:@"PGPreferenceWindowControllerToolbar"] autorelease];
+#endif
 	[toolbar setDelegate:self];
 	[w setToolbar:toolbar];
 
@@ -242,32 +321,64 @@ PreferenceIsCustomColor(void) {
 	[self _enableColorWell];	//	2023/08/17
 }
 
-#pragma mark -NSObject
+//	MARK: - NSObject
 
 - (id)init
 {
 	if((self = [super initWithWindowNibName:@"PGPreference"])) {
 		if(PGSharedPrefController) {
+#if __has_feature(objc_arc)
+			self = nil;
+			return PGSharedPrefController;
+#else
 			[self release];
 			return [PGSharedPrefController retain];
+#endif
 		}
 
 		PGPanes[0].iconImageName = NSImageNamePreferencesGeneral;
 		PGPanes[1].iconImageName = NSImageNameTouchBarSidebarTemplate;
 		PGPanes[2].iconImageName = NSImageNameFollowLinkFreestandingTemplate;
 
+#if __has_feature(objc_arc)
+		PGSharedPrefController = self;
+#else
 		PGSharedPrefController = [self retain];
+#endif
 
 		NSArray *const screens = [NSScreen screens];
 		NSUInteger const screenIndex = [[[NSUserDefaults standardUserDefaults] objectForKey:PGDisplayScreenIndexKey] unsignedIntegerValue];
 		[self setDisplayScreen:screenIndex >= [screens count] ? [NSScreen PG_mainScreen] : [screens objectAtIndex:screenIndex]];
 
 		[NSApp PG_addObserver:self selector:@selector(applicationDidChangeScreenParameters:) name:NSApplicationDidChangeScreenParametersNotification];
+#if __has_feature(objc_arc)
+		[[NSUserDefaults standardUserDefaults] addObserver:self
+												forKeyPath:PGBackgroundColorSourceKey
+												   options:kNilOptions
+												   context:(__bridge void * _Nullable)self];
+		[[NSUserDefaults standardUserDefaults] addObserver:self
+												forKeyPath:PGBackgroundColorKey
+												   options:kNilOptions
+												   context:(__bridge void * _Nullable)self];
+		[[NSUserDefaults standardUserDefaults] addObserver:self
+												forKeyPath:PGBackgroundPatternKey
+												   options:kNilOptions
+												   context:(__bridge void * _Nullable)self];
+		[[NSUserDefaults standardUserDefaults] addObserver:self
+												forKeyPath:PGBackgroundColorUsedInFullScreenKey
+												   options:kNilOptions
+												   context:(__bridge void * _Nullable)self];
+		[[NSUserDefaults standardUserDefaults] addObserver:self
+												forKeyPath:PGMouseClickActionKey
+												   options:kNilOptions
+												   context:(__bridge void * _Nullable)self];
+#else
 		[[NSUserDefaults standardUserDefaults] addObserver:self forKeyPath:PGBackgroundColorSourceKey options:kNilOptions context:self];
 		[[NSUserDefaults standardUserDefaults] addObserver:self forKeyPath:PGBackgroundColorKey options:kNilOptions context:self];
 		[[NSUserDefaults standardUserDefaults] addObserver:self forKeyPath:PGBackgroundPatternKey options:kNilOptions context:self];
 		[[NSUserDefaults standardUserDefaults] addObserver:self forKeyPath:PGBackgroundColorUsedInFullScreenKey options:kNilOptions context:self];
 		[[NSUserDefaults standardUserDefaults] addObserver:self forKeyPath:PGMouseClickActionKey options:kNilOptions context:self];
+#endif
 	}
 	return self;
 }
@@ -279,14 +390,16 @@ PreferenceIsCustomColor(void) {
 	[[NSUserDefaults standardUserDefaults] removeObserver:self forKeyPath:PGBackgroundPatternKey];
 	[[NSUserDefaults standardUserDefaults] removeObserver:self forKeyPath:PGBackgroundColorUsedInFullScreenKey];
 	[[NSUserDefaults standardUserDefaults] removeObserver:self forKeyPath:PGMouseClickActionKey];
+#if !__has_feature(objc_arc)
 	[super dealloc];
+#endif
 }
 
-#pragma mark -NSObject(NSKeyValueObserving)
+//	MARK: - NSObject(NSKeyValueObserving)
 
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context
 {
-	if(context != self)
+	if(context != (__bridge void * _Nullable)self)
 		return [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
 
 	if(PGEqualObjects(keyPath, PGMouseClickActionKey))
@@ -301,18 +414,22 @@ PreferenceIsCustomColor(void) {
 	}
 }
 
-#pragma mark -<NSApplicationDelegate>
+//	MARK: - <NSApplicationDelegate>
 
 - (void)applicationDidChangeScreenParameters:(NSNotification *)aNotif
 {
 	[self _onScreenParametersChanged];	//	2021/07/21
 }
 
-#pragma mark -<NSToolbarDelegate>
+//	MARK: - <NSToolbarDelegate>
 
 - (NSToolbarItem *)toolbar:(NSToolbar *)toolbar itemForItemIdentifier:(NSString *)ident willBeInsertedIntoToolbar:(BOOL)flag
 {
+#if __has_feature(objc_arc)
+	NSToolbarItem *const item = [[NSToolbarItem alloc] initWithItemIdentifier:ident];
+#else
 	NSToolbarItem *const item = [[[NSToolbarItem alloc] initWithItemIdentifier:ident] autorelease];
+#endif
 	[item setTarget:self];
 	[item setAction:@selector(changePane:)];
 	[item setLabel:[self _titleForPane:ident]];
