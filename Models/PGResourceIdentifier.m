@@ -34,47 +34,72 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 NSString *const PGDisplayableIdentifierIconDidChangeNotification = @"PGDisplayableIdentifierIconDidChange";
 NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDisplayableIdentifierDisplayNameDidChange";
 
+#if __has_feature(objc_arc)
+
+@interface PGDisplayableIdentifier()
+
+- (id)_initWithIdentifier:(PGResourceIdentifier *)ident;
+
+@end
+
+#else
+
 @interface PGDisplayableIdentifier(Private)
 
 - (id)_initWithIdentifier:(PGResourceIdentifier *)ident;
 
 @end
 
+#endif
+
+//	MARK: -
+
 //	intent: file:/// URLs
 @interface PGAliasIdentifier : PGResourceIdentifier <NSSecureCoding>	//	NSCoding
+#if !__has_feature(objc_arc)
 {
 @private
 	NSData *_bookmarkedURL;
 	NSURL *_cachedURL;
 }
+#endif
 
 - (id)initWithURL:(NSURL *)URL; // Must be a file URL.
 //- (void)clearCache;
 
 @end
 
+//	MARK: -
+
 //	intent: non-file:/// URLs
 @interface PGURLIdentifier : PGResourceIdentifier <NSSecureCoding>	//	NSCoding
+#if !__has_feature(objc_arc)
 {
 	@private
 	NSURL *_URL;
 }
+#endif
 
 - (id)initWithURL:(NSURL *)URL; // Must not be a file URL.
 
 @end
 
+//	MARK: -
+
 @interface PGIndexIdentifier : PGResourceIdentifier <NSSecureCoding>	//	NSCoding
+#if !__has_feature(objc_arc)
 {
 	@private
 	PGResourceIdentifier *_superidentifier;
 	NSInteger _index;
 }
+#endif
 
 - (id)initWithSuperidentifier:(PGResourceIdentifier *)identifier index:(NSInteger)index;
 
 @end
 
+//	MARK: -
 @implementation PGResourceIdentifier
 
 #pragma mark +PGResourceIdentifier
@@ -83,14 +108,18 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 
 + (id)resourceIdentifierWithURL:(NSURL *)URL
 {
+#if __has_feature(objc_arc)
+	return [[(URL.isFileURL ? [PGAliasIdentifier class] : [PGURLIdentifier class]) alloc] initWithURL:URL];
+#else
 	return [[[(URL.isFileURL ? [PGAliasIdentifier class] : [PGURLIdentifier class]) alloc] initWithURL:URL] autorelease];
+#endif
 }
 /* + (id)resourceIdentifierWithAliasData:(const uint8_t *)data length:(NSUInteger)length
 {
 	return [[[PGAliasIdentifier alloc] initWithAliasData:data length:length] autorelease];
 } */
 
-#pragma mark -PGResourceIdentifier
+//	MARK: - PGResourceIdentifier
 
 - (PGResourceIdentifier *)identifier
 {
@@ -98,7 +127,11 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 }
 - (PGDisplayableIdentifier *)displayableIdentifier
 {
+#if __has_feature(objc_arc)
+	return [[PGDisplayableIdentifier alloc] _initWithIdentifier:self];
+#else
 	return [[[PGDisplayableIdentifier alloc] _initWithIdentifier:self] autorelease];
+#endif
 }
 - (PGResourceIdentifier *)superidentifier
 {
@@ -125,14 +158,18 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 	return NO;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (PGResourceIdentifier *)subidentifierWithIndex:(NSInteger)index
 {
+#if __has_feature(objc_arc)
+	return [[PGIndexIdentifier alloc] initWithSuperidentifier:self index:index];
+#else
 	return [[[PGIndexIdentifier alloc] initWithSuperidentifier:self index:index] autorelease];
+#endif
 }
 
-#pragma mark -
+//	MARK: -
 
 - (NSURL *)superURLByFollowingAliases:(BOOL)flag
 {
@@ -148,26 +185,30 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 	return NO;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (PGSubscription *)subscriptionWithDescendents:(BOOL)flag
 {
 	return [self isFileIdentifier] ? [PGSubscription subscriptionWithPath:[[self URL] path] descendents:flag] : nil;
 }
 
-#pragma mark -NSObject(NSKeyedArchiverObjectSubstitution)
+//	MARK: - NSObject(NSKeyedArchiverObjectSubstitution)
 
 - (Class)classForKeyedArchiver
 {
 	return [PGResourceIdentifier class];
 }
 
-#pragma mark -<NSSecureCoding>	//	NSCoding
+//	MARK: - <NSSecureCoding>	//	NSCoding
 
 - (id)initWithCoder:(NSCoder *)aCoder
 {
 	if([self class] == [PGResourceIdentifier class]) {
+#if __has_feature(objc_arc)
+		self = nil;
+#else
 		[self release];
+#endif
 		return [[PGDisplayableIdentifier alloc] initWithCoder:aCoder];
 	}
 	return [self init];
@@ -179,7 +220,7 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 		[aCoder encodeObject:NSStringFromClass([self class]) forKey:@"ClassName"];
 }
 
-#pragma mark -<NSObject>
+//	MARK: - <NSObject>
 
 - (NSUInteger)hash
 {
@@ -196,8 +237,6 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 	}
 }
 
-#pragma mark -
-
 - (NSString *)description
 {
 	return [NSString stringWithFormat:@"%@", [self URL]];
@@ -205,21 +244,33 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 
 @end
 
-#pragma mark -
+//	MARK: -
 @implementation PGDisplayableIdentifier
 
 #pragma mark +PGResourceIdentifier
 
 + (id)resourceIdentifierWithURL:(NSURL *)URL
 {
+#if __has_feature(objc_arc)
+	return [[self alloc] _initWithIdentifier:[super resourceIdentifierWithURL:URL]];
+#else
 	return [[[self alloc] _initWithIdentifier:[super resourceIdentifierWithURL:URL]] autorelease];
+#endif
 }
 /* + (id)resourceIdentifierWithAliasData:(const uint8_t *)data length:(NSUInteger)length
 {
 	return [[[self alloc] _initWithIdentifier:[super resourceIdentifierWithAliasData:data length:length]] autorelease];
 } */
 
-#pragma mark -PGDisplayableIdentifier
+//	MARK: - PGDisplayableIdentifier
+
+#if __has_feature(objc_arc)
+@synthesize identifier = _identifier;
+@synthesize postsNotifications = _postsNotifications;
+@synthesize icon = _icon;
+@synthesize customDisplayName = _customDisplayName;
+@synthesize naturalDisplayName = _naturalDisplayName;
+#endif
 
 - (BOOL)postsNotifications
 {
@@ -231,35 +282,58 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 }
 - (NSImage *)icon
 {
+#if __has_feature(objc_arc)
+	return _icon ? _icon : [[self URL] PG_icon];
+#else
 	return _icon ? [[_icon retain] autorelease] : [[self URL] PG_icon];
+#endif
 }
 - (void)setIcon:(NSImage *)icon
 {
 	if(icon == _icon) return;
+#if __has_feature(objc_arc)
+	_icon = icon;
+#else
 	[_icon release];
 	_icon = [icon retain];
-	if(_postsNotifications) [self PG_postNotificationName:PGDisplayableIdentifierIconDidChangeNotification];
+#endif
+	if(_postsNotifications)
+		[self PG_postNotificationName:PGDisplayableIdentifierIconDidChangeNotification];
 }
 - (NSString *)displayName
 {
+#if __has_feature(objc_arc)
+	return _customDisplayName ? _customDisplayName : [self naturalDisplayName];
+#else
 	return _customDisplayName ? [[_customDisplayName retain] autorelease] : [self naturalDisplayName];
+#endif
 }
 - (NSString *)customDisplayName
 {
+#if __has_feature(objc_arc)
+	return _customDisplayName;
+#else
 	return [[_customDisplayName retain] autorelease];
+#endif
 }
 - (void)setCustomDisplayName:(NSString *)aString
 {
 	NSString *const string = [aString length] ? aString : nil;
 	if(PGEqualObjects(string, _customDisplayName)) return;
+#if !__has_feature(objc_arc)
 	[_customDisplayName release];
+#endif
 	_customDisplayName = [string copy];
 	if(_postsNotifications) [self PG_postNotificationName:PGDisplayableIdentifierDisplayNameDidChangeNotification];
 }
 - (NSString *)naturalDisplayName
 {
 	if(_naturalDisplayName)
+#if __has_feature(objc_arc)
+		return _naturalDisplayName;
+#else
 		return [[_naturalDisplayName retain] autorelease];
+#endif
 
 	NSURL *const URL = [self URL];
 #if 1
@@ -291,7 +365,9 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 - (void)setNaturalDisplayName:(NSString *)aString
 {
 	if(PGEqualObjects(aString, _naturalDisplayName)) return;
+#if !__has_feature(objc_arc)
 	[_naturalDisplayName release];
+#endif
 	_naturalDisplayName = [aString copy];
 	[self noteNaturalDisplayNameDidChange];
 }
@@ -317,7 +393,7 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 }
 #endif
 
-#pragma mark -
+//	MARK: -
 
 - (NSAttributedString *)attributedStringWithAncestory:(BOOL)flag
 {
@@ -337,17 +413,21 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 	if(_postsNotifications && !_customDisplayName) [self PG_postNotificationName:PGDisplayableIdentifierDisplayNameDidChangeNotification];
 }
 
-#pragma mark -PGDisplayableIdentifier(Private)
+//	MARK: - PGDisplayableIdentifier(Private)
 
 - (id)_initWithIdentifier:(PGResourceIdentifier *)ident
 {
 	if((self = [super init])) {
+#if __has_feature(objc_arc)
+		_identifier = [ident identifier];
+#else
 		_identifier = [[ident identifier] retain];
+#endif
 	}
 	return self;
 }
 
-#pragma mark -PGResourceIdentifier
+//	MARK: - PGResourceIdentifier
 
 - (PGResourceIdentifier *)identifier
 {
@@ -382,14 +462,14 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 	return [_identifier isFileIdentifier];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (PGResourceIdentifier *)subidentifierWithIndex:(NSInteger)index
 {
 	return [_identifier subidentifierWithIndex:index];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (NSURL *)superURLByFollowingAliases:(BOOL)flag
 {
@@ -404,15 +484,16 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 	return [_identifier getRef:outRef byFollowingAliases:flag];
 } */
 
-#pragma mark -
+//	MARK: -
 
 - (PGSubscription *)subscriptionWithDescendents:(BOOL)flag
 {
 	return [_identifier subscriptionWithDescendents:flag];
 }
 
-#pragma mark -NSObject
+//	MARK: - NSObject
 
+#if !__has_feature(objc_arc)
 - (void)dealloc
 {
 	[_identifier release];
@@ -421,8 +502,9 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 	[_customDisplayName release];
 	[super dealloc];
 }
+#endif
 
-#pragma mark -NSObject(AEAdditions)
+//	MARK: - NSObject(AEAdditions)
 
 - (void)PG_addObserver:(id)observer selector:(SEL)aSelector name:(NSString *)aName
 {
@@ -430,17 +512,24 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 	[super PG_addObserver:observer selector:aSelector name:aName];
 }
 
-#pragma mark -<NSSecureCoding>	//	NSCoding
+//	MARK: - <NSSecureCoding>	//	NSCoding
 
 - (id)initWithCoder:(NSCoder *)aCoder
 {
 	Class class = NSClassFromString([aCoder decodeObjectOfClass:[NSString class] forKey:@"ClassName"]);
 	if([PGResourceIdentifier class] == class || [PGDisplayableIdentifier class] == class)
 		class = Nil;
+#if __has_feature(objc_arc)
+	if((self = [self _initWithIdentifier:[[class alloc] initWithCoder:aCoder]])) {
+		[self setIcon:[aCoder decodeObjectOfClass:[NSImage class] forKey:@"Icon"]];
+		[self setCustomDisplayName:[aCoder decodeObjectOfClass:[NSString class] forKey:@"DisplayName"]];
+	}
+#else
 	if((self = [self _initWithIdentifier:[[[class alloc] initWithCoder:aCoder] autorelease]])) {
 		[self setIcon:[aCoder decodeObjectOfClass:[NSImage class] forKey:@"Icon"]];
 		[self setCustomDisplayName:[aCoder decodeObjectOfClass:[NSString class] forKey:@"DisplayName"]];
 	}
+#endif
 	return self;
 }
 - (void)encodeWithCoder:(NSCoder *)aCoder
@@ -451,7 +540,7 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 	[aCoder encodeObject:_customDisplayName forKey:@"DisplayName"];
 }
 
-#pragma mark -<NSObject>
+//	MARK: - <NSObject>
 
 - (BOOL)isEqual:(id)object {
 	return [_identifier isEqual:object];
@@ -464,7 +553,22 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 
 @end
 
-#pragma mark -
+//	MARK: -
+
+#if __has_feature(objc_arc)
+
+@interface PGAliasIdentifier ()
+
+@property (nonatomic, strong) NSData *bookmarkedURL;
+@property (nonatomic, strong) NSURL *cachedURL;
+
+- (id)initWithURL:(NSURL *)URL; // Must be a file URL.
+
+@end
+
+#endif
+
+//	MARK: -
 @implementation PGAliasIdentifier
 
 - (id)initWithURL:(NSURL *)URL
@@ -473,11 +577,19 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 	if((self = [super init])) {
 #if 1
 		NSError* error = nil;
+	#if __has_feature(objc_arc)
+		_bookmarkedURL = [URL bookmarkDataWithOptions:NSURLBookmarkCreationMinimalBookmark
+						   // bookmarkDataWithOptions:NSURLBookmarkCreationSuitableForBookmarkFile
+					   includingResourceValuesForKeys:nil
+										relativeToURL:nil
+												error:&error];
+	#else
 		_bookmarkedURL = [[URL bookmarkDataWithOptions:NSURLBookmarkCreationMinimalBookmark
 							// bookmarkDataWithOptions:NSURLBookmarkCreationSuitableForBookmarkFile
 						includingResourceValuesForKeys:nil
 										 relativeToURL:nil
 												 error:&error] retain];
+	#endif
 		(void) [self URLByFollowingAliases:YES];	//	force URL to be cached
 #else
 		if(!CFURLGetFSRef((CFURLRef)URL, &_ref) ||
@@ -497,8 +609,12 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 - (void)cacheURL:(NSURL *)URL
 {
 	BOOL const urlDidChange = (nil != _cachedURL || nil != URL) && ![_cachedURL isEqual:URL];
+	#if __has_feature(objc_arc)
+	_cachedURL = URL;
+	#else
 	[_cachedURL release];
 	_cachedURL = URL ? [URL retain] : nil;
+	#endif
 	if(urlDidChange)
 		[self PG_postNotificationName:PGDisplayableIdentifierDisplayNameDidChangeNotification];
 }
@@ -552,7 +668,7 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 	_cachedURL = nil;
 } */
 
-#pragma mark -PGResourceIdentifier
+//	MARK: - PGResourceIdentifier
 
 - (BOOL)hasTarget
 {
@@ -565,7 +681,7 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 	return YES;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (NSURL *)URLByFollowingAliases:(BOOL)flag
 {
@@ -575,7 +691,11 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 		return nil;
 
 	if(!flag && _cachedURL)
+	#if __has_feature(objc_arc)
+		return _cachedURL;
+	#else
 		return [[_cachedURL retain] autorelease];
+	#endif
 
 	BOOL bookmarkDataIsStale = NO;
 	NSError* error = nil;
@@ -611,8 +731,9 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 	return [self getRef:outRef byFollowingAliases:flag validate:YES];
 } */
 
-#pragma mark -NSObject
+//	MARK: - NSObject
 
+#if !__has_feature(objc_arc)
 - (void)dealloc
 {
 	[_bookmarkedURL release];
@@ -620,8 +741,9 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 
 	[super dealloc];
 }
+#endif
 
-#pragma mark -<NSSecureCoding>	//	NSCoding
+//	MARK: - <NSSecureCoding>	//	NSCoding
 
 - (id)initWithCoder:(NSCoder *)aCoder
 {
@@ -629,7 +751,11 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 #if 1
 //NSLog(@"[aCoder allowedClasses] = %@", aCoder.allowedClasses);
 		NSParameterAssert([aCoder.allowedClasses containsObject:NSData.class]);
+	#if __has_feature(objc_arc)
+		_bookmarkedURL = [aCoder decodeDataObject];
+	#else
 		_bookmarkedURL = [[aCoder decodeDataObject] retain];
+	#endif
 		if(!_bookmarkedURL)
 			_bookmarkedURL	=	[NSData new];
 #else
@@ -655,7 +781,7 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 #endif
 }
 
-#pragma mark -<NSObject>
+//	MARK: - <NSObject>
 
 - (BOOL)isEqual:(id)obj
 {
@@ -677,20 +803,40 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 
 @end
 
-#pragma mark -
+//	MARK: -
+
+#if __has_feature(objc_arc)
+
+@interface PGURLIdentifier ()
+
+@property (nonatomic, strong) NSURL *URL;
+
+- (id)initWithURL:(NSURL *)URL; // Must not be a file URL.
+
+@end
+
+#endif
+
+//	MARK: -
 @implementation PGURLIdentifier
 
-#pragma mark -PGURLIdentifier
+#if __has_feature(objc_arc)
+@synthesize URL = _URL;
+#endif
 
 - (id)initWithURL:(NSURL *)URL
 {
 	if((self = [super init])) {
+#if __has_feature(objc_arc)
+		_URL = URL;
+#else
 		_URL = [URL retain];
+#endif
 	}
 	return self;
 }
 
-#pragma mark -PGResourceIdentifier
+//	MARK: - PGResourceIdentifier
 
 - (BOOL)hasTarget
 {
@@ -701,27 +847,37 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 	return [_URL isFileURL];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (NSURL *)URLByFollowingAliases:(BOOL)flag
 {
+#if __has_feature(objc_arc)
+	return _URL;
+#else
 	return [[_URL retain] autorelease];
+#endif
 }
 
-#pragma mark -NSObject
+//	MARK: - NSObject
 
+#if !__has_feature(objc_arc)
 - (void)dealloc
 {
 	[_URL release];
 	[super dealloc];
 }
+#endif
 
-#pragma mark -<NSSecureCoding>	//	NSCoding
+//	MARK: - <NSSecureCoding>	//	NSCoding
 
 - (id)initWithCoder:(NSCoder *)aCoder
 {
 	if((self = [super initWithCoder:aCoder])) {
+#if __has_feature(objc_arc)
+		_URL = [aCoder decodeObjectOfClass:[NSURL class] forKey:@"URL"];
+#else
 		_URL = [[aCoder decodeObjectOfClass:[NSURL class] forKey:@"URL"] retain];
+#endif
 	}
 	return self;
 }
@@ -733,26 +889,52 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 
 @end
 
-#pragma mark -
+//	MARK: -
+
+#if __has_feature(objc_arc)
+
+@interface PGIndexIdentifier ()
+
+@property (nonatomic, strong) PGResourceIdentifier *superidentifier;
+@property (nonatomic, assign) NSInteger index;
+
+- (id)initWithSuperidentifier:(PGResourceIdentifier *)identifier index:(NSInteger)index;
+
+@end
+
+#endif
+
+//	MARK: -
 @implementation PGIndexIdentifier
 
-#pragma mark -PGIndexIdentifier
+#if __has_feature(objc_arc)
+@synthesize superidentifier = _superidentifier;
+@synthesize index = _index;
+#endif
 
 - (id)initWithSuperidentifier:(PGResourceIdentifier *)identifier index:(NSInteger)index
 {
 	NSParameterAssert(identifier);
 	if((self = [super init])) {
+#if __has_feature(objc_arc)
+		_superidentifier = identifier;
+#else
 		_superidentifier = [identifier retain];
+#endif
 		_index = index;
 	}
 	return self;
 }
 
-#pragma mark -PGResourceIdentifier
+//	MARK: - PGResourceIdentifier
 
 - (PGResourceIdentifier *)superidentifier
 {
+#if __has_feature(objc_arc)
+	return _superidentifier;
+#else
 	return [[_superidentifier retain] autorelease];
+#endif
 }
 - (NSInteger)index
 {
@@ -767,15 +949,22 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 	return [_superidentifier isFileIdentifier];
 }
 
-#pragma mark -NSObject
+//	MARK: - NSObject
 
+#if !__has_feature(objc_arc)
 - (void)dealloc
 {
 	[_superidentifier release];
 	[super dealloc];
 }
+#endif
 
-#pragma mark -<NSSecureCoding>	//	NSCoding
+- (NSString *)description
+{
+	return [NSString stringWithFormat:@"%@:%ld", [self superidentifier], (long)[self index]];
+}
+
+//	MARK: - <NSSecureCoding>	//	NSCoding
 
 - (id)initWithCoder:(NSCoder *)aCoder
 {
@@ -783,7 +972,11 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 		//	2023/08/12 bugfix: NSKeyedUnarchiver requires the allowedClasses property of
 		//	the NSCoder instance to contain the set of all classes that could be decoded
 		NSSet* classes = [NSSet setWithArray:@[NSData.class, PGResourceIdentifier.class]];
+#if __has_feature(objc_arc)
+		_superidentifier = [aCoder decodeObjectOfClasses:classes forKey:@"Superidentifier"];
+#else
 		_superidentifier = [[aCoder decodeObjectOfClasses:classes forKey:@"Superidentifier"] retain];
+#endif
 		_index = [aCoder decodeIntegerForKey:@"Index"];
 	}
 	return self;
@@ -795,16 +988,9 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 	[aCoder encodeInteger:_index forKey:@"Index"];
 }
 
-#pragma mark -<NSObject>
-
-- (NSString *)description
-{
-	return [NSString stringWithFormat:@"%@:%ld", [self superidentifier], (long)[self index]];
-}
-
 @end
 
-#pragma mark -
+//	MARK: -
 @implementation NSURL(PGResourceIdentifierCreation)
 
 - (PGResourceIdentifier *)PG_resourceIdentifier
@@ -813,7 +999,11 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 }
 - (PGDisplayableIdentifier *)PG_displayableIdentifier
 {
+#if __has_feature(objc_arc)
+	return [[PGDisplayableIdentifier alloc] _initWithIdentifier:[self PG_resourceIdentifier]];
+#else
 	return [[[PGDisplayableIdentifier alloc] _initWithIdentifier:[self PG_resourceIdentifier]] autorelease];
+#endif
 }
 
 @end
