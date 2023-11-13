@@ -45,36 +45,74 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (NSDictionary *)PG_flattenedDictionary;
 @end
 
+#if __has_feature(objc_arc)
+
+@interface PGInspectorPanelController ()
+
+@property (nonatomic, weak) IBOutlet NSTableView *propertiesTable;
+@property (nonatomic, weak) IBOutlet NSTableColumn *labelColumn;
+@property (nonatomic, weak) IBOutlet NSTableColumn *valueColumn;
+@property (nonatomic, weak) IBOutlet NSSearchField *searchField;
+@property (nonatomic, strong) NSDictionary *properties;
+@property (nonatomic, strong) NSDictionary *matchingProperties;
+@property (nonatomic, strong) NSArray *matchingLabels;
+
+- (void)_updateColumnWidths;
+- (NSDictionary *)_humanReadablePropertiesWithDictionary:(NSDictionary *)dict;
+- (NSString *)_stringWithDateTime:(NSString *)dateTime subsecTime:(NSString *)subsecTime;
+
+@end
+
+#else
+
 @interface PGInspectorPanelController(Private)
 - (void)_updateColumnWidths;
 - (NSDictionary *)_humanReadablePropertiesWithDictionary:(NSDictionary *)dict;
 - (NSString *)_stringWithDateTime:(NSString *)dateTime subsecTime:(NSString *)subsecTime;
 @end
 
-#pragma mark -
+#endif
+
+//	MARK: -
 @implementation PGInspectorPanelController
 
 - (IBAction)changeSearch:(id)sender
 {
 	NSMutableDictionary *const matchingProperties = [NSMutableDictionary dictionary];
+#if __has_feature(objc_arc)
+	NSArray *const terms = [[_searchField stringValue] PG_searchTerms];
+#else
 	NSArray *const terms = [[searchField stringValue] PG_searchTerms];
+#endif
 	for(NSString *const label in _properties) {
 		NSString *const value = [_properties objectForKey:label];
 		if([label PG_matchesSearchTerms:terms] || [[value description] PG_matchesSearchTerms:terms]) {
 			[matchingProperties setObject:value forKey:label];
 		}
 	}
+#if !__has_feature(objc_arc)
 	[_matchingProperties release];
+#endif
 	_matchingProperties = [matchingProperties copy];
+#if !__has_feature(objc_arc)
 	[_matchingLabels release];
+#endif
 	_matchingLabels = [[[matchingProperties allKeys] sortedArrayUsingSelector:@selector(compare:)] copy];
+#if __has_feature(objc_arc)
+	[_propertiesTable reloadData];
+#else
 	[propertiesTable reloadData];
+#endif
 	[self _updateColumnWidths];
 }
 - (IBAction)copy:(id)sender
 {
 	NSMutableString *const string = [NSMutableString string];
+#if __has_feature(objc_arc)
+	NSIndexSet *const indexes = [_propertiesTable selectedRowIndexes];
+#else
 	NSIndexSet *const indexes = [propertiesTable selectedRowIndexes];
+#endif
 	NSUInteger i = [indexes firstIndex];
 	for(; NSNotFound != i; i = [indexes indexGreaterThanIndex:i]) {
 		NSString *const label = [_matchingLabels objectAtIndex:i];
@@ -87,25 +125,42 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (void)displayControllerActiveNodeWasRead:(NSNotification *)aNotif
 {
-	[_properties release];
-
 	NSDictionary *d = self.displayController.activeNode.resourceAdapter.imageProperties;
+#if __has_feature(objc_arc)
+	_properties = [self _humanReadablePropertiesWithDictionary:d];
+#else
+	[_properties release];
 	//	no need to -copy because the object stored in _properties is not shared
 //	_properties = [[self _humanReadablePropertiesWithDictionary:d] copy];
 	_properties = [[self _humanReadablePropertiesWithDictionary:d] retain];
+#endif
 
 	[self changeSearch:nil];
 }
 
-#pragma mark -PGInspectorPanelController(Private)
+//	MARK: - PGInspectorPanelController(Private)
 
 - (void)_updateColumnWidths
 {
-//	[labelColumn setWidth:[labelColumn PG_zoomedWidth]];
-//	[valueColumn setWidth:NSWidth([propertiesTable bounds]) - [labelColumn width]];
+//	[_labelColumn setWidth:[_labelColumn PG_zoomedWidth]];
+//	[_valueColumn setWidth:NSWidth([_propertiesTable bounds]) - [_labelColumn width]];
 }
 - (NSDictionary *)_humanReadablePropertiesWithDictionary:(NSDictionary *)dict
 {
+#if __has_feature(objc_arc)
+	NSDictionary *const keyLabels = @{
+		(NSString *)kCGImagePropertyFileSize: @"File Size (bytes)",	//	2022/10/15 added
+	//	(NSString *)kCGImagePropertyPixelHeight: @"Pixel Height",	[special case]
+	//	(NSString *)kCGImagePropertyPixelWidth: @"Pixel Width",		[special case]
+	//	(NSString *)kCGImagePropertyDPIHeight: @"DPI Height",		[special case]
+	//	(NSString *)kCGImagePropertyDPIWidth: @"DPI Width",			[special case]
+	//	(NSString *)kCGImagePropertyDepth: @"Bit Depth",			[special case]
+		(NSString *)kCGImagePropertyIsFloat: @"Floating Point Pixels",	//	2023/08/14 added
+		(NSString *)kCGImagePropertyIsIndexed: @"Indexed (palette) Pixels",	//	2023/08/14 added
+	//	(NSString *)kCGImagePropertyHasAlpha: @"Alpha Channel Present",
+		(NSString *)kCGImagePropertyColorModel: @"Color Model",
+		(NSString *)kCGImagePropertyProfileName: @"Profile Name",
+#else
 	NSDictionary *const keyLabels = [NSDictionary dictionaryWithObjectsAndKeys:
 		@"File Size (bytes)", (NSString *)kCGImagePropertyFileSize,	//	2022/10/15 added
 	//	@"Pixel Height", (NSString *)kCGImagePropertyPixelHeight,	[special case]
@@ -118,7 +173,25 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	//	@"Alpha Channel Present", (NSString *)kCGImagePropertyHasAlpha,
 		@"Color Model", (NSString *)kCGImagePropertyColorModel,
 		@"Profile Name", (NSString *)kCGImagePropertyProfileName,
+#endif
 
+#if __has_feature(objc_arc)
+		(NSString *)kCGImagePropertyTIFFDictionary: @{
+			@".": @"TIFF",
+			(NSString *)kCGImagePropertyTIFFCompression: @"Compression",
+			(NSString *)kCGImagePropertyTIFFPhotometricInterpretation: @"Photometric Interpretation",
+			(NSString *)kCGImagePropertyTIFFDocumentName: @"Document Name",
+			(NSString *)kCGImagePropertyTIFFImageDescription: @"Image Description",
+			(NSString *)kCGImagePropertyTIFFMake: @"Make",
+			(NSString *)kCGImagePropertyTIFFModel: @"Model",
+			(NSString *)kCGImagePropertyTIFFSoftware: @"Software",
+			(NSString *)kCGImagePropertyTIFFTransferFunction: @"Transfer Function",
+			(NSString *)kCGImagePropertyTIFFArtist: @"Artist",
+			(NSString *)kCGImagePropertyTIFFHostComputer: @"Host Computer",
+			(NSString *)kCGImagePropertyTIFFCopyright: @"Copyright",
+			(NSString *)kCGImagePropertyTIFFWhitePoint: @"White Point",
+			(NSString *)kCGImagePropertyTIFFPrimaryChromaticities: @"Primary Chromaticities" },
+#else
 		[NSDictionary dictionaryWithObjectsAndKeys:
 			@"TIFF", @".",
 			@"Compression", (NSString *)kCGImagePropertyTIFFCompression,
@@ -135,14 +208,110 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 			@"White Point", (NSString *)kCGImagePropertyTIFFWhitePoint,
 			@"Primary Chromaticities", (NSString *)kCGImagePropertyTIFFPrimaryChromaticities,
 			nil], (NSString *)kCGImagePropertyTIFFDictionary,
+#endif
 
+#if __has_feature(objc_arc)
+		(NSString *)kCGImagePropertyJFIFDictionary: @{
+			@".": @"JFIF",
+			(NSString *)kCGImagePropertyJFIFIsProgressive: @"Progressive" },
+#else
 		[NSDictionary dictionaryWithObjectsAndKeys:
 			@"JFIF", @".",
 			@"Progressive", (NSString *)kCGImagePropertyJFIFIsProgressive,
 			nil], (NSString *)kCGImagePropertyJFIFDictionary,
+#endif
 
 		//	TODO: add HEIC dictionary here...
 
+#if __has_feature(objc_arc)
+		(NSString *)kCGImagePropertyExifDictionary: @{
+			@".": @"Exif",
+			(NSString *)kCGImagePropertyExifExposureTime: @"Exposure Time",
+			(NSString *)kCGImagePropertyExifFNumber: @"F Number",
+			(NSString *)kCGImagePropertyExifExposureProgram: @"Exposure Program",
+			(NSString *)kCGImagePropertyExifSpectralSensitivity: @"Spectral Sensitivity",
+		//	(NSString *)kCGImagePropertyExifISOSpeedRatings: @"ISO Speed Ratings",
+			(NSString *)kCGImagePropertyExifOECF: @"OECF",
+		/*	kCGImagePropertyExifSensitivityType
+			kCGImagePropertyExifStandardOutputSensitivity
+			kCGImagePropertyExifRecommendedExposureIndex
+			kCGImagePropertyExifISOSpeed
+			kCGImagePropertyExifISOSpeedLatitudeyyy
+			kCGImagePropertyExifISOSpeedLatitudezzz
+			kCGImagePropertyExifVersion
+			kCGImagePropertyExifDateTimeOriginal
+			kCGImagePropertyExifDateTimeDigitize
+			kCGImagePropertyExifOffsetTime
+			kCGImagePropertyExifOffsetTimeOriginal
+			kCGImagePropertyExifOffsetTimeDigitized	*/
+			(NSString *)kCGImagePropertyExifComponentsConfiguration: @"Components Configuration",
+			(NSString *)kCGImagePropertyExifCompressedBitsPerPixel: @"Compressed BPP",
+			(NSString *)kCGImagePropertyExifShutterSpeedValue: @"Shutter Speed",
+			(NSString *)kCGImagePropertyExifApertureValue: @"Aperture",
+			(NSString *)kCGImagePropertyExifBrightnessValue: @"Brightness",
+			(NSString *)kCGImagePropertyExifExposureBiasValue: @"Exposure Bias",
+			(NSString *)kCGImagePropertyExifMaxApertureValue: @"Max Aperture",
+			(NSString *)kCGImagePropertyExifSubjectDistance: @"Subject Distance",
+			(NSString *)kCGImagePropertyExifMeteringMode: @"Metering Mode",
+			(NSString *)kCGImagePropertyExifLightSource: @"Light Source",
+			(NSString *)kCGImagePropertyExifFlash: @"Flash",
+			(NSString *)kCGImagePropertyExifFocalLength: @"Focal Length",
+			(NSString *)kCGImagePropertyExifSubjectArea: @"Subject Area",
+			(NSString *)kCGImagePropertyExifMakerNote: @"Maker Note",
+			(NSString *)kCGImagePropertyExifUserComment: @"User Comment",
+		//	kCGImagePropertyExifFlashPixVersion
+			(NSString *)kCGImagePropertyExifColorSpace: @"Color Space",
+		//	kCGImagePropertyExifPixelXDimension
+		//	kCGImagePropertyExifPixelYDimension
+			(NSString *)kCGImagePropertyExifRelatedSoundFile: @"Related Sound File",
+			(NSString *)kCGImagePropertyExifFlashEnergy: @"Flash Energy",
+			(NSString *)kCGImagePropertyExifSpatialFrequencyResponse: @"Spatial Frequency Response",
+			(NSString *)kCGImagePropertyExifFocalPlaneXResolution: @"Focal Plane X Resolution",
+			(NSString *)kCGImagePropertyExifFocalPlaneYResolution: @"Focal Plane Y Resolution",
+			(NSString *)kCGImagePropertyExifFocalPlaneResolutionUnit: @"Focal Plane Resolution Unit",
+			(NSString *)kCGImagePropertyExifSubjectLocation: @"Subject Location",
+			(NSString *)kCGImagePropertyExifExposureIndex: @"Exposure Index",
+			(NSString *)kCGImagePropertyExifSensingMethod: @"Sensing Method",
+			(NSString *)kCGImagePropertyExifFileSource: @"File Source",
+			(NSString *)kCGImagePropertyExifSceneType: @"Scene Type",
+		//	kCGImagePropertyExifCFAPattern
+			(NSString *)kCGImagePropertyExifCustomRendered: @"Custom Rendered",
+			(NSString *)kCGImagePropertyExifExposureMode: @"Exposure Mode",
+			(NSString *)kCGImagePropertyExifWhiteBalance: @"White Balance",
+			(NSString *)kCGImagePropertyExifDigitalZoomRatio: @"Digital Zoom Ratio",
+			(NSString *)kCGImagePropertyExifFocalLenIn35mmFilm: @"Focal Length (35mm Film)",
+			(NSString *)kCGImagePropertyExifSceneCaptureType: @"Scene Capture Type",
+			(NSString *)kCGImagePropertyExifGainControl: @"Gain Control",
+			(NSString *)kCGImagePropertyExifContrast: @"Contrast",
+			(NSString *)kCGImagePropertyExifSaturation: @"Saturation",
+			(NSString *)kCGImagePropertyExifSharpness: @"Sharpness",
+			(NSString *)kCGImagePropertyExifDeviceSettingDescription: @"Device Setting Description",
+			(NSString *)kCGImagePropertyExifSubjectDistRange: @"Subject Dist Range",
+			(NSString *)kCGImagePropertyExifImageUniqueID: @"Image Unique ID",
+		/*	kCGImagePropertyExifCameraOwnerName
+			kCGImagePropertyExifBodySerialNumber
+			kCGImagePropertyExifLensSpecification
+			kCGImagePropertyExifLensMake
+			kCGImagePropertyExifLensModel
+			kCGImagePropertyExifLensSerialNumber	*/
+			(NSString *)kCGImagePropertyExifGamma: @"Gamma"
+		/*	kCGImagePropertyExifCompositeImage
+			kCGImagePropertyExifSourceImageNumberOfCompositeImage
+			kCGImagePropertyExifSourceExposureTimesOfCompositeImage	*/
+		},
+		(NSString *)kCGImagePropertyExifAuxDictionary : @{
+			@".": @"Exif (Aux)",
+		//	kCGImagePropertyExifAuxLensInfo
+			(NSString *)kCGImagePropertyExifAuxLensModel: @"Lens Model",
+			(NSString *)kCGImagePropertyExifAuxSerialNumber: @"Serial Number",
+			(NSString *)kCGImagePropertyExifAuxLensID: @"Lens ID",
+			(NSString *)kCGImagePropertyExifAuxLensSerialNumber: @"Lens Serial Number",
+			(NSString *)kCGImagePropertyExifAuxImageNumber: @"Image Number",
+			(NSString *)kCGImagePropertyExifAuxFlashCompensation: @"Flash Compensation",
+			(NSString *)kCGImagePropertyExifAuxOwnerName: @"Owner Name",
+			(NSString *)kCGImagePropertyExifAuxFirmware: @"Firmware",
+		},
+#else
 		[NSDictionary dictionaryWithObjectsAndKeys:
 			@"Exif", @".",
 			@"Exposure Time", (NSString *)kCGImagePropertyExifExposureTime,
@@ -236,6 +405,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 			@"Owner Name", (NSString *)kCGImagePropertyExifAuxOwnerName,
 			@"Firmware", (NSString *)kCGImagePropertyExifAuxFirmware,
 			nil], (NSString *)kCGImagePropertyExifAuxDictionary,
+#endif
 
 		//	TODO: add GIF dictionary here...
 
@@ -263,10 +433,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 		//	TODO: add TGA dictionary here...
 
+#if __has_feature(objc_arc)
+	};
+#else
 		nil];
+#endif
 
 	//	the returned object:
+#if __has_feature(objc_arc)
+	NSMutableDictionary *const properties = [[[dict PG_replacementUsingObject:keyLabels
+															  preserveUnknown:NO
+															   getTopLevelKey:NULL] PG_flattenedDictionary] mutableCopy];
+#else
 	NSMutableDictionary *const properties = [[[[dict PG_replacementUsingObject:keyLabels preserveUnknown:NO getTopLevelKey:NULL] PG_flattenedDictionary] mutableCopy] autorelease];
+#endif
 
 	//	2023/08/14 any values whose type conforms to NSArray will be converted to a string
 	//	because NSArrays are displayed as "(\n<val0>,\n<val1>,\n<val2>,\n ... <val-last>\n)"
@@ -281,7 +461,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		}];
 
 		[properties addEntriesFromDictionary:replacements];
+#if !__has_feature(objc_arc)
 		[replacements release];
+#endif
 	}
 
 	// TODO: Create special formatters for certain properties.
@@ -374,23 +556,24 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	return [NSString stringWithFormat:@"%@.%@", dateTime, subsecTime];
 }
 
-#pragma mark -PGFloatingPanelController
+//	MARK: - PGFloatingPanelController
 
 - (NSString *)nibName
 {
 	return @"PGInspector";
 }
-- (BOOL)setDisplayController:(PGDisplayController *)controller
+- (BOOL)setDisplayControllerReturningWasChanged:(PGDisplayController *)controller
+//- (BOOL)setDisplayController:(PGDisplayController *)controller
 {
 	PGDisplayController *const oldController = [self displayController];
-	if(![super setDisplayController:controller]) return NO;
+	if(![super setDisplayControllerReturningWasChanged:controller]) return NO;
 	[oldController PG_removeObserver:self name:PGDisplayControllerActiveNodeWasReadNotification];
 	[[self displayController] PG_addObserver:self selector:@selector(displayControllerActiveNodeWasRead:) name:PGDisplayControllerActiveNodeWasReadNotification];
 	[self displayControllerActiveNodeWasRead:nil];
 	return YES;
 }
 
-#pragma mark -NSWindowController
+//	MARK: - NSWindowController
 
 - (void)windowDidLoad
 {
@@ -398,16 +581,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[self _updateColumnWidths];
 }
 
-#pragma mark -NSObject
+//	MARK: - NSObject
 
 - (void)dealloc
 {
+#if __has_feature(objc_arc)
+	[_propertiesTable setDelegate:nil];
+	[_propertiesTable setDataSource:nil];
+#else
 	[propertiesTable setDelegate:nil];
 	[propertiesTable setDataSource:nil];
 	[_properties release];
 	[_matchingProperties release];
 	[_matchingLabels release];
 	[super dealloc];
+#endif
 }
 
 #pragma mark id<NSMenuValidation>
@@ -415,7 +603,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (BOOL)validateMenuItem:(NSMenuItem *)anItem
 {
 	SEL const action = [anItem action];
+#if __has_feature(objc_arc)
+	if(@selector(copy:) == action && ![[_propertiesTable selectedRowIndexes] count]) return NO;
+#else
 	if(@selector(copy:) == action && ![[propertiesTable selectedRowIndexes] count]) return NO;
+#endif
 	return [super validateMenuItem:anItem];
 }
 
@@ -431,16 +623,24 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (nullable id)tableView:(NSTableView *)tableView objectValueForTableColumn:(nullable NSTableColumn *)tableColumn row:(NSInteger)row
 {//id<NSTableViewDataSource>* a = nil;
 #if 0
-	NSParameterAssert(tableColumn == labelColumn);
+	NSParameterAssert(tableColumn == _labelColumn);
 	return _matchingLabels[row];
 #else
 	NSString *const label = [_matchingLabels objectAtIndex:row];
 //printf("%p\n", tableColumn);
+	#if __has_feature(objc_arc)
+	if(tableColumn == _labelColumn) {
+		return label;
+	} else if(tableColumn == _valueColumn) {
+		return [_matchingProperties objectForKey:label];
+	}
+	#else
 	if(tableColumn == labelColumn) {
 		return label;
 	} else if(tableColumn == valueColumn) {
 		return [_matchingProperties objectForKey:label];
 	}
+	#endif
 	return nil;
 #endif
 }
@@ -449,8 +649,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (nullable NSView *)tableView:(NSTableView *)tableView viewForTableColumn:(nullable NSTableColumn *)tableColumn row:(NSInteger)row
 {//id<NSTableViewDelegate>* a = nil;
+#if __has_feature(objc_arc)
+	if(tableColumn == _labelColumn) {
+		NSTextField *result = [NSTextField new];
+#else
 	if(tableColumn == labelColumn) {
-		NSTextField*	result = [[NSTextField new] autorelease];
+		NSTextField *result = [[NSTextField new] autorelease];
+#endif
 		result.drawsBackground	=	NO;
 		result.bordered			=	NO;
 		result.bezeled			=	NO;
@@ -460,8 +665,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		result.font				=	[NSFont boldSystemFontOfSize:0.0];
 		result.alignment		=	NSTextAlignmentRight;
 		return result;
+#if __has_feature(objc_arc)
+	} else if(tableColumn == _valueColumn) {
+		NSTextField *result = [NSTextField new];
+#else
 	} else if(tableColumn == valueColumn) {
-		NSTextField*	result = [[NSTextField new] autorelease];
+		NSTextField *result = [[NSTextField new] autorelease];
+#endif
 		result.drawsBackground	=	NO;
 		result.bordered			=	NO;
 		result.bezeled			=	NO;
@@ -476,7 +686,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 /* - (void)tableView:(NSTableView *)tableView willDisplayCell:(id)cell forTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row
 {
-	if(tableColumn == labelColumn) {
+	if(tableColumn == _labelColumn) {
 		[(NSTextFieldCell*)cell setAlignment:NSTextAlignmentRight];
 		[cell setFont:[[NSFontManager sharedFontManager] convertFont:[cell font] toHaveTrait:NSBoldFontMask]];
 	}
@@ -484,7 +694,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
-#pragma mark -
+//	MARK: -
 @implementation NSObject(PGAdditions)
 
 - (id)PG_replacementUsingObject:(id)replacement preserveUnknown:(BOOL)preserve getTopLevelKey:(out id *)outKey
@@ -498,7 +708,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
-#pragma mark -
+//	MARK: -
 @implementation NSDictionary(PGAdditions)
 
 - (NSDictionary *)PG_flattenedDictionary
@@ -512,7 +722,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	return results;
 }
 
-#pragma mark -NSObject(PGAdditions)
+//	MARK: - NSObject(PGAdditions)
 
 - (id)PG_replacementUsingObject:(id)replacement preserveUnknown:(BOOL)preserve getTopLevelKey:(out id *)outKey
 {
