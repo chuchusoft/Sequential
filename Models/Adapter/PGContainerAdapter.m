@@ -149,11 +149,19 @@ CalculateByteSizeAllChildren(NSArray<PGNode*>* children) {
 
 NSString *const PGMaxDepthKey = @"PGMaxDepth";
 
-@interface PGContainerAdapter(Private)
+#if __has_feature(objc_arc)
 
-- (PGNode *)_nodeForSelectorOrSelfIfViewable:(SEL)sel forward:(BOOL)flag;
+@interface PGContainerAdapter ()
+
+@property (nonatomic, strong) NSArray<PGNode*> *sortedChildren;
+@property (nonatomic, strong) NSArray<PGNode*> *unsortedChildren;
+@property (nonatomic, assign) PGSortOrder unsortedOrder;
+@property (nonatomic, assign) uint64_t byteSizeDirectChildren, byteSizeAllChildren;
+@property (nonatomic, assign) NSUInteger folderCount, imageCount;
 
 @end
+
+#endif
 
 @implementation PGContainerAdapter
 
@@ -168,38 +176,68 @@ NSString *const PGMaxDepthKey = @"PGMaxDepth";
 
 - (NSArray<PGNode*> *)sortedChildren
 {
+#if __has_feature(objc_arc)
 	if(!_sortedChildren) {
 		PGSortOrder const order = [[self document] sortOrder];
 		PGSortOrder const maskedUnsortedOrder = PGSortOrderMask & _unsortedOrder;
 		if((PGSortOrderMask & order) == maskedUnsortedOrder || PGSortInnateOrder == maskedUnsortedOrder) {
-			if((PGSortDescendingMask & order) == (PGSortDescendingMask & _unsortedOrder)) _sortedChildren = [_unsortedChildren retain];
+			if((PGSortDescendingMask & order) == (PGSortDescendingMask & _unsortedOrder))
+				_sortedChildren = _unsortedChildren;
+			else _sortedChildren = [[_unsortedChildren reverseObjectEnumerator] allObjects];
+		} else _sortedChildren = [_unsortedChildren sortedArrayUsingSelector:@selector(compare:)];
+	}
+	return _sortedChildren;
+#else
+	if(!_sortedChildren) {
+		PGSortOrder const order = [[self document] sortOrder];
+		PGSortOrder const maskedUnsortedOrder = PGSortOrderMask & _unsortedOrder;
+		if((PGSortOrderMask & order) == maskedUnsortedOrder || PGSortInnateOrder == maskedUnsortedOrder) {
+			if((PGSortDescendingMask & order) == (PGSortDescendingMask & _unsortedOrder))
+				_sortedChildren = [_unsortedChildren retain];
 			else _sortedChildren = [[[_unsortedChildren reverseObjectEnumerator] allObjects] retain];
 		} else _sortedChildren = [[_unsortedChildren sortedArrayUsingSelector:@selector(compare:)] retain];
 	}
 	return [[_sortedChildren retain] autorelease];
+#endif
 }
 - (NSArray<PGNode*> *)unsortedChildren
 {
+#if __has_feature(objc_arc)
+	return _unsortedChildren;
+#else
 	return [[_unsortedChildren retain] autorelease];
+#endif
 }
 - (void)setUnsortedChildren:(NSArray<PGNode*> *)anArray presortedOrder:(PGSortOrder)anOrder
 {
 	if(anArray == _unsortedChildren) return;
+#if __has_feature(objc_arc)
+	NSMutableArray *const removedChildren = [_unsortedChildren mutableCopy];
+#else
 	NSMutableArray *const removedChildren = [[_unsortedChildren mutableCopy] autorelease];
+#endif
 	for(PGNode *const newChild in anArray) [removedChildren removeObjectIdenticalTo:newChild];
 	if([removedChildren count]) {
 		[[self document] noteNode:[self node] willRemoveNodes:removedChildren];
 		[removedChildren makeObjectsPerformSelector:@selector(detachFromTree)];
 	}
 
+#if !__has_feature(objc_arc)
 	[_unsortedChildren release];
+#endif
 	_unsortedChildren = [anArray copy];
 	_byteSizeAllChildren	=	~0ull;	//	invalidate cached value
 
 	_unsortedOrder = anOrder;
+#if !__has_feature(objc_arc)
 	[_sortedChildren release];
+#endif
 	_sortedChildren = nil;
+#if __has_feature(objc_arc)
+	[[[self node] menuItem] setSubmenu:_unsortedChildren.count ? [NSMenu new] : nil];
+#else
 	[[[self node] menuItem] setSubmenu:_unsortedChildren.count ? [[[NSMenu alloc] init] autorelease] : nil];
+#endif
 	[[self document] noteSortedChildrenDidChange];
 
 //NSLog(@">>> %@ >>>", self.node.identifier.displayName);
@@ -223,7 +261,11 @@ NSString *const PGMaxDepthKey = @"PGMaxDepth";
 }
 - (void)removeChild:(PGNode *)node
 {
+#if __has_feature(objc_arc)
+	NSMutableArray<PGNode*> *const unsortedChildren = [_unsortedChildren mutableCopy];
+#else
 	NSMutableArray<PGNode*> *const unsortedChildren = [[_unsortedChildren mutableCopy] autorelease];
+#endif
 	[unsortedChildren removeObjectIdenticalTo:node];
 	[self setUnsortedChildren:unsortedChildren presortedOrder:_unsortedOrder];
 }
@@ -267,7 +309,9 @@ NSString *const PGMaxDepthKey = @"PGMaxDepth";
 - (void)noteChildValueForCurrentSortOrderDidChange:(PGNode *)child
 {
 	if([_unsortedChildren indexOfObjectIdenticalTo:child] == NSNotFound) return;
+#if !__has_feature(objc_arc)
 	[_sortedChildren release];
+#endif
 	_sortedChildren = nil;
 	[[self document] noteSortedChildrenDidChange];
 }
@@ -300,9 +344,11 @@ NSString *const PGMaxDepthKey = @"PGMaxDepth";
 - (void)dealloc
 {
 	[_unsortedChildren makeObjectsPerformSelector:@selector(detachFromTree)];
+#if !__has_feature(objc_arc)
 	[_sortedChildren release];
 	[_unsortedChildren release];
 	[super dealloc];
+#endif
 }
 
 #pragma mark -<PGResourceAdapter>
@@ -445,7 +491,9 @@ NSString *const PGMaxDepthKey = @"PGMaxDepth";
 
 - (void)noteSortOrderDidChange
 {
+#if !__has_feature(objc_arc)
 	[_sortedChildren release];
+#endif
 	_sortedChildren = nil;
 	for(PGNode *const child in _unsortedChildren)
 		[child noteSortOrderDidChange];
