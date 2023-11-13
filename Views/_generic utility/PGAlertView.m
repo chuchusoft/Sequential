@@ -218,9 +218,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+//	MARK: -
 @implementation PGAlertGraphic
 
-#pragma mark +PGAlertGraphic
+//	MARK: +PGAlertGraphic
 
 + (id)cannotGoRightGraphic
 {
@@ -352,6 +353,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+//	MARK: -
 @implementation PGCannotGoRightGraphic
 
 //	MARK: - PGAlertGraphic
@@ -387,6 +389,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+//	MARK: -
 @implementation PGCannotGoLeftGraphic
 
 //	MARK: - PGAlertGraphic
@@ -399,6 +402,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+//	MARK: -
 @implementation PGLoopedLeftGraphic
 
 //	MARK: - PGAlertGraphic
@@ -439,6 +443,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+//	MARK: -
 @implementation PGLoopedRightGraphic
 
 //	MARK: - PGAlertGraphic
@@ -451,9 +456,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+//	MARK: -
 @implementation PGLoadingGraphic
 
-#pragma mark +PGLoadingGraphic
+//	MARK: +PGLoadingGraphic
 
 + (id)loadingGraphic
 {
@@ -527,9 +533,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+//	MARK: -
 @implementation PGBezierPathIconGraphic
 
-#pragma mark +PGBezierPathIconGraphic
+//	MARK: +PGBezierPathIconGraphic
 
 + (id)graphicWithIconType:(AEIconType)type
 {

@@ -29,7 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @implementation PGFindView
 
-#pragma mark -NSResponder
+//	MARK: - NSResponder
 
 - (BOOL)acceptsFirstMouse:(NSEvent *)theEvent
 {
@@ -41,7 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[[self window] makeFirstResponder:[[self window] initialFirstResponder]]; // Fitt's law.
 }
 
-#pragma mark -<PGBezelPanelContentView>
+//	MARK: - <PGBezelPanelContentView>
 
 - (NSRect)bezelPanel:(PGBezelPanel *)sender frameForContentRect:(NSRect)aRect scale:(CGFloat)s
 {
@@ -50,23 +50,24 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+//	MARK: -
 @implementation PGFindlessTextView
 
-#pragma mark -NSTextView
+//	MARK: - NSTextView
 
 - (IBAction)performFindPanelAction:(id)sender
 {
 	[self doesNotRecognizeSelector:_cmd];
 }
 
-#pragma mark -NSObject
+//	MARK: - NSObject
 
 + (BOOL)instancesRespondToSelector:(SEL)aSelector
 {
 	return @selector(performFindPanelAction:) == aSelector ? NO : [super instancesRespondToSelector:aSelector];
 }
 
-#pragma mark -<NSObject>
+//	MARK: - <NSObject>
 
 - (BOOL)respondsToSelector:(SEL)aSelector
 {

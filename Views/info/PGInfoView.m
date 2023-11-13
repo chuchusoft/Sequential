@@ -48,7 +48,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #define PGProgressKnobSize (PGProgressBarHeight - 2.0f)
 #define PGCornerRadius (PGProgressBarBorder + PGProgressBarRadius)
 
-#pragma mark -
+//	MARK: -
 @implementation PGInfoView
 
 - (NSAttributedString *)attributedStringValue
@@ -136,7 +136,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	return PGGraphicalProgressBarStyle && [self count] > 1;
 }
 
-#pragma mark - NSView
+//	MARK: - NSView
 
 - (BOOL)isFlipped
 {
@@ -273,7 +273,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 														NSHeight(b) - PGTextTotalVertPadding)];
 }
 
-#pragma mark - NSObject
+//	MARK: - NSObject
 
 #if !__has_feature(objc_arc)
 - (void)dealloc
@@ -283,7 +283,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 }
 #endif
 
-#pragma mark - <PGBezelPanelContentView>
+//	MARK: - <PGBezelPanelContentView>
 
 - (NSRect)bezelPanel:(PGBezelPanel *)sender frameForContentRect:(NSRect)aRect scale:(CGFloat)scaleFactor
 {

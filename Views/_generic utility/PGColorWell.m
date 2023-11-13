@@ -29,14 +29,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @implementation PGColorWell
 
-#pragma mark Instance Methods
-
 - (void)PG_windowWillClose:(NSNotification *)aNotif
 {
 	[self deactivate];
 }
 
-#pragma mark NSColorWell
+//	MARK: NSColorWell
 
 - (void)deactivate
 {
@@ -44,7 +42,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[[NSColorPanel sharedColorPanel] close];
 }
 
-#pragma mark NSView
+//	MARK: NSView
 
 - (void)viewWillMoveToWindow:(NSWindow *)aWindow
 {
@@ -58,7 +56,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[self deactivate];
 }
 
-#pragma mark NSObject
+//	MARK: NSObject
 
 - (void)dealloc
 {
