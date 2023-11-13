@@ -33,20 +33,36 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 + (NSMutableAttributedString *)PG_attributedStringWithAttachmentCell:(NSTextAttachmentCell *)cell label:(NSString *)label
 {
+#if __has_feature(objc_arc)
+	NSMutableAttributedString *const result = [NSMutableAttributedString new];
+#else
 	NSMutableAttributedString *const result = [[[NSMutableAttributedString alloc] init] autorelease];
+#endif
 	if(cell) {
+#if __has_feature(objc_arc)
+		NSTextAttachment *const attachment = [NSTextAttachment new];
+#else
 		NSTextAttachment *const attachment = [[[NSTextAttachment alloc] init] autorelease];
+#endif
 		[attachment setAttachmentCell:cell];
 		[result appendAttributedString:[NSAttributedString attributedStringWithAttachment:attachment]];
 		if(label) [[result mutableString] appendString:@" "];
 	}
 	if(label) [[result mutableString] appendString:label];
-	[result addAttribute:NSFontAttributeName value:[NSFont menuFontOfSize:14.0f] range:NSMakeRange(0, [result length])]; // Use 14 instead of 0 (default) for the font size because the default seems to be 13, which is wrong.
+	// Use 14 instead of 0 (default) for the font size because the default seems to be 13, which is wrong.
+	[result addAttribute:NSFontAttributeName
+				   value:[NSFont menuFontOfSize:14.0f]
+				   range:NSMakeRange(0, [result length])];
 	return result;
 }
 + (NSMutableAttributedString *)PG_attributedStringWithFileIcon:(NSImage *)anImage name:(NSString *)fileName
 {
+#if __has_feature(objc_arc)
+	return [self PG_attributedStringWithAttachmentCell:[[PGIconAttachmentCell alloc] initImageCell:anImage]
+												 label:fileName];
+#else
 	return [self PG_attributedStringWithAttachmentCell:[[[PGIconAttachmentCell alloc] initImageCell:anImage] autorelease] label:fileName];
+#endif
 }
 
 @end
@@ -79,7 +95,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (id)initImageCell:(NSImage *)anImage
 {
 	if(anImage) return [super initImageCell:anImage];
+#if __has_feature(objc_arc)
+	self = nil;
+#else
 	[self release];
+#endif
 	return nil;
 }
 
