@@ -34,10 +34,8 @@ enum {
 };
 typedef NSUInteger PGAlertGraphicType;
 
-@interface PGAlertView : NSView
-#ifdef MAC_OS_X_VERSION_10_6
-<NSWindowDelegate>
-#endif
+@interface PGAlertView : NSView<NSWindowDelegate>
+#if !__has_feature(objc_arc)
 {
 	@private
 	NSMutableArray *_graphicStack;
@@ -45,6 +43,7 @@ typedef NSUInteger PGAlertGraphicType;
 	NSUInteger _frameCount;
 	NSTimer *_frameTimer;
 }
+#endif
 
 @property(readonly) PGAlertGraphic *currentGraphic;
 @property(readonly) NSUInteger frameCount;
