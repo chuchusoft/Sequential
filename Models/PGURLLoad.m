@@ -38,6 +38,25 @@ static NSUInteger PGSimultaneousConnections = 0;
 
 @end
 
+#if __has_feature(objc_arc)
+
+@interface PGURLLoad()
+
+@property(nonatomic, assign) BOOL loaded;
+@property(nonatomic, weak) NSObject<PGURLLoadDelegate> *delegate;
+@property(nonatomic, strong) NSURLConnection *connection;
+@property(nonatomic, strong) NSURLRequest *request;
+@property(nonatomic, strong) NSURLResponse *response;
+@property(nonatomic, strong) NSMutableData *data;
+@property(nonatomic, strong) PGActivity *activity;
+
+- (BOOL)_start;
+- (void)_stop;
+
+@end
+
+#else
+
 @interface PGURLLoad(Private)
 
 - (BOOL)_start;
@@ -45,22 +64,30 @@ static NSUInteger PGSimultaneousConnections = 0;
 
 @end
 
+#endif
+
 @implementation PGURLLoad
 
-#pragma mark +PGURLLoad
+//	MARK: +PGURLLoad
 
 + (NSString *)userAgent
 {
+#if __has_feature(objc_arc)
+	return PGUserAgent;
+#else
 	return [[PGUserAgent retain] autorelease];
+#endif
 }
 + (void)setUserAgent:(NSString *)aString
 {
 	if(aString == PGUserAgent) return;
+#if !__has_feature(objc_arc)
 	[PGUserAgent release];
+#endif
 	PGUserAgent = [aString copy];
 }
 
-#pragma mark -PGURLLoad
+//	MARK: - PGURLLoad
 
 - (id)initWithRequest:(NSURLRequest *)aRequest parent:(id<PGActivityOwner>)parent delegate:(NSObject<PGURLLoadDelegate> *)delegate
 {
@@ -76,7 +103,7 @@ static NSUInteger PGSimultaneousConnections = 0;
 	return self;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (NSObject<PGURLLoadDelegate> *)delegate
 {
@@ -84,24 +111,38 @@ static NSUInteger PGSimultaneousConnections = 0;
 }
 - (NSURLRequest *)request
 {
+#if __has_feature(objc_arc)
+	return _request;
+#else
 	return [[_request retain] autorelease];
+#endif
 }
 - (NSURLResponse *)response
 {
+#if __has_feature(objc_arc)
+	return _response;
+#else
 	return [[_response retain] autorelease];
+#endif
 }
 - (NSMutableData *)data
 {
+#if __has_feature(objc_arc)
+	return _data;
+#else
 	return [[_data retain] autorelease];
+#endif
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)cancelAndNotify:(BOOL)notify
 {
 	if([self loaded]) return;
 	[self _stop];
+#if !__has_feature(objc_arc)
 	[_data release];
+#endif
 	_data = nil;
 	if(notify) [[self delegate] loadDidCancel:self];
 }
@@ -110,7 +151,7 @@ static NSUInteger PGSimultaneousConnections = 0;
 	return _loaded;
 }
 
-#pragma mark -PGURLLoad(Private)
+//	MARK: - PGURLLoad(Private)
 
 - (BOOL)_start
 {
@@ -132,30 +173,37 @@ static NSUInteger PGSimultaneousConnections = 0;
 {
 	if(!_connection) return;
 	[_connection cancel];
+#if !__has_feature(objc_arc)
 	[_connection release];
+#endif
 	_connection = nil;
 	PGSimultaneousConnections--;
 	[_activity invalidate];
 	[[PGActivity applicationActivity] PG_startNextURLLoad];
 }
 
-#pragma mark -NSObject
+//	MARK: - NSObject
 
 - (void)dealloc
 {
 	[self _stop];
+#if !__has_feature(objc_arc)
 	[_request release];
 	[_response release];
 	[_data release];
+	[_activity release];	//	bugfix: was not being -release'd
 	[super dealloc];
+#endif
 }
 
-#pragma mark -NSObject(NSURLConnectionDelegate)
+//	MARK: - NSObject(NSURLConnectionDelegate)
 
 - (void)connection:(NSURLConnection *)connection didReceiveResponse:(NSURLResponse *)response
 {
 	NSParameterAssert(connection == _connection);
+#if !__has_feature(objc_arc)
 	[_response autorelease];
+#endif
 	_response = [response copy];
 	[[self delegate] loadDidReceiveResponse:self];
 }
@@ -169,7 +217,9 @@ static NSUInteger PGSimultaneousConnections = 0;
 {
 	NSParameterAssert(connection == _connection);
 	[self _stop];
+#if !__has_feature(objc_arc)
 	[_data release];
+#endif
 	_data = nil;
 	[[self delegate] loadDidFail:self];
 }
@@ -181,9 +231,12 @@ static NSUInteger PGSimultaneousConnections = 0;
 	[[self delegate] loadDidSucceed:self];
 }
 
-#pragma mark -<PGActivityOwner>
+//	MARK: - <PGActivityOwner>
 
+#if !__has_feature(objc_arc)
 @synthesize activity = _activity;
+#endif
+
 - (NSString *)descriptionForActivity:(PGActivity *)activity
 {
 	return [[_request URL] absoluteString];
