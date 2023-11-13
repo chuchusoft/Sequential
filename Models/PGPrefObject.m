@@ -54,7 +54,7 @@ static NSString *const PGBaseOrientationKey = @"PGBaseOrientation";
 
 @implementation PGPrefObject
 
-#pragma mark +PGPrefObject
+//	MARK: +PGPrefObject
 
 + (id)globalPrefObject
 {
@@ -67,11 +67,24 @@ static NSString *const PGBaseOrientationKey = @"PGBaseOrientation";
 	return [NSArray arrayWithObjects:[NSNumber numberWithInteger:PGConstantFactorScale], [NSNumber numberWithInteger:PGAutomaticScale], [NSNumber numberWithInteger:PGViewFitScale], nil];
 }
 
-#pragma mark +NSObject
+//	MARK: +NSObject
 
 + (void)initialize
 {
 	if([PGPrefObject class] != self) return;
+#if 1
+	[NSUserDefaults.standardUserDefaults registerDefaults:@{
+		PGShowsInfoKey: @YES,
+		PGShowsThumbnailsKey: @YES,
+		PGReadingDirectionRightToLeftKey: @NO,
+		PGImageScaleModeKey: @( PGConstantFactorScale ),
+		PGImageScaleFactorKey: @1.0f,
+		PGAnimatesImagesKey: @YES,
+		PGSortOrderKey: @( PGSortByName | PGSortRepeatMask ),
+		PGTimerIntervalKey: @30.0f,
+		PGBaseOrientationKey: @( PGUpright )
+	}];
+#else
 	[[NSUserDefaults standardUserDefaults] registerDefaults:[NSDictionary dictionaryWithObjectsAndKeys:
 		[NSNumber numberWithBool:YES], PGShowsInfoKey,
 		[NSNumber numberWithBool:YES], PGShowsThumbnailsKey,
@@ -83,14 +96,17 @@ static NSString *const PGBaseOrientationKey = @"PGBaseOrientation";
 		[NSNumber numberWithDouble:30.0f], PGTimerIntervalKey,
 		[NSNumber numberWithUnsignedInteger:PGUpright], PGBaseOrientationKey,
 		nil]];
+#endif
 }
 
-#pragma mark -PGPrefObject
+//	MARK: - PGPrefObject
 
+#if !__has_feature(objc_arc)
 - (BOOL)showsInfo
 {
 	return _showsInfo;
 }
+#endif
 - (void)setShowsInfo:(BOOL)flag
 {
 	if(!flag == !_showsInfo) return;
@@ -98,10 +114,12 @@ static NSString *const PGBaseOrientationKey = @"PGBaseOrientation";
 	[[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithBool:flag] forKey:PGShowsInfoKey];
 	[self PG_postNotificationName:PGPrefObjectShowsInfoDidChangeNotification];
 }
+#if !__has_feature(objc_arc)
 - (BOOL)showsThumbnails
 {
 	return _showsThumbnails;
 }
+#endif
 - (void)setShowsThumbnails:(BOOL)flag
 {
 	if(!flag == !_showsThumbnails) return;
@@ -110,12 +128,14 @@ static NSString *const PGBaseOrientationKey = @"PGBaseOrientation";
 	[self PG_postNotificationName:PGPrefObjectShowsThumbnailsDidChangeNotification];
 }
 
-#pragma mark -
+//	MARK: -
 
+#if !__has_feature(objc_arc)
 - (PGReadingDirection)readingDirection
 {
 	return _readingDirection;
 }
+#endif
 - (void)setReadingDirection:(PGReadingDirection)aDirection
 {
 	if(aDirection == _readingDirection) return;
@@ -124,25 +144,33 @@ static NSString *const PGBaseOrientationKey = @"PGBaseOrientation";
 	[self PG_postNotificationName:PGPrefObjectReadingDirectionDidChangeNotification];
 }
 
-#pragma mark -
+//	MARK: -
 
+#if !__has_feature(objc_arc)
 - (PGImageScaleMode)imageScaleMode
 {
 	return _imageScaleMode;
 }
+#endif
 - (void)setImageScaleMode:(PGImageScaleMode)aMode
 {
 	_imageScaleMode = aMode;
+#if __has_feature(objc_arc)
+	self.imageScaleFactor = 1;
+#else
 	_imageScaleFactor = 1;
+#endif
 	[[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithInteger:aMode] forKey:PGImageScaleModeKey];
 	[[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithDouble:1] forKey:PGImageScaleFactorKey];
 	[self PG_postNotificationName:PGPrefObjectImageScaleDidChangeNotification userInfo:[NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:YES], PGPrefObjectAnimateKey, nil]];
 }
 
+#if !__has_feature(objc_arc)
 - (CGFloat)imageScaleFactor
 {
 	return _imageScaleFactor;
 }
+#endif
 - (void)setImageScaleFactor:(CGFloat)factor
 {
 	[self setImageScaleFactor:factor animate:YES];
@@ -158,12 +186,14 @@ static NSString *const PGBaseOrientationKey = @"PGBaseOrientation";
 	[self PG_postNotificationName:PGPrefObjectImageScaleDidChangeNotification userInfo:[NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:flag], PGPrefObjectAnimateKey, nil]];
 }
 
-#pragma mark -
+//	MARK: -
 
+#if !__has_feature(objc_arc)
 - (BOOL)animatesImages
 {
 	return _animatesImages;
 }
+#endif
 - (void)setAnimatesImages:(BOOL)flag
 {
 	if(!flag == !_animatesImages) return;
@@ -172,12 +202,14 @@ static NSString *const PGBaseOrientationKey = @"PGBaseOrientation";
 	[self PG_postNotificationName:PGPrefObjectAnimatesImagesDidChangeNotification];
 }
 
-#pragma mark -
+//	MARK: -
 
+#if !__has_feature(objc_arc)
 - (PGSortOrder)sortOrder
 {
 	return _sortOrder;
 }
+#endif
 - (void)setSortOrder:(PGSortOrder)anOrder
 {
 	if(anOrder == _sortOrder) return;
@@ -186,12 +218,14 @@ static NSString *const PGBaseOrientationKey = @"PGBaseOrientation";
 	[self PG_postNotificationName:PGPrefObjectSortOrderDidChangeNotification];
 }
 
-#pragma mark -
+//	MARK: -
 
+#if !__has_feature(objc_arc)
 - (NSTimeInterval)timerInterval
 {
 	return _timerInterval;
 }
+#endif
 - (void)setTimerInterval:(NSTimeInterval)interval
 {
 	if(interval == _timerInterval) return;
@@ -200,12 +234,14 @@ static NSString *const PGBaseOrientationKey = @"PGBaseOrientation";
 	[self PG_postNotificationName:PGPrefObjectTimerIntervalDidChangeNotification];
 }
 
-#pragma mark -
+//	MARK: -
 
+#if !__has_feature(objc_arc)
 - (PGOrientation)baseOrientation
 {
 	return _baseOrientation;
 }
+#endif
 - (void)setBaseOrientation:(PGOrientation)anOrientation
 {
 	if(anOrientation == _baseOrientation) return;
@@ -214,14 +250,14 @@ static NSString *const PGBaseOrientationKey = @"PGBaseOrientation";
 	[self PG_postNotificationName:PGPrefObjectBaseOrientationDidChangeNotification];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (BOOL)isCurrentSortOrder:(PGSortOrder)order
 {
 	return (PGSortOrderMask & order) == (PGSortOrderMask & self.sortOrder);
 }
 
-#pragma mark -NSObject
+//	MARK: - NSObject
 
 - (id)init
 {
