@@ -36,11 +36,26 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 NSString *const PGDOMDocumentKey = @"PGDOMDocument";
 
+#if __has_feature(objc_arc)
+
+@interface PGHTMLAdapter ()
+
+@property (nonatomic, strong) WKWebView *webView;	//	WebView *_webView;
+@property (nonatomic, strong) WKNavigation *navigation;
+
+- (void)_clearWebView;
+
+@end
+
+#else
+
 @interface PGHTMLAdapter(Private)
 
 - (void)_clearWebView;
 
 @end
+
+#endif
 
 @implementation PGHTMLAdapter
 
@@ -50,10 +65,14 @@ NSString *const PGDOMDocumentKey = @"PGDOMDocument";
 {
 	[_webView stopLoading:self];
 	_webView.navigationDelegate = nil;	//	[_webView setFrameLoadDelegate:nil];
+#if !__has_feature(objc_arc)
 	[_webView autorelease];
+#endif
 	_webView = nil;
 
+#if !__has_feature(objc_arc)
 	[_navigation autorelease];
+#endif
 	_navigation = nil;
 }
 
@@ -91,9 +110,13 @@ NSString *const PGDOMDocumentKey = @"PGDOMDocument";
 			WKWebViewConfiguration* webViewConfiguration = [WKWebViewConfiguration new];
 			webViewConfiguration.preferences = preferences;
 			_webView = [[WKWebView alloc] initWithFrame:NSZeroRect configuration:webViewConfiguration];
+	#if !__has_feature(objc_arc)
 			[webViewConfiguration release];
+	#endif
 		}
+	#if !__has_feature(objc_arc)
 		[preferences release];
+	#endif
 	}
 	_webView.navigationDelegate = self;
 
@@ -112,9 +135,13 @@ NSString *const PGDOMDocumentKey = @"PGDOMDocument";
 				  options:NSKeyValueObservingOptionNew
 				  context:nil];
 	
+	#if __has_feature(objc_arc)
+	_navigation = nav;
+	#else
 	if(_navigation)
 		[_navigation release];
 	_navigation = [nav retain];
+	#endif
 #else
 	_webView = [[WebView alloc] initWithFrame:NSZeroRect];
 	[_webView setFrameLoadDelegate:self];
@@ -144,7 +171,9 @@ NSString *const PGDOMDocumentKey = @"PGDOMDocument";
 - (void)dealloc
 {
 	[self _clearWebView];
+#if !__has_feature(objc_arc)
 	[super dealloc];
+#endif
 }
 
 #if 1
