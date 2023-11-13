@@ -115,8 +115,8 @@ static PGDocumentController *PGSharedDocumentController = nil;
 @property (nonatomic, weak) IBOutlet NSMenuItem *selectPreviousDocument;
 @property (nonatomic, weak) IBOutlet NSMenuItem *selectNextDocument;
 
-//	[_documents release];
-@property (nonatomic, copy) NSMutableArray<__kindof PGDocument*> *documents;	//	2023/10/29 specified static type
+//	was copy, now strong (to silence a static analyzer warning)
+@property (nonatomic, strong) NSMutableArray<PGDocument*> *documents;	//	2023/10/29 specified static type
 @property (nonatomic, strong) PGFullscreenController *fullscreenController;
 @property (nonatomic, assign) BOOL inFullscreen;
 
@@ -871,12 +871,12 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 #endif
 		_fullscreen = [[defaults objectForKey:PGFullscreenKey] boolValue];
 
-		_documents = [[NSMutableArray<__kindof PGDocument*> alloc] init];
+		_documents = [NSMutableArray<PGDocument*> new];
 	//	_classesByExtension = [[NSMutableDictionary alloc] init];	2023/10/29 not used; removed
 
-		_inspectorPanel = [[PGInspectorPanelController alloc] init];
-		_timerPanel = [[PGTimerPanelController alloc] init];
-		_activityPanel = [[PGActivityPanelController alloc] init];
+		_inspectorPanel = [PGInspectorPanelController new];
+		_timerPanel = [PGTimerPanelController new];
+		_activityPanel = [PGActivityPanelController new];
 
 		if(!PGSharedDocumentController) {
 #if __has_feature(objc_arc)
