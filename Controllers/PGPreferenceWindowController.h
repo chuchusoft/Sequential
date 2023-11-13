@@ -27,10 +27,8 @@ extern NSString *const PGPreferenceWindowControllerBackgroundPatternColorDidChan
 extern NSString *const PGPreferenceWindowControllerBackgroundColorUsedInFullScreenDidChangeNotification;
 extern NSString *const PGPreferenceWindowControllerDisplayScreenDidChangeNotification;
 
-@interface PGPreferenceWindowController : NSWindowController
-#ifdef MAC_OS_X_VERSION_10_6
-<NSApplicationDelegate, NSToolbarDelegate>
-#endif
+@interface PGPreferenceWindowController : NSWindowController<NSApplicationDelegate, NSToolbarDelegate>
+#if !__has_feature(objc_arc)
 {
 	@private
 	IBOutlet NSView *generalView;
@@ -45,6 +43,7 @@ extern NSString *const PGPreferenceWindowControllerDisplayScreenDidChangeNotific
 
 	IBOutlet NSView *updateView;
 }
+#endif
 
 + (id)sharedPrefController;
 
@@ -52,7 +51,12 @@ extern NSString *const PGPreferenceWindowControllerDisplayScreenDidChangeNotific
 - (IBAction)showPrefsHelp:(id)sender;
 - (IBAction)changePane:(NSToolbarItem *)sender; // Gets the pane name from [sender itemIdentifier].
 
+#if __has_feature(objc_arc)
+@property (readonly) NSColor *backgroundPatternColor;
+@property (nonatomic, strong) NSScreen *displayScreen;
+#else
 @property(readonly) NSColor *backgroundPatternColor;
 @property(retain) NSScreen *displayScreen;
+#endif
 
 @end
