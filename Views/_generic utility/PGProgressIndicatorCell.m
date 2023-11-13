@@ -30,11 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @implementation PGProgressIndicatorCell
 
-#pragma mark -PGProgressIndicatorCell
-
-@synthesize hidden = _hidden;
-
-#pragma mark -NSCell
+//	MARK: - NSCell
 
 - (void)drawWithFrame:(NSRect)aRect inView:(NSView *)aView
 {
