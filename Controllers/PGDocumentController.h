@@ -158,7 +158,7 @@ typedef NSUInteger PGImageScaleConstraint;
 @property (readonly) BOOL canToggleFullscreen;
 @property (nonatomic, assign) BOOL usesEntireScreenWhenInFullScreen;	//	2023/08/14 added
 @property (readonly) BOOL canToggleUsesEntireScreenWhenInFullScreen;	//	2023/08/14 added
-@property (readonly, copy) NSArray *documents;
+@property (readonly) NSArray *documents;	//	removed copy attribute to silence static analyzer warning
 @property (readonly) NSMenu *scaleMenu;
 @property (nonatomic, weak) IBOutlet NSSlider *scaleSlider;
 @property (readonly, strong) IBOutlet NSMenu *defaultPageMenu;
