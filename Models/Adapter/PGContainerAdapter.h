@@ -31,6 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 extern NSString *const PGMaxDepthKey;
 
 @interface PGContainerAdapter : PGResourceAdapter
+#if !__has_feature(objc_arc)
 {
 	@private
 	NSArray<PGNode*> *_sortedChildren;
@@ -39,6 +40,7 @@ extern NSString *const PGMaxDepthKey;
 	uint64_t _byteSizeDirectChildren, _byteSizeAllChildren;
 	NSUInteger _folderCount, _imageCount;
 }
+#endif
 
 @property(readonly) PGRecursionPolicy descendantRecursionPolicy;
 
