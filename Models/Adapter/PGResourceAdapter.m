@@ -57,12 +57,27 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 - (id)initWithResourceAdapter:(PGResourceAdapter *)adapter;
 @end
 
-@interface PGResourceAdapter (Private)
+#if __has_feature(objc_arc)
 
-- (void)_setRealThumbnail:(NSImage *)anImage;
+@interface PGResourceAdapter ()
+
+@property (nonatomic, strong) PGActivity *activity;
+@property (nonatomic, strong) NSImage *realThumbnail;
+@property (nonatomic, strong) NSOperation *generateImageOperation;	//	2023/10/21 generates full image and/or thumbnail if neither exist
+
 - (void)_stopGeneratingImagesInOperation:(NSOperation *)operation;
 
 @end
+
+#else
+
+@interface PGResourceAdapter (Private)
+
+- (void)_stopGeneratingImagesInOperation:(NSOperation *)operation;
+
+@end
+
+#endif
 
 #pragma mark -
 @implementation PGResourceAdapter
@@ -105,13 +120,15 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 {
 	if((self = [super init])) {
 		_node = node;
+#if __has_feature(objc_arc)
+		_dataProvider = dataProvider;
+#else
 		_dataProvider = [dataProvider retain];
+#endif
 		_activity = [[PGActivity alloc] initWithOwner:self];
 	}
 	return self;
 }
-@synthesize node = _node;
-@synthesize dataProvider = _dataProvider;
 
 #pragma mark -
 
@@ -227,7 +244,6 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 
 #pragma mark -
 
-@synthesize error = _error;
 - (BOOL)adapterIsViewable
 {
 	return NO;
@@ -271,10 +287,12 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 	thumbnail.size	=	NSMakeSize(PGThumbnailSize, PGThumbnailSize);
 	return thumbnail;
 }
+#if !__has_feature(objc_arc)
 - (NSImage *)realThumbnail
 {
 	return [[_realThumbnail retain] autorelease];
 }
+#endif
 - (void)_setRealThumbnail:(NSImage *)anImage
 {
 	//	2023/10/22 if this adapter represents a container (such as a PDF file), allow
@@ -285,8 +303,12 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 		return;
 
 	if(anImage != _realThumbnail) {
+#if __has_feature(objc_arc)
+		_realThumbnail = anImage;
+#else
 		[_realThumbnail release];
 		_realThumbnail = [anImage retain];
+#endif
 		[[self document] noteNodeThumbnailDidChange:[self node] recursively:NO];
 	}
 }
@@ -299,7 +321,9 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 	if(![self canGenerateRealThumbnail]) return;
 
 	[self _stopGeneratingImagesInOperation:_generateImageOperation];
+#if !__has_feature(objc_arc)
 	[_realThumbnail release];
+#endif
 	_realThumbnail = nil;
 
 	(void)[self thumbnail];
@@ -404,6 +428,7 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 - (void)noteResourceDidChange {}
 
 - (void)_startGeneratingImages {	//	2023/10/21
+	NSAssert(NSThread.isMainThread, @"");
 	if(!_generateImageOperation) {
 		[[self node] setIsReading:YES];
 
@@ -415,15 +440,53 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 }
 
 - (void)_stopGeneratingImagesInOperation:(NSOperation *)operation {	//	2023/10/21
+	NSAssert(NSThread.isMainThread, @"");
 	[[self node] setIsReading:NO];
 
 	NSParameterAssert(_generateImageOperation == operation);
 
 	if(_generateImageOperation) {
 		[_generateImageOperation cancel];
+#if !__has_feature(objc_arc)
 		[_generateImageOperation release];
+#endif
 		_generateImageOperation = nil;
 	}
+}
+
+static
+NSBitmapImageRep *
+ThumbnailOf(NSImageRep *imageRep, NSSize size, PGOrientation orientation, BOOL opaque) {
+	if(!imageRep) return nil;
+	NSSize const originalSize = PGRotated90CCW & orientation ? NSMakeSize([imageRep pixelsHigh], [imageRep pixelsWide]) : NSMakeSize([imageRep pixelsWide], [imageRep pixelsHigh]);
+	NSSize const s = PGIntegralSize(PGScaleSizeByFloat(originalSize, MIN(1.0f, MIN(size.width / originalSize.width, size.height / originalSize.height))));
+#if __has_feature(objc_arc)
+	NSBitmapImageRep *const thumbRep = [[NSBitmapImageRep alloc] initWithBitmapDataPlanes:NULL
+																			   pixelsWide:s.width
+																			   pixelsHigh:s.height
+																			bitsPerSample:8
+																		  samplesPerPixel:4
+																				 hasAlpha:YES
+																				 isPlanar:NO
+																		   colorSpaceName:NSDeviceRGBColorSpace
+																			  bytesPerRow:0
+																			 bitsPerPixel:0];
+#else
+	NSBitmapImageRep *const thumbRep = [[[NSBitmapImageRep alloc] initWithBitmapDataPlanes:NULL pixelsWide:s.width pixelsHigh:s.height bitsPerSample:8 samplesPerPixel:4 hasAlpha:YES isPlanar:NO colorSpaceName:NSDeviceRGBColorSpace bytesPerRow:0 bitsPerPixel:0] autorelease];
+#endif
+	if(!thumbRep) return nil;
+	NSGraphicsContext *const context = [NSGraphicsContext graphicsContextWithBitmapImageRep:thumbRep];
+	[NSGraphicsContext setCurrentContext:context];
+	[context setImageInterpolation:NSImageInterpolationHigh];
+	NSRect rect = NSMakeRect(0.0f, 0.0f, s.width, s.height);
+	if(PGUpright != orientation) [[NSAffineTransform PG_transformWithRect:&rect orientation:orientation] concat];
+	if(opaque) {
+		[[NSColor whiteColor] set];
+		NSRectFill(rect);
+	}
+	[imageRep drawInRect:rect];
+	[context flushGraphics];
+	return thumbRep;
 }
 
 - (void)_setThumbnailImageInOperation:(NSOperation *)operation
@@ -432,13 +495,15 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 						  orientation:(PGOrientation)orientation
 							   opaque:(BOOL)opaque
 		  setParentContainerThumbnail:(BOOL)setParentContainerThumbnail {
-	NSImageRep *thumbRep = [rep PG_thumbnailWithMaxSize:size
-											orientation:orientation
-												 opaque:opaque];
+	NSImageRep *thumbRep = ThumbnailOf(rep, size, orientation, opaque);
 	if(!thumbRep || [operation isCancelled])
 		return;
 
+#if __has_feature(objc_arc)
+	NSImage *const thumbImage = [[NSImage alloc] initWithSize:NSMakeSize(thumbRep.pixelsWide, thumbRep.pixelsHigh)];
+#else
 	NSImage *const thumbImage = [[[NSImage alloc] initWithSize:NSMakeSize([thumbRep pixelsWide], [thumbRep pixelsHigh])] autorelease];
+#endif
 	if(!thumbImage || [operation isCancelled])
 		return;
 	[thumbImage addRepresentation:thumbRep];
@@ -459,19 +524,25 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 - (id)init
 {
 	PGAssertNotReached(@"Invalid initializer, use -initWithNode:dataProvider: instead.");
+#if __has_feature(objc_arc)
+	self = nil;
+#else
 	[self release];
+#endif
 	return nil;
 }
 - (void)dealloc
 {
 	[_activity invalidate];
 
+#if !__has_feature(objc_arc)
 	[_dataProvider release];
 	[_activity release];
 	[_error release];
 	[_realThumbnail release];
 	[_generateImageOperation release];	//	2023/10/21
 	[super dealloc];
+#endif
 }
 
 #pragma mark -<NSObject>
@@ -483,10 +554,12 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 
 #pragma mark -<PGActivityOwner>
 
+#if !__has_feature(objc_arc)
 - (PGActivity *)activity
 {
 	return [[_activity retain] autorelease];
 }
+#endif
 - (NSString *)descriptionForActivity:(PGActivity *)activity
 {
 	return [[[self node] identifier] displayName];
@@ -530,16 +603,22 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 - (id)initWithResourceAdapter:(NSObject<PGResourceAdapterImageGeneratorCompletion, PGResourceAdapterImageGeneration> *)adapter
 {
 	if((self = [super init])) {
+#if __has_feature(objc_arc)
+		_adapter = adapter;
+#else
 		_adapter = [adapter retain];
+#endif
 	}
 	return self;
 }
 
+#if !__has_feature(objc_arc)
 - (void)dealloc
 {
 	[_adapter release];
 	[super dealloc];
 }
+#endif
 
 #pragma mark NSOperation
 
@@ -636,7 +715,12 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 - (NSArray *)adaptersForNode:(PGNode *)node
 {
 	NSMutableArray *const adapters = [NSMutableArray array];
-	for(Class const class in [self adapterClassesForNode:node]) [adapters addObject:[[[class alloc] initWithNode:node dataProvider:self] autorelease]];
+	for(Class const class in [self adapterClassesForNode:node])
+#if __has_feature(objc_arc)
+		[adapters addObject:[[class alloc] initWithNode:node dataProvider:self]];
+#else
+		[adapters addObject:[[[class alloc] initWithNode:node dataProvider:self] autorelease]];
+#endif
 	return adapters;
 }
 
