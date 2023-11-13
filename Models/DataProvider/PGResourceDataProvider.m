@@ -35,12 +35,30 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 // Other Sources
 #import "PGFoundationAdditions.h"
 
+#if __has_feature(objc_arc)
+
+@interface PGResourceDataProvider ()
+
+@property (nonatomic, strong) NSString *displayableName;
+
+@end
+
+#endif
+
 @implementation PGResourceDataProvider
+
+#if __has_feature(objc_arc)
+@synthesize identifier = _identifier;
+#endif
 
 - (id)initWithResourceIdentifier:(PGResourceIdentifier *)ident displayableName:(NSString *)name
 {
 	if((self = [super init])) {
+#if __has_feature(objc_arc)
+		_identifier = ident;
+#else
 		_identifier = [ident retain];
+#endif
 		_displayableName = [name copy];
 	}
 	return self;
@@ -69,10 +87,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 #pragma mark -PGDataProvider
 
+#if !__has_feature(objc_arc)
 - (PGResourceIdentifier *)identifier
 {
 	return [[_identifier retain] autorelease];
 }
+#endif
 - (NSString *)displayableName
 {
 //	return _displayableName ? _displayableName : [self valueForLSAttributeName:kLSItemDisplayName];
@@ -80,9 +100,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 }
 - (NSData *)data
 {
-	return [[[NSData alloc] initWithContentsOfURL:[_identifier URL]
-										  options:NSDataReadingMapped | NSDataReadingUncached
-											error:NULL] autorelease];
+	return [NSData dataWithContentsOfURL:[_identifier URL]
+								 options:NSDataReadingMapped | NSDataReadingUncached
+								   error:NULL];
 }
 - (uint64_t)dataByteSize
 {
@@ -139,18 +159,26 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 {
 	NSString* uniformTypeIdentifier = [self UTIType];
 	NSParameterAssert(uniformTypeIdentifier);
+#if __has_feature(objc_arc)
+	CFStringRef desc = UTTypeCopyDescription((__bridge CFStringRef) uniformTypeIdentifier);
+	NSParameterAssert(desc);
+	return (NSString *)CFBridgingRelease(desc);
+#else
 	CFStringRef desc = UTTypeCopyDescription((CFStringRef) uniformTypeIdentifier);
 	NSParameterAssert(desc);
 	return [(NSString *)desc autorelease];
+#endif
 }
 
 #pragma mark -NSObject
 
+#if !__has_feature(objc_arc)
 - (void)dealloc
 {
 	[_identifier release];
 	[_displayableName release];
 	[super dealloc];
 }
+#endif
 
 @end
