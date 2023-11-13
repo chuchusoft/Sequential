@@ -71,6 +71,7 @@ static CFMutableDictionaryRef PGTimers_NonretainedKey_RetainedValue = NULL;
 
 #else
 
+//	MARK: -
 static NSMutableDictionary *PGTimersByNonretainedObjectValue;
 
 @interface PGTimerContextObject : NSObject
@@ -91,6 +92,7 @@ static NSMutableDictionary *PGTimersByNonretainedObjectValue;
 
 #endif
 
+//	MARK: -
 @implementation NSObject(PGDelayedPerforming)
 
 static void PGTimerCallback(CFRunLoopTimerRef timer, PGTimerContextObject *context)
@@ -221,9 +223,8 @@ static void PGTimerCallback(CFRunLoopTimerRef timer, PGTimerContextObject *conte
 
 @end
 
+//	MARK: -
 @implementation PGTimerContextObject
-
-#pragma mark -PGTimerContextObject
 
 #if __has_feature(objc_arc)
 - (id)initWithSelector:(SEL)aSel object:(id)anArgument options:(PGDelayedPerformingOptions)opts
@@ -265,7 +266,7 @@ static void PGTimerCallback(CFRunLoopTimerRef timer, PGTimerContextObject *conte
 	return _target;
 }
 
-#pragma mark -NSObject
+//	MARK: - NSObject
 
 - (void)dealloc
 {
@@ -277,6 +278,8 @@ static void PGTimerCallback(CFRunLoopTimerRef timer, PGTimerContextObject *conte
 
 @end
 
+
+//	MARK: -
 
 #if __has_feature(objc_arc)
 

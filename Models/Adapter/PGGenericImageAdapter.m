@@ -76,14 +76,12 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 
 #endif
 
-#pragma mark -
+//	MARK: -
 @implementation PGGenericImageAdapter
 
 #if __has_feature(objc_arc)
 @synthesize imageProperties = _imageProperties;
 #endif
-
-#pragma mark Private Protocol
 
 - (NSDictionary *)_imageSourceOptions
 {
@@ -114,14 +112,14 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 	[[self node] readFinishedWithImageRep:aRep];
 }
 
-#pragma mark PGResourceAdapting Protocol
+//	MARK: - <PGResourceAdapting>
 
 - (BOOL)canSaveData
 {
 	return YES;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)load
 {
@@ -131,7 +129,7 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 	[[self node] loadFinishedForAdapter:self];
 }
 
-#pragma mark -
+//	MARK: -
 
 #if !__has_feature(objc_arc)
 - (NSDictionary *)imageProperties
@@ -155,7 +153,7 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 	_cachedRep = nil;
 }
 
-#pragma mark PGResourceAdapter
+//	MARK: - PGResourceAdapter
 
 - (BOOL)adapterIsViewable
 {
@@ -179,7 +177,7 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 	return YES;
 }
 
-#pragma mark - <PGResourceAdapterImageGeneration>
+//	MARK: - <PGResourceAdapterImageGeneration>
 
 - (void)generateImagesInOperation:(NSOperation *)operation
 					thumbnailSize:(NSSize)size {	//	2023/10/21
@@ -322,7 +320,7 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 		CFRelease(source);
 }
 
-#pragma mark NSObject
+//	MARK: - NSObject
 
 #if !__has_feature(objc_arc)
 - (void)dealloc

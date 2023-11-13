@@ -29,7 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @implementation NSAttributedString(PGAdditions)
 
-#pragma mark -NSAttributedString(PGAdditions)
+//	MARK: NSAttributedString(PGAdditions)
 
 + (NSMutableAttributedString *)PG_attributedStringWithAttachmentCell:(NSTextAttachmentCell *)cell label:(NSString *)label
 {
@@ -67,9 +67,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+//	MARK: -
 @implementation PGIconAttachmentCell
 
-#pragma mark -NSTextAttachmentCell
+//	MARK: NSTextAttachmentCell
 
 - (void)drawWithFrame:(NSRect)aRect inView:(NSView *)aView
 {
@@ -90,7 +91,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	return NSMakePoint(0.0f, -3.0f);
 }
 
-#pragma mark -NSCell
+//	MARK: - NSCell
 
 - (id)initImageCell:(NSImage *)anImage
 {

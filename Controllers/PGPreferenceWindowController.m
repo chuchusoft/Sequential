@@ -103,7 +103,7 @@ static PGPreferenceWindowController *PGSharedPrefController = nil;
 //	MARK: -
 @implementation PGPreferenceWindowController
 
-#pragma mark +PGPreferenceWindowController
+//	MARK: +PGPreferenceWindowController
 
 + (id)sharedPrefController
 {

@@ -44,9 +44,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+//	MARK: -
 @implementation PGDataProvider
 
-#pragma mark +PGDataProvider(PGDataProviderCreation)
+//	MARK: +PGDataProvider(PGDataProviderCreation)
 
 + (id)providerWithResourceIdentifier:(PGResourceIdentifier *)ident displayableName:(NSString *)name
 {

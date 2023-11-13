@@ -57,9 +57,8 @@ NSString *const PGDOMDocumentKey = @"PGDOMDocument";
 
 #endif
 
+//	MARK: -
 @implementation PGHTMLAdapter
-
-#pragma mark -PGHTMLAdapter(Private)
 
 - (void)_clearWebView
 {
@@ -76,14 +75,14 @@ NSString *const PGDOMDocumentKey = @"PGDOMDocument";
 	_navigation = nil;
 }
 
-#pragma mark -PGContainerAdapter
+//	MARK: - PGContainerAdapter
 
 - (PGRecursionPolicy)descendantRecursionPolicy
 {
 	return PGRecurseNoFurther;
 }
 
-#pragma mark -PGResourceAdapter
+//	MARK: - PGResourceAdapter
 
 - (void)load
 {
@@ -166,7 +165,7 @@ NSString *const PGDOMDocumentKey = @"PGDOMDocument";
 
 - (void)read {}
 
-#pragma mark -NSObject
+//	MARK: - NSObject
 
 - (void)dealloc
 {
@@ -189,7 +188,7 @@ NSString *const PGDOMDocumentKey = @"PGDOMDocument";
 	}
 }
 
-#pragma mark id<WKNavigationDelegate>
+//	MARK: - id<WKNavigationDelegate>
 
 - (void)				 webView:(WKWebView *)webView
 	didFailProvisionalNavigation:(null_unspecified WKNavigation *)navigation
@@ -245,7 +244,7 @@ NSString *const PGDOMDocumentKey = @"PGDOMDocument";
 
 #else
 
-#pragma mark -NSObject(WebFrameLoadDelegate)
+//	MARK: - NSObject(WebFrameLoadDelegate)
 
 - (void)webView:(WebView *)sender didFailProvisionalLoadWithError:(NSError *)error forFrame:(WebFrame *)frame
 {

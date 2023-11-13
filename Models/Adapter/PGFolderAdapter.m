@@ -40,10 +40,10 @@ static NSArray *PGIgnoredPaths = nil;
 @interface PGDiskFolderDataProvider : PGResourceDataProvider	//	2023/10/22
 @end
 
-#pragma mark -
+//	MARK: -
 @implementation PGDiskFolderDataProvider
 
-#pragma mark PGDataProvider
+//	MARK: PGDataProvider
 - (OSType)typeCode
 {
 	return 'fold';
@@ -51,10 +51,10 @@ static NSArray *PGIgnoredPaths = nil;
 
 @end
 
-#pragma mark -
+//	MARK: -
 @implementation PGFolderAdapter
 
-#pragma mark +NSObject
+//	MARK: +NSObject
 
 + (void)initialize
 {
@@ -62,7 +62,7 @@ static NSArray *PGIgnoredPaths = nil;
 	PGIgnoredPaths = [[NSArray alloc] initWithObjects:@"/net", @"/etc", @"/home", @"/tmp", @"/var", @"/mach_kernel.ctfsys", @"/mach.sym", nil];
 }
 
-#pragma mark +PGDataProviderCustomizing
+//	MARK: +PGDataProviderCustomizing
 
 //	2023/10/22
 + (PGDataProvider *)customDataProviderWithResourceIdentifier:(PGResourceIdentifier *)ident displayableName:(NSString *)name
@@ -82,7 +82,7 @@ static NSArray *PGIgnoredPaths = nil;
 #endif
 }
 
-#pragma mark -PGFolderAdapter
+//	MARK: - PGFolderAdapter
 
 static
 BOOL
@@ -156,7 +156,7 @@ IsVisibleInFinder(NSURL* pageURL) {
 	[[self document] setProcessingNodes:NO];
 }
 
-#pragma mark -PGResourceAdapter
+//	MARK: - PGResourceAdapter
 
 - (void)load
 {
@@ -164,7 +164,7 @@ IsVisibleInFinder(NSURL* pageURL) {
 	[[self node] loadFinishedForAdapter:self];
 }
 
-#pragma mark -<PGResourceAdapting>
+//	MARK: - <PGResourceAdapting>
 
 - (void)noteFileEventDidOccurDirect:(BOOL)flag
 {

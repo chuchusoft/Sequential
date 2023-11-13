@@ -145,7 +145,7 @@ CalculateByteSizeAllChildren(NSArray<PGNode*>* children) {
 	return byteSize;
 }
 
-#pragma mark -
+//	MARK: -
 
 NSString *const PGMaxDepthKey = @"PGMaxDepth";
 
@@ -163,16 +163,15 @@ NSString *const PGMaxDepthKey = @"PGMaxDepth";
 
 #endif
 
+//	MARK: -
 @implementation PGContainerAdapter
-
-#pragma mark -PGContainerAdapter
 
 - (PGRecursionPolicy)descendantRecursionPolicy
 {
 	return [self recursionPolicy];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (NSArray<PGNode*> *)sortedChildren
 {
@@ -270,7 +269,7 @@ NSString *const PGMaxDepthKey = @"PGMaxDepth";
 	[self setUnsortedChildren:unsortedChildren presortedOrder:_unsortedOrder];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (PGNode *)childForIdentifier:(PGResourceIdentifier *)anIdent
 {
@@ -324,7 +323,7 @@ NSString *const PGMaxDepthKey = @"PGMaxDepth";
 	return byteSize;
 }
 
-#pragma mark -PGResourceAdapter
+//	MARK: - PGResourceAdapter
 
 - (void)loadIfNecessary
 {
@@ -332,7 +331,7 @@ NSString *const PGMaxDepthKey = @"PGMaxDepth";
 	else [[self node] loadFinishedForAdapter:self];
 }
 
-#pragma mark -NSObject
+//	MARK: - NSObject
 
 - (id)init
 {
@@ -351,7 +350,7 @@ NSString *const PGMaxDepthKey = @"PGMaxDepth";
 #endif
 }
 
-#pragma mark -<PGResourceAdapter>
+//	MARK: - <PGResourceAdapter>
 
 - (PGContainerAdapter *)containerAdapter
 {
@@ -362,7 +361,7 @@ NSString *const PGMaxDepthKey = @"PGMaxDepth";
 	return [self parentAdapter] ? [[self parentAdapter] rootContainerAdapter] : self;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (BOOL)hasNodesWithData
 {
@@ -400,7 +399,7 @@ NSString *const PGMaxDepthKey = @"PGMaxDepth";
 	return NO;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (NSUInteger)viewableNodeCount
 {
@@ -422,14 +421,14 @@ NSString *const PGMaxDepthKey = @"PGMaxDepth";
 	return NO;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)addChildrenToMenu:(NSMenu *)menu
 {
 	for(PGNode *const child in [self sortedChildren]) [child addToMenu:menu flatten:NO];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (PGNode *)nodeForIdentifier:(PGResourceIdentifier *)ident
 {
@@ -487,7 +486,7 @@ NSString *const PGMaxDepthKey = @"PGMaxDepth";
 	return flag ? nil : [super sortedViewableNodeFirst:NO matchSearchTerms:terms stopAtNode:descendent];
 }
 
-#pragma mark -<PGResourceAdapting>
+//	MARK: - <PGResourceAdapting>
 
 - (void)noteSortOrderDidChange
 {

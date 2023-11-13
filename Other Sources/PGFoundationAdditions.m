@@ -54,9 +54,8 @@ OSType PGOSTypeFromString(NSString *str)
 	}
 }
 
+//	MARK: -
 @implementation NSAffineTransform(PGFoundationAdditions)
-
-#pragma mark -NSAffineTransform(PGFoundationAdditions)
 
 + (id)PG_transformWithRect:(inout NSRectPointer)rectPtr orientation:(PGOrientation)orientation
 {
@@ -78,9 +77,8 @@ OSType PGOSTypeFromString(NSString *str)
 
 @end
 
+//	MARK: -
 @implementation NSArray(PGFoundationAdditions)
-
-#pragma mark +NSArray(PGFoundationAdditions)
 
 + (id)PG_arrayWithContentsOfArrays:(NSArray *)first, ...
 {
@@ -97,8 +95,6 @@ OSType PGOSTypeFromString(NSString *str)
 	va_end(list);
 	return result;
 }
-
-#pragma mark -NSArray(PGFoundationAdditions)
 
 - (NSArray *)PG_arrayWithUniqueObjects
 {
@@ -123,6 +119,7 @@ OSType PGOSTypeFromString(NSString *str)
 
 @end
 
+//	MARK: -
 @implementation NSDate(PGFoundationAdditions)
 
 - (BOOL)PG_isAfter:(NSDate *)date
@@ -145,6 +142,7 @@ OSType PGOSTypeFromString(NSString *str)
 
 @end
 
+//	MARK: -
 @implementation NSError(PGFoundationAdditions)
 
 + (id)PG_errorWithDomain:(NSString *)domain code:(NSInteger)code localizedDescription:(NSString *)desc userInfo:(NSDictionary *)dict
@@ -160,6 +158,7 @@ OSType PGOSTypeFromString(NSString *str)
 
 @end
 
+//	MARK: -
 @implementation NSMutableDictionary(PGFoundationAdditions)
 
 - (void)PG_setObject:(id)obj forKey:(id)key
@@ -169,6 +168,7 @@ OSType PGOSTypeFromString(NSString *str)
 
 @end
 
+//	MARK: -
 @implementation NSNumber(PGFoundationAdditions)
 
 - (NSString *)PG_bytesAsLocalizedString
@@ -198,9 +198,8 @@ OSType PGOSTypeFromString(NSString *str)
 
 @end
 
+//	MARK: -
 @implementation NSObject(PGFoundationAdditions)
-
-#pragma mark Instance Methods
 
 - (void)PG_postNotificationName:(NSString *)aName
 {
@@ -211,7 +210,7 @@ OSType PGOSTypeFromString(NSString *str)
 	[(NSNotificationCenter *)[NSNotificationCenter defaultCenter] postNotificationName:aName object:self userInfo:aDict];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)PG_addObserver:(id)observer selector:(SEL)aSelector name:(NSString *)aName
 {
@@ -226,14 +225,14 @@ OSType PGOSTypeFromString(NSString *str)
 	[(NSNotificationCenter *)[NSNotificationCenter defaultCenter] removeObserver:observer name:aName object:self];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (NSArray *)PG_asArray
 {
 	return [NSArray arrayWithObject:self];
 }
 
-#pragma mark -
+//	MARK: -
 
 + (void *)PG_useInstance:(BOOL)instance implementationFromClass:(Class)class forSelector:(SEL)aSel
 {
@@ -248,7 +247,7 @@ OSType PGOSTypeFromString(NSString *str)
 	return originalImplementation;
 }
 
-#pragma mark NSMenuValidation Protocol
+//	MARK: <NSMenuValidation>
 
 - (BOOL)validateMenuItem:(NSMenuItem *)anItem
 {
@@ -257,6 +256,7 @@ OSType PGOSTypeFromString(NSString *str)
 
 @end
 
+//	MARK: -
 @implementation NSArray(AEArrayCreation)
 
 - (NSArray *)PG_asArray
@@ -266,6 +266,7 @@ OSType PGOSTypeFromString(NSString *str)
 
 @end
 
+//	MARK: -
 @interface NSProcessInfo(PGSnowLeopardOrLater)
 - (void)enableSuddenTermination;
 - (void)disableSuddenTermination;
@@ -284,6 +285,7 @@ OSType PGOSTypeFromString(NSString *str)
 
 @end
 
+//	MARK: -
 @implementation NSScanner(PGFoundationAdditions)
 
 - (BOOL)PG_scanFromString:(NSString *)start toString:(NSString *)end intoString:(out NSString **)outString
@@ -296,9 +298,8 @@ OSType PGOSTypeFromString(NSString *str)
 
 @end
 
+//	MARK: -
 @implementation NSString(PGFoundationAdditions)
-
-#pragma mark -NSString(PGFoundationAdditions)
 
 - (NSComparisonResult)PG_localizedCaseInsensitiveNumericCompare:(NSString *)aString
 {
@@ -336,7 +337,7 @@ OSType PGOSTypeFromString(NSString *str)
 	return result;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (NSString *)PG_firstPathComponent
 {
@@ -363,7 +364,7 @@ OSType PGOSTypeFromString(NSString *str)
 #endif
 }
 
-#pragma mark -
+//	MARK: -
 
 - (NSArray *)PG_searchTerms
 {
@@ -401,9 +402,8 @@ OSType PGOSTypeFromString(NSString *str)
 
 @end
 
+//	MARK: -
 @implementation NSURL(PGFoundationAdditions)
-
-#pragma mark Class Methods
 
 + (NSURL *)PG_URLWithString:(NSString *)aString
 {
@@ -515,8 +515,6 @@ OSType PGOSTypeFromString(NSString *str)
 #endif
 }
 
-#pragma mark Instance Methods
-
 - (NSImage *)PG_icon
 {
 	if(![self isFileURL]) return [NSImage imageNamed:@"URL"];
@@ -527,9 +525,8 @@ OSType PGOSTypeFromString(NSString *str)
 
 @end
 
+//	MARK: -
 @implementation NSUserDefaults(PGFoundationAdditions)
-
-#pragma mark Instance Methods
 
 #if 1
 - (id)PG_decodeObjectOfClass:(Class)class forKey:(NSString *)defaultName {

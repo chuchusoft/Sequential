@@ -24,20 +24,20 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import "PGGeometryTypes.h"
 
-#pragma mark NSPoint
+//	MARK: NSPoint
 
 extern NSPoint PGIntegralPoint(NSPoint aPoint);
 extern NSPoint PGOffsetPointBySize(NSPoint aPoint, NSSize aSize);
 extern NSPoint PGOffsetPointByXY(NSPoint aPoint, CGFloat x, CGFloat y);
 extern NSSize PGPointDiff(NSPoint p1, NSPoint p2);
 
-#pragma mark NSSize
+//	MARK: - NSSize
 
 extern NSSize PGScaleSizeByXY(NSSize size, CGFloat scaleX, CGFloat scaleY);
 extern NSSize PGScaleSizeByFloat(NSSize size, CGFloat scale);
 extern NSSize PGIntegralSize(NSSize s);
 
-#pragma mark NSRect
+//	MARK: - NSRect
 
 extern NSRect PGCenteredSizeInRect(NSSize s, NSRect r);
 extern BOOL PGIntersectsRectList(NSRect rect, NSRect const *list, NSUInteger count);
@@ -45,7 +45,7 @@ extern NSRect PGIntegralRect(NSRect r); // NSIntegralRect() expands the rectangl
 extern void PGGetRectDifference(NSRect diff[4], NSUInteger *count, NSRect minuend, NSRect subtrahend);
 extern NSRect PGScaleRect(NSRect r, CGFloat scaleX, CGFloat scaleY);
 
-#pragma mark PGRectEdgeMask
+//	MARK: - PGRectEdgeMask
 
 extern NSSize PGRectEdgeMaskToSizeWithMagnitude(PGRectEdgeMask mask, CGFloat magnitude);
 extern NSPoint PGRectEdgeMaskToPointWithMagnitude(PGRectEdgeMask mask, CGFloat magnitude);
@@ -54,17 +54,17 @@ extern PGRectEdgeMask PGPointToRectEdgeMaskWithThreshhold(NSPoint p, CGFloat thr
 extern PGRectEdgeMask PGNonContradictoryRectEdges(PGRectEdgeMask mask);
 extern BOOL PGHasContradictoryRectEdges(PGRectEdgeMask mask);
 
-#pragma mark PGPageLocation
+//	MARK: - PGPageLocation
 
 extern PGRectEdgeMask PGReadingDirectionAndLocationToRectEdgeMask(PGPageLocation loc, PGReadingDirection dir);
 
-#pragma mark PGOrientation
+//	MARK: - PGOrientation
 
 extern PGOrientation PGOrientationWithTIFFOrientation(NSUInteger orientation);
 extern PGOrientation PGAddOrientation(PGOrientation o1, PGOrientation o2);
 extern NSString *PGLocalizedStringWithOrientation(PGOrientation orientation);
 
-#pragma mark PGInset
+//	MARK: - PGInset
 
 extern PGInset const PGZeroInset;
 
@@ -76,7 +76,7 @@ extern NSSize PGInsetSize(NSSize s, PGInset i);
 extern NSRect PGInsetRect(NSRect r, PGInset i);
 extern PGInset PGAddInsets(PGInset a, PGInset b);
 
-#pragma mark Animation
+//	MARK: - Animation
 
 #define PGAnimationFramesPerSecond 30.0f
 #define PGAnimationFramerate (1.0f / PGAnimationFramesPerSecond)

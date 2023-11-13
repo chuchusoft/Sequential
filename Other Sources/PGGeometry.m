@@ -25,7 +25,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import "PGGeometry.h"
 #include <tgmath.h>
 
-#pragma mark NSPoint
+//	MARK: NSPoint
 
 NSPoint PGIntegralPoint(NSPoint aPoint)
 {
@@ -44,7 +44,7 @@ NSSize PGPointDiff(NSPoint p1, NSPoint p2)
 	return NSMakeSize(p1.x - p2.x, p1.y - p2.y);
 }
 
-#pragma mark NSSize
+//	MARK: - NSSize
 
 NSSize PGScaleSizeByXY(NSSize size, CGFloat scaleX, CGFloat scaleY)
 {
@@ -59,7 +59,7 @@ NSSize PGIntegralSize(NSSize s)
 	return NSMakeSize(round(s.width), round(s.height));
 }
 
-#pragma mark NSRect
+//	MARK: - NSRect
 
 NSRect PGCenteredSizeInRect(NSSize s, NSRect r)
 {
@@ -100,7 +100,7 @@ NSRect PGScaleRect(NSRect r, CGFloat scaleX, CGFloat scaleY)
 	return NSMakeRect(NSMinX(r) * scaleX, NSMinY(r) * scaleY, NSWidth(r) * scaleX, NSHeight(r) * scaleY);
 }
 
-#pragma mark PGRectEdgeMask
+//	MARK: - PGRectEdgeMask
 
 NSSize PGRectEdgeMaskToSizeWithMagnitude(PGRectEdgeMask mask, CGFloat magnitude)
 {
@@ -156,7 +156,7 @@ BOOL PGHasContradictoryRectEdges(PGRectEdgeMask mask)
 	return PGNonContradictoryRectEdges(mask) != mask;
 }
 
-#pragma mark PGPageLocation
+//	MARK: - PGPageLocation
 
 PGRectEdgeMask PGReadingDirectionAndLocationToRectEdgeMask(PGPageLocation loc, PGReadingDirection dir)
 {
@@ -170,7 +170,7 @@ PGRectEdgeMask PGReadingDirectionAndLocationToRectEdgeMask(PGPageLocation loc, P
 	return PGNoEdges;
 }
 
-#pragma mark PGOrientation
+//	MARK: - PGOrientation
 
 PGOrientation PGOrientationWithTIFFOrientation(NSUInteger orientation)
 {
@@ -208,7 +208,7 @@ NSString *PGLocalizedStringWithOrientation(PGOrientation orientation)
 	}
 }
 
-#pragma mark PGInset
+//	MARK: - PGInset
 
 PGInset const PGZeroInset = {0.0f, 0.0f, 0.0f, 0.0f};
 
@@ -241,7 +241,7 @@ PGInset PGAddInsets(PGInset a, PGInset b)
 	return PGMakeInset(a.minX + b.minX, a.minY + b.minY, a.maxX + b.maxX, a.maxY + b.maxY);
 }
 
-#pragma mark Animation
+//	MARK: - Animation
 
 NSTimeInterval PGUptime(void)	//	name is incorrect but for how it's used, no problems should occur "PGNow()"
 {

@@ -125,9 +125,10 @@ GetBookmarksFileURL(BOOL createParentFolderIfNonExistant) {
 
 #endif
 
+//	MARK: -
 @implementation PGBookmarkController
 
-#pragma mark +PGBookmarkController
+//	MARK: +PGBookmarkController
 
 + (id)sharedBookmarkController
 {
@@ -138,7 +139,7 @@ GetBookmarksFileURL(BOOL createParentFolderIfNonExistant) {
 #endif
 }
 
-#pragma mark -PGBookmarkController
+//	MARK: - PGBookmarkController
 
 - (IBAction)open:(id)sender
 {
@@ -165,7 +166,7 @@ GetBookmarksFileURL(BOOL createParentFolderIfNonExistant) {
 	else [self _updateMenuItemForBookmark:bookmark];
 }
 
-#pragma mark -
+//	MARK: -
 
 #if !__has_feature(objc_arc)
 - (BOOL)deletesBookmarks
@@ -183,7 +184,7 @@ GetBookmarksFileURL(BOOL createParentFolderIfNonExistant) {
 #endif
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)addBookmark:(PGBookmark *)aBookmark
 {
@@ -229,7 +230,7 @@ GetBookmarksFileURL(BOOL createParentFolderIfNonExistant) {
 	return nil;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)bookmarkDidUpdate:(NSNotification *)aNotif
 {
@@ -238,7 +239,7 @@ GetBookmarksFileURL(BOOL createParentFolderIfNonExistant) {
 	[self _saveBookmarks];
 }
 
-#pragma mark -PGBookmarkController(Private)
+//	MARK: - PGBookmarkController(Private)
 
 - (void)_updateMenuItemForBookmark:(PGBookmark *)aBookmark
 {
@@ -331,7 +332,7 @@ GetBookmarksFileURL(BOOL createParentFolderIfNonExistant) {
 #endif
 }
 
-#pragma mark -NSObject
+//	MARK: - NSObject
 
 - (id)init
 {
@@ -421,7 +422,7 @@ GetBookmarksFileURL(BOOL createParentFolderIfNonExistant) {
 #endif
 }
 
-#pragma mark -NSObject(NSNibAwaking)
+//	MARK: - NSObject(NSNibAwaking)
 
 - (void)awakeFromNib
 {

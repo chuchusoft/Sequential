@@ -102,7 +102,7 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 //	MARK: -
 @implementation PGResourceIdentifier
 
-#pragma mark +PGResourceIdentifier
+//	MARK: +PGResourceIdentifier
 
 + (BOOL) supportsSecureCoding { return YES; }
 
@@ -247,7 +247,7 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 //	MARK: -
 @implementation PGDisplayableIdentifier
 
-#pragma mark +PGResourceIdentifier
+//	MARK: +PGResourceIdentifier
 
 + (id)resourceIdentifierWithURL:(NSURL *)URL
 {

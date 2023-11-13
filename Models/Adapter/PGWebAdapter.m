@@ -66,7 +66,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @implementation PGWebAdapter
 
-#pragma mark +PGDataProviderCustomizing
+//	MARK: +PGDataProviderCustomizing
 
 + (PGDataProvider *)customDataProviderWithResourceIdentifier:(PGResourceIdentifier *)ident displayableName:(NSString *)name
 {
@@ -81,7 +81,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	return nil;
 }
 
-#pragma mark -PGResourceAdapter
+//	MARK: - PGResourceAdapter
 
 - (void)load
 {
@@ -99,7 +99,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	_mainLoad = [[PGURLLoad alloc] initWithRequest:[NSURLRequest requestWithURL:URL cachePolicy:NSURLRequestReturnCacheDataElseLoad timeoutInterval:15.0f] parent:self delegate:self];
 }
 
-#pragma mark -NSObject
+//	MARK: -NSObject
 
 - (void)dealloc
 {
@@ -116,14 +116,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #endif
 }
 
-#pragma mark -<PGActivityOwner>
+//	MARK: - <PGActivityOwner>
 
 - (CGFloat)progressForActivity:(PGActivity *)activity
 {
 	return [[_mainLoad activity] progress];
 }
 
-#pragma mark -<PGURLLoadDelegate>
+//	MARK: - <PGURLLoadDelegate>
 
 - (void)loadLoadingDidProgress:(PGURLLoad *)sender
 {
@@ -189,15 +189,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+//	MARK: -
 #if __has_feature(objc_arc)
 @interface PGWebDataProvider ()
 @property (nonatomic, strong) PGResourceIdentifier *identifierWDP;
 @end
 #endif
 
+//	MARK: -
 @implementation PGWebDataProvider
-
-#pragma mark -PGWebDataProvider
 
 - (id)initWithResourceIdentifier:(PGResourceIdentifier *)identifier
 {
@@ -219,14 +219,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 @synthesize identifier = _identifier;
 #endif
 
-#pragma mark -PGDataProvider(PGResourceAdapterLoading)
+//	MARK: - PGDataProvider(PGResourceAdapterLoading)
 
 - (NSArray *)adapterClassesForNode:(PGNode *)node
 {
 	return [NSArray arrayWithObject:[PGWebAdapter class]];
 }
 
-#pragma mark -NSObject
+//	MARK: - NSObject
 
 #if !__has_feature(objc_arc)
 - (void)dealloc

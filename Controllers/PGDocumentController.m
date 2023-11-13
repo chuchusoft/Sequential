@@ -151,7 +151,7 @@ static PGDocumentController *PGSharedDocumentController = nil;
 //	MARK: -
 @implementation PGDocumentController
 
-#pragma mark +PGDocumentController
+//	MARK: +PGDocumentController
 
 + (PGDocumentController *)sharedDocumentController
 {
@@ -162,7 +162,7 @@ static PGDocumentController *PGSharedDocumentController = nil;
 #endif
 }
 
-#pragma mark +NSObject
+//	MARK: +NSObject
 
 + (void)initialize
 {

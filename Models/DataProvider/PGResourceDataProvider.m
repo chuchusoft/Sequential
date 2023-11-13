@@ -85,7 +85,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	return [_identifier isFileIdentifier] ? [[[NSFileManager defaultManager] attributesOfItemAtPath:[[_identifier URL] path] error:NULL] objectForKey:name] : nil;
 }
 
-#pragma mark -PGDataProvider
+//	MARK: - PGDataProvider
 
 #if !__has_feature(objc_arc)
 - (PGResourceIdentifier *)identifier
@@ -109,7 +109,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	return (uint64_t) [[self valueForFMAttributeName:NSFileSize] unsignedLongValue];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (NSString *)UTIType
 {
@@ -130,7 +130,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	return _identifier.URL.pathExtension;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (NSDate *)dateModified
 {
@@ -141,7 +141,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	return [self valueForFMAttributeName:NSFileCreationDate];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (BOOL)hasData
 {
@@ -170,7 +170,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #endif
 }
 
-#pragma mark -NSObject
+//	MARK: - NSObject
 
 #if !__has_feature(objc_arc)
 - (void)dealloc

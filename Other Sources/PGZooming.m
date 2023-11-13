@@ -30,8 +30,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @implementation NSWindow(PGZooming)
 
-#pragma mark -NSWindow(PGZooming)
-
 - (IBAction)PG_grow:(id)sender
 {
 	if(!([self styleMask] & NSWindowStyleMaskResizable)) return;
@@ -45,8 +43,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	}
 	[self setFrame:[self PG_constrainedFrameRect:z] display:YES];
 }
-
-#pragma mark -
 
 - (NSRect)PG_zoomedFrame
 {
@@ -77,6 +73,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+//	MARK: -
 @implementation NSView(PGZooming)
 
 - (NSSize)PG_zoomedFrameSize
@@ -105,6 +102,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+//	MARK: -
 @implementation NSTextField(PGZooming)
 
 - (NSSize)PG_zoomedBoundsSize
@@ -114,6 +112,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+//	MARK: -
 @implementation NSScrollView(PGZooming)
 
 - (NSSize)PG_zoomedBoundsSize
@@ -126,6 +125,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+//	MARK: -
 @implementation NSTableView(PGZooming)
 
 - (NSSize)PG_zoomedBoundsSize
@@ -146,6 +146,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+//	MARK: -
 @implementation NSTableColumn(PGZooming)
 
 - (CGFloat)PG_zoomedWidth
@@ -164,12 +165,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
-#define PGNSTextViewHorizontalBorder 8.0f
-
+//	MARK: -
 @implementation NSTextView(PGZooming)
 
 - (NSSize)PG_zoomedBoundsSize
 {
+	#define PGNSTextViewHorizontalBorder 8.0f
+
 	NSSize s = [[self textStorage] size];
 	s.width += [self textContainerInset].width + PGNSTextViewHorizontalBorder;
 	s.height += [self textContainerInset].height;

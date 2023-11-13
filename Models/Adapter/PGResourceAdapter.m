@@ -79,10 +79,10 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 
 #endif
 
-#pragma mark -
+//	MARK: -
 @implementation PGResourceAdapter
 
-#pragma mark +PGResourceAdapter
+//	MARK: +PGResourceAdapter
 
 + (NSDictionary *)typesDictionary
 {
@@ -114,7 +114,7 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 	return MIMETypes;
 }
 
-#pragma mark -PGResourceAdapter
+//	MARK: - PGResourceAdapter
 
 - (id)initWithNode:(PGNode *)node dataProvider:(PGDataProvider *)dataProvider
 {
@@ -130,7 +130,7 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 	return self;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (PGContainerAdapter *)containerAdapter
 {
@@ -160,7 +160,7 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 	return NO;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (NSData *)data
 {
@@ -179,7 +179,7 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 	return [self canGetData];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (BOOL)isContainer
 {
@@ -227,7 +227,7 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 	return NO;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (NSUInteger)viewableNodeIndex
 {
@@ -242,7 +242,7 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 	return [self viewableNodeCount] > anInt;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (BOOL)adapterIsViewable
 {
@@ -263,7 +263,7 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 	[[self node] readFinishedWithImageRep:nil];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (NSImage *)thumbnail
 {
@@ -329,7 +329,7 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 	(void)[self thumbnail];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (NSDictionary *)imageProperties
 {
@@ -342,7 +342,7 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 - (void)clearCache {}
 - (void)addChildrenToMenu:(NSMenu *)menu {}
 
-#pragma mark -
+//	MARK: -
 
 - (PGNode *)nodeForIdentifier:(PGResourceIdentifier *)ident
 {
@@ -423,7 +423,7 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 	return [self nodeIsFirstOrLastOfFolder:NO];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)noteResourceDidChange {}
 
@@ -519,7 +519,7 @@ ThumbnailOf(NSImageRep *imageRep, NSSize size, PGOrientation orientation, BOOL o
 											waitUntilDone:NO];
 }
 
-#pragma mark -NSObject
+//	MARK: - NSObject
 
 - (id)init
 {
@@ -545,14 +545,14 @@ ThumbnailOf(NSImageRep *imageRep, NSSize size, PGOrientation orientation, BOOL o
 #endif
 }
 
-#pragma mark -<NSObject>
+//	MARK: - <NSObject>
 
 - (NSString *)description
 {
 	return [NSString stringWithFormat:@"<%@ %p: %@>", [self class], self, _dataProvider];
 }
 
-#pragma mark -<PGActivityOwner>
+//	MARK: - <PGActivityOwner>
 
 #if !__has_feature(objc_arc)
 - (PGActivity *)activity
@@ -565,7 +565,7 @@ ThumbnailOf(NSImageRep *imageRep, NSSize size, PGOrientation orientation, BOOL o
 	return [[[self node] identifier] displayName];
 }
 
-#pragma mark -<PGResourceAdapting>
+//	MARK: - <PGResourceAdapting>
 
 - (PGNode *)parentNode
 {
@@ -584,12 +584,12 @@ ThumbnailOf(NSImageRep *imageRep, NSSize size, PGOrientation orientation, BOOL o
 	return [_node document];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)noteFileEventDidOccurDirect:(BOOL)flag {}
 - (void)noteSortOrderDidChange {}
 
-#pragma mark - <PGResourceAdapterImageGeneratorCompletion>
+//	MARK: - <PGResourceAdapterImageGeneratorCompletion>
 
 - (void)generationDidCompleteInOperation:(NSOperation *)operation {
 	[self _stopGeneratingImagesInOperation:operation];
@@ -597,7 +597,7 @@ ThumbnailOf(NSImageRep *imageRep, NSSize size, PGOrientation orientation, BOOL o
 
 @end
 
-#pragma mark -
+//	MARK: -
 @implementation PGGenerateImageOperation
 
 - (id)initWithResourceAdapter:(NSObject<PGResourceAdapterImageGeneratorCompletion, PGResourceAdapterImageGeneration> *)adapter
@@ -620,7 +620,7 @@ ThumbnailOf(NSImageRep *imageRep, NSSize size, PGOrientation orientation, BOOL o
 }
 #endif
 
-#pragma mark NSOperation
+//	MARK: NSOperation
 
 - (void)main
 {
@@ -640,7 +640,7 @@ ThumbnailOf(NSImageRep *imageRep, NSSize size, PGOrientation orientation, BOOL o
 
 @end
 
-#pragma mark -
+//	MARK: -
 @implementation PGDataProvider(PGResourceAdapterLoading)
 
 - (NSUInteger)_matchPriorityForTypeDictionary:(NSDictionary *)dict

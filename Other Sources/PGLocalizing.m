@@ -33,6 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+//	MARK: -
 @implementation NSArray(PGLocalizing)
 
 - (void)PG_localizeFromTable:(NSString *)tableName
@@ -43,6 +44,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+//	MARK: -
 @implementation NSWindow(PGLocalizing)
 
 - (void)PG_localizeFromTable:(NSString *)tableName
@@ -54,6 +56,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+//	MARK: -
 @implementation NSView(PGLocalizing)
 
 - (void)PG_localizeFromTable:(NSString *)tableName
@@ -64,6 +67,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+//	MARK: -
 @implementation NSControl(PGLocalizing)
 
 - (void)PG_localizeFromTable:(NSString *)tableName
@@ -74,6 +78,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+//	MARK: -
 @implementation NSMatrix(PGLocalizing)
 
 - (void)PG_localizeFromTable:(NSString *)tableName
@@ -84,6 +89,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+//	MARK: -
 @implementation NSButtonCell(PGLocalizing)
 
 - (void)PG_localizeFromTable:(NSString *)tableName
@@ -95,6 +101,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+//	MARK: -
 @implementation NSTextFieldCell(PGLocalizing)
 
 - (void)PG_localizeFromTable:(NSString *)tableName
@@ -105,6 +112,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+//	MARK: -
 @implementation NSPopUpButtonCell(PGLocalizing)
 
 - (void)PG_localizeFromTable:(NSString *)tableName
@@ -115,6 +123,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+//	MARK: -
 @implementation NSSegmentedCell(PGLocalizing)
 
 - (void)PG_localizeFromTable:(NSString *)tableName
@@ -126,6 +135,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+//	MARK: -
 @implementation NSTableView(PGLocalizing)
 
 - (void)PG_localizeFromTable:(NSString *)tableName
@@ -136,6 +146,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+//	MARK: -
 @implementation NSTableColumn(PGLocalizing)
 
 - (void)PG_localizeFromTable:(NSString *)tableName
@@ -146,6 +157,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+//	MARK: -
 @implementation NSMenu(PGLocalizing)
 
 - (void)PG_localizeFromTable:(NSString *)tableName
@@ -157,6 +169,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+//	MARK: -
 @implementation NSMenuItem(PGLocalizing)
 
 - (void)PG_localizeFromTable:(NSString *)tableName
@@ -168,12 +181,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
-#pragma mark -
+//	MARK: -
 
 static BOOL (*PGNSBundleLoadNibFileExternalNameTableWithZone)(id, SEL, NSString *, NSDictionary *, NSZone *);
 @interface PGBundle : NSBundle
 @end
 
+//	MARK: -
 @implementation NSBundle(PGLocalizing)
 
 + (void)PG_prepareToAutoLocalize
@@ -184,9 +198,10 @@ static BOOL (*PGNSBundleLoadNibFileExternalNameTableWithZone)(id, SEL, NSString 
 
 @end
 
+//	MARK: -
 @implementation PGBundle
 
-#pragma mark -PGBundle(NSNibLoading)
+//	MARK: PGBundle(NSNibLoading)
 
 + (BOOL)loadNibFile:(NSString *)fileName externalNameTable:(NSDictionary *)context withZone:(NSZone *)zone
 {

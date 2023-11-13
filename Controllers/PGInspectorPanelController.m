@@ -598,7 +598,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #endif
 }
 
-#pragma mark id<NSMenuValidation>
+//	MARK: id<NSMenuValidation>
 
 - (BOOL)validateMenuItem:(NSMenuItem *)anItem
 {
@@ -611,7 +611,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	return [super validateMenuItem:anItem];
 }
 
-#pragma mark id<NSTableViewDataSource>
+//	MARK: id<NSTableViewDataSource>
 
 - (NSInteger)numberOfRowsInTableView:(NSTableView *)tableView
 {
@@ -645,17 +645,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #endif
 }
 
-#pragma mark id<NSTableViewDelegate>
+//	MARK: id<NSTableViewDelegate>
 
-- (nullable NSView *)tableView:(NSTableView *)tableView viewForTableColumn:(nullable NSTableColumn *)tableColumn row:(NSInteger)row
-{//id<NSTableViewDelegate>* a = nil;
+- (nullable NSView *)tableView:(NSTableView *)tableView
+			viewForTableColumn:(nullable NSTableColumn *)tableColumn
+						   row:(NSInteger)row
+{
 #if __has_feature(objc_arc)
 	if(tableColumn == _labelColumn) {
 		NSTextField *result = [NSTextField new];
-#else
-	if(tableColumn == labelColumn) {
-		NSTextField *result = [[NSTextField new] autorelease];
-#endif
 		result.drawsBackground	=	NO;
 		result.bordered			=	NO;
 		result.bezeled			=	NO;
@@ -665,13 +663,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		result.font				=	[NSFont boldSystemFontOfSize:0.0];
 		result.alignment		=	NSTextAlignmentRight;
 		return result;
-#if __has_feature(objc_arc)
 	} else if(tableColumn == _valueColumn) {
 		NSTextField *result = [NSTextField new];
-#else
-	} else if(tableColumn == valueColumn) {
-		NSTextField *result = [[NSTextField new] autorelease];
-#endif
 		result.drawsBackground	=	NO;
 		result.bordered			=	NO;
 		result.bezeled			=	NO;
@@ -682,6 +675,31 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		return result;
 	}
 	return nil;
+#else
+	if(tableColumn == labelColumn) {
+		NSTextField *result = [[NSTextField new] autorelease];
+		result.drawsBackground	=	NO;
+		result.bordered			=	NO;
+		result.bezeled			=	NO;
+		result.editable			=	NO;
+	//	result.bezelStyle		=	;
+
+		result.font				=	[NSFont boldSystemFontOfSize:0.0];
+		result.alignment		=	NSTextAlignmentRight;
+		return result;
+	} else if(tableColumn == valueColumn) {
+		NSTextField *result = [[NSTextField new] autorelease];
+		result.drawsBackground	=	NO;
+		result.bordered			=	NO;
+		result.bezeled			=	NO;
+		result.editable			=	NO;
+
+		result.font				=	[NSFont systemFontOfSize:0.0];
+		result.alignment		=	NSTextAlignmentLeft;
+		return result;
+	}
+	return nil;
+#endif
 }
 
 /* - (void)tableView:(NSTableView *)tableView willDisplayCell:(id)cell forTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row

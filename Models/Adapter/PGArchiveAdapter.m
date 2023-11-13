@@ -96,7 +96,7 @@ StringAtDepth(NSInteger depth) {
 	return [@"\t\t\t\t\t" substringToIndex:depth];
 } */
 
-#pragma mark -
+//	MARK: -
 
 #if __has_feature(objc_arc)
 
@@ -268,7 +268,7 @@ StringAtDepth(NSInteger depth) {
 } */
 
 
-#pragma mark -PGArchiveAdapter(Private)
+//	MARK: - PGArchiveAdapter(Private)
 
 - (void)_threaded_setError:(NSError *)error forNode:(PGNode *)node;
 {
@@ -280,21 +280,21 @@ StringAtDepth(NSInteger depth) {
 	[[self document] noteNodeThumbnailDidChange:[self node] recursively:YES];
 }
 
-#pragma mark -PGContainerAdapter
+//	MARK: - PGContainerAdapter
 
 - (PGRecursionPolicy)descendantRecursionPolicy
 {
 	return PGRecurseToAnyDepth;
 }
 
-#pragma mark -PGResourceAdapter
+//	MARK: - PGResourceAdapter
 
 - (BOOL)canSaveData
 {
 	return YES;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)load
 {
@@ -329,7 +329,7 @@ StringAtDepth(NSInteger depth) {
 	[[self node] loadFinishedForAdapter:self];
 }
 
-#pragma mark -NSObject
+//	MARK: - NSObject
 
 #if !__has_feature(objc_arc)
 - (void)dealloc
@@ -342,7 +342,7 @@ StringAtDepth(NSInteger depth) {
 }
 #endif
 
-#pragma mark -NSObject(XADArchiveDelegate)
+//	MARK: - NSObject(XADArchiveDelegate)
 
 - (void)archiveNeedsPassword:(XADArchive *)archive
 {
@@ -354,7 +354,7 @@ StringAtDepth(NSInteger depth) {
 	return guess;
 }
 
-//#pragma mark -<PGNodeDataSource>
+//MARK: - <PGNodeDataSource>
 //
 //- (NSDictionary *)fileAttributesForNode:(PGNode *)node
 //{
@@ -407,7 +407,7 @@ StringAtDepth(NSInteger depth) {
 
 @end
 
-#pragma mark -
+//	MARK: -
 
 @implementation PGDataProvider(PGArchiveDataProvider)
 
@@ -422,7 +422,7 @@ StringAtDepth(NSInteger depth) {
 
 @end
 
-#pragma mark -
+//	MARK: -
 
 @implementation PGArchiveDataProvider
 
@@ -452,7 +452,7 @@ StringAtDepth(NSInteger depth) {
 	return self;
 }
 
-#pragma mark PGDataProvider
+//	MARK: PGDataProvider
 
 - (NSData *)data
 {
@@ -488,7 +488,7 @@ StringAtDepth(NSInteger depth) {
 	return nil;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (OSType)typeCode
 {
@@ -507,7 +507,7 @@ StringAtDepth(NSInteger depth) {
 	return nil;	*/
 }
 
-#pragma mark -
+//	MARK: -
 
 - (BOOL)hasData
 {
@@ -533,7 +533,7 @@ StringAtDepth(NSInteger depth) {
 	return nil;
 } */
 
-#pragma mark PGDataProvider(PGArchiveDataProvider)
+//	MARK: PGDataProvider(PGArchiveDataProvider)
 
 - (XADArchive *)archive
 {
@@ -544,7 +544,7 @@ StringAtDepth(NSInteger depth) {
 	return _entry;
 }
 
-#pragma mark PGDataProvider(PGResourceAdapterLoading)
+//	MARK: PGDataProvider(PGResourceAdapterLoading)
 
 - (NSArray *)adapterClassesForNode:(PGNode *)node
 {
@@ -554,7 +554,7 @@ StringAtDepth(NSInteger depth) {
 	return [super adapterClassesForNode:node];
 }
 
-#pragma mark NSObject
+//	MARK: NSObject
 
 #if !__has_feature(objc_arc)
 - (void)dealloc
@@ -567,17 +567,17 @@ StringAtDepth(NSInteger depth) {
 
 @end
 
-#pragma mark -
+//	MARK: -
 @implementation PGArchiveFolderDataProvider
 
-#pragma mark PGDataProvider
+//	MARK: PGDataProvider
 
 - (OSType)typeCode
 {
 	return 'fold';
 }
 
-#pragma mark -PGDataProvider(PGResourceAdapterLoading)
+//	MARK: - PGDataProvider(PGResourceAdapterLoading)
 
 - (NSArray *)adapterClassesForNode:(PGNode *)node
 {
@@ -586,7 +586,7 @@ StringAtDepth(NSInteger depth) {
 
 @end
 
-#pragma mark -
+//	MARK: -
 
 @implementation XADArchive(PGAdditions)
 
