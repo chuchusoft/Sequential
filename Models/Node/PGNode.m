@@ -114,8 +114,6 @@ enum {
 
 #pragma mark -PGNode
 
-@synthesize dataProvider = _dataProvider;
-
 - (id)initWithParent:(id<PGNodeParenting>)parent identifier:(PGDisplayableIdentifier *)ident
 {
 	if(!(self = [super init])) return nil;
