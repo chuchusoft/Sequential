@@ -23,15 +23,14 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-@interface PGAboutBoxController : NSWindowController
-#ifdef MAC_OS_X_VERSION_10_6
-<NSToolbarDelegate>
-#endif
+@interface PGAboutBoxController : NSWindowController<NSToolbarDelegate>
+#if !__has_feature(objc_arc)
 {
 	@private
 	IBOutlet NSSegmentedControl *paneControl;
 	IBOutlet NSTextView *textView;
 }
+#endif
 
 + (id)sharedAboutBoxController;
 
