@@ -42,16 +42,28 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 static NSString *const PGMainWindowFrameKey = @"PGMainWindowFrame";
 
+#if __has_feature(objc_arc)
+
+@interface PGWindowController ()
+
+@property (nonatomic, assign) BOOL shouldZoomOnNextImageLoad;
+@property (nonatomic, assign) BOOL shouldSaveFrame;
+
+@end
+
+#endif
+
+//	MARK: -
 @implementation PGWindowController
 
-#pragma mark -PGDisplayController
+//	MARK: - PGDisplayController
 
 - (BOOL)canShowInfo
 {
 	return [self activeNode] != [[self activeDocument] node];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (BOOL)setActiveDocument:(PGDocument *)document closeIfAppropriate:(BOOL)flag
 {
@@ -72,7 +84,7 @@ static NSString *const PGMainWindowFrameKey = @"PGMainWindowFrame";
 	[[self window] makeKeyAndOrderFront:self];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)nodeReadyForViewing:(NSNotification *)aNotif
 {
@@ -90,7 +102,7 @@ static NSString *const PGMainWindowFrameKey = @"PGMainWindowFrame";
 	_shouldZoomOnNextImageLoad = NO;
 }
 
-#pragma mark -NSWindowController
+//	MARK: - NSWindowController
 
 - (void)windowDidLoad
 {
@@ -106,7 +118,7 @@ static NSString *const PGMainWindowFrameKey = @"PGMainWindowFrame";
 	_shouldSaveFrame = YES;
 }
 
-#pragma mark -<NSWindowDelegate>
+//	MARK: - <NSWindowDelegate>
 
 - (void)windowDidResize:(NSNotification *)aNotif
 {
@@ -119,7 +131,7 @@ static NSString *const PGMainWindowFrameKey = @"PGMainWindowFrame";
 											forKey:PGMainWindowFrameKey];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (NSRect)windowWillUseStandardFrame:(NSWindow *)window defaultFrame:(NSRect)newFrame
 {
