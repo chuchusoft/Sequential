@@ -40,7 +40,7 @@ NS_INLINE BOOL PGEqualObjects(id<NSObject> a, id<NSObject> b)
 #endif
 NS_INLINE BOOL PGIsSnowLeopardOrLater(void)
 {
-       return floor(NSAppKitVersionNumber) > NSAppKitVersionNumber10_5;
+	return floor(NSAppKitVersionNumber) > NSAppKitVersionNumber10_5;
 }
 
 extern NSString *PGOSTypeToStringQuoted(OSType, BOOL);
@@ -66,13 +66,19 @@ extern OSType PGOSTypeFromString(NSString *);
 @interface NSDate(PGFoundationAdditions)
 
 - (BOOL)PG_isAfter:(NSDate *)date;
-- (NSString *)PG_localizedStringWithDateStyle:(CFDateFormatterStyle)dateStyle timeStyle:(CFDateFormatterStyle)timeStyle;
+#if !__has_feature(objc_arc)	//	deprecated and not available under ARC
+- (NSString *)PG_localizedStringWithDateStyle:(CFDateFormatterStyle)dateStyle
+									timeStyle:(CFDateFormatterStyle)timeStyle;
+#endif
 
 @end
 
 @interface NSError(PGFoundationAdditions)
 
-+ (id)PG_errorWithDomain:(NSString *)domain code:(NSInteger)code localizedDescription:(NSString *)desc userInfo:(NSDictionary *)dict;
++ (id)PG_errorWithDomain:(NSString *)domain
+					code:(NSInteger)code
+	localizedDescription:(NSString *)desc
+				userInfo:(NSDictionary *)dict;
 
 @end
 
@@ -99,7 +105,9 @@ extern OSType PGOSTypeFromString(NSString *);
 
 - (NSArray *)PG_asArray;
 
-+ (void *)PG_useInstance:(BOOL)instance implementationFromClass:(Class)class forSelector:(SEL)aSel;
++ (void *)PG_useInstance:(BOOL)instance
+ implementationFromClass:(Class)class
+			 forSelector:(SEL)aSel;
 
 @end
 
@@ -112,14 +120,17 @@ extern OSType PGOSTypeFromString(NSString *);
 
 @interface NSScanner(PGFoundationAdditions)
 
-- (BOOL)PG_scanFromString:(NSString *)start toString:(NSString *)end intoString:(out NSString **)outString;
+- (BOOL)PG_scanFromString:(NSString *)start
+				 toString:(NSString *)end
+			   intoString:(out NSString **)outString;
 
 @end
 
 @interface NSString(PGFoundationAdditions)
 
 - (NSComparisonResult)PG_localizedCaseInsensitiveNumericCompare:(NSString *)aString;
-- (NSString *)PG_stringByReplacingOccurrencesOfCharactersInSet:(NSCharacterSet *)set withString:(NSString *)replacement;
+- (NSString *)PG_stringByReplacingOccurrencesOfCharactersInSet:(NSCharacterSet *)set
+													withString:(NSString *)replacement;
 
 - (NSString *)PG_firstPathComponent;
 - (NSURL *)PG_fileURL;
