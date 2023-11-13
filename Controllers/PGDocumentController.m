@@ -95,6 +95,47 @@ static NSString *const PGPathFinderBundleID = @"<Path Finder Bundle ID>";	//	TOD
 
 static PGDocumentController *PGSharedDocumentController = nil;
 
+#if __has_feature(objc_arc)
+
+@interface PGDocumentController ()
+
+@property (nonatomic, weak) IBOutlet NSMenu *orientationMenu;
+
+@property (nonatomic, weak) IBOutlet NSMenuItem *toggleFullscreen;
+@property (nonatomic, weak) IBOutlet NSMenuItem *zoomIn;
+@property (nonatomic, weak) IBOutlet NSMenuItem *zoomOut;
+@property (nonatomic, weak) IBOutlet NSMenuItem *scaleSliderItem;
+//@property (nonatomic, weak) IBOutlet NSSlider *scaleSlider;
+
+@property (nonatomic, weak) IBOutlet NSMenuItem *pageMenuItem;
+@property (nonatomic, strong) IBOutlet NSMenu *defaultPageMenu;	//	strong is required
+
+@property (nonatomic, weak) IBOutlet NSMenu *windowsMenu;
+@property (nonatomic, strong) IBOutlet NSMenuItem *windowsMenuSeparator;	//	strong is required
+@property (nonatomic, weak) IBOutlet NSMenuItem *selectPreviousDocument;
+@property (nonatomic, weak) IBOutlet NSMenuItem *selectNextDocument;
+
+//	[_documents release];
+@property (nonatomic, copy) NSMutableArray<__kindof PGDocument*> *documents;	//	2023/10/29 specified static type
+@property (nonatomic, strong) PGFullscreenController *fullscreenController;
+@property (nonatomic, assign) BOOL inFullscreen;
+
+@property (nonatomic, strong) PGInspectorPanelController *inspectorPanel;
+@property (nonatomic, strong) PGTimerPanelController *timerPanel;
+@property (nonatomic, strong) PGActivityPanelController *activityPanel;
+
+//	NSMutableDictionary *_classesByExtension;	2023/10/29 not used; removed
+
+- (void)_awakeAfterLocalizing;
+- (void)_setFullscreen:(BOOL)flag;
+- (PGDocument *)_openNew:(BOOL)flag document:(PGDocument *)document display:(BOOL)display;
+- (void)_setRecentDocumentIdentifiers:(NSArray<PGDisplayableIdentifier*> *)anArray;
+- (void)_changeRecentDocumentIdentifiersWithDocument:(PGDocument *)document prepend:(BOOL)prepend;
+
+@end
+
+#else
+
 @interface PGDocumentController(Private)
 
 - (void)_awakeAfterLocalizing;
@@ -105,14 +146,20 @@ static PGDocumentController *PGSharedDocumentController = nil;
 
 @end
 
-#pragma mark -
+#endif
+
+//	MARK: -
 @implementation PGDocumentController
 
 #pragma mark +PGDocumentController
 
 + (PGDocumentController *)sharedDocumentController
 {
+#if __has_feature(objc_arc)
+	return PGSharedDocumentController ? PGSharedDocumentController : [self new];
+#else
 	return PGSharedDocumentController ? PGSharedDocumentController : [[[self alloc] init] autorelease];
+#endif
 }
 
 #pragma mark +NSObject
@@ -167,7 +214,7 @@ static PGDocumentController *PGSharedDocumentController = nil;
 	}
 }
 
-#pragma mark -PGDocumentController
+//	MARK: - PGDocumentController
 
 - (IBAction)orderFrontStandardAboutPanel:(id)sender
 {
@@ -179,10 +226,15 @@ static PGDocumentController *PGSharedDocumentController = nil;
 }
 - (IBAction)switchToFileManager:(id)sender
 {
+#if __has_feature(objc_arc)
+	if(![[[NSAppleScript alloc] initWithSource:self.pathFinderRunning ? @"tell application \"Path Finder\" to activate" : @"tell application \"Finder\" to activate"] executeAndReturnError:NULL])
+		NSBeep();
+#else
 	if(![[[[NSAppleScript alloc] initWithSource:self.pathFinderRunning ? @"tell application \"Path Finder\" to activate" : @"tell application \"Finder\" to activate"] autorelease] executeAndReturnError:NULL]) NSBeep();
+#endif
 }
 
-#pragma mark -
+//	MARK: -
 
 - (IBAction)open:(id)sender
 {
@@ -213,7 +265,11 @@ static PGDocumentController *PGSharedDocumentController = nil;
 - (IBAction)openURL:(id)sender
 {
 	[NSApp activateIgnoringOtherApps:YES];
+#if __has_feature(objc_arc)
+	NSURL *const URL = [[PGURLAlert new] runModal];
+#else
 	NSURL *const URL = [(PGURLAlert *)[[[PGURLAlert alloc] init] autorelease] runModal];
+#endif
 	if(URL) [self openDocumentWithContentsOfURL:URL display:YES];
 }
 - (IBAction)openRecentDocument:(id)sender
@@ -230,7 +286,7 @@ static PGDocumentController *PGSharedDocumentController = nil;
 	for(PGDocument *const doc in [self documents]) [[[doc displayController] window] performClose:self];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (IBAction)toggleInspector:(id)sender
 {
@@ -260,14 +316,14 @@ static PGDocumentController *PGSharedDocumentController = nil;
 	[[doc displayController] activateDocument:doc];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (IBAction)showKeyboardShortcuts:(id)sender
 {
 	[[NSHelpManager sharedHelpManager] openHelpAnchor:@"shortcuts" inBook:[[NSBundle mainBundle] objectForInfoDictionaryKey:PGCFBundleHelpBookNameKey]];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (BOOL)performEscapeKeyAction
 {
@@ -279,26 +335,46 @@ static PGDocumentController *PGSharedDocumentController = nil;
 }
 - (BOOL)performZoomIn
 {
+#if __has_feature(objc_arc)
+	return [_zoomIn PG_performAction];
+#else
 	return [zoomIn PG_performAction];
+#endif
 }
 - (BOOL)performZoomOut
 {
+#if __has_feature(objc_arc)
+	return [_zoomOut PG_performAction];
+#else
 	return [zoomOut PG_performAction];
+#endif
 }
 - (BOOL)performToggleFullscreen
 {
+#if __has_feature(objc_arc)
+	return [_toggleFullscreen PG_performAction];
+#else
 	return [toggleFullscreen PG_performAction];
+#endif
 }
 
-#pragma mark -
+//	MARK: -
 
+#if __has_feature(objc_arc)
+//	required because both getter and setter are custom methods
+@synthesize recentDocumentIdentifiers = _recentDocumentIdentifiers;
+#endif
 - (NSArray<PGDisplayableIdentifier*> *)recentDocumentIdentifiers
 {
 	//	bugfix: never return a nil value
 	if(!_recentDocumentIdentifiers)
 		_recentDocumentIdentifiers	=	[NSArray<PGDisplayableIdentifier*> new];
 
+#if __has_feature(objc_arc)
+	return _recentDocumentIdentifiers;
+#else
 	return [[_recentDocumentIdentifiers retain] autorelease];
+#endif
 }
 - (void)setRecentDocumentIdentifiers:(NSArray<PGDisplayableIdentifier*> *)anArray
 {
@@ -307,7 +383,12 @@ static PGDocumentController *PGSharedDocumentController = nil;
 }
 - (NSUInteger)maximumRecentDocumentCount
 {
+#if __has_feature(objc_arc)
+	// This is ugly but we don't want to use NSDocumentController.
+	return [NSDocumentController new].maximumRecentDocumentCount;
+#else
 	return [[[[NSDocumentController alloc] init] autorelease] maximumRecentDocumentCount]; // This is ugly but we don't want to use NSDocumentController.
+#endif
 }
 - (PGDisplayController *)displayControllerForNewDocument
 {
@@ -316,10 +397,16 @@ static PGDocumentController *PGSharedDocumentController = nil;
 			_fullscreenController = [[PGFullscreenController alloc] init];
 		return _fullscreenController;
 	}
+#if __has_feature(objc_arc)
+	return [PGWindowController new];
+#else
 	return [[[PGWindowController alloc] init] autorelease];
+#endif
 }
 
-@synthesize fullscreen = _fullscreen;
+#if !__has_feature(objc_arc)
+//@synthesize fullscreen = _fullscreen;
+#endif
 - (void)setFullscreen:(BOOL)flag
 {
 	if(flag == _fullscreen) return;
@@ -360,22 +447,32 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 	return _fullscreen;
 }
 
-@synthesize documents = _documents;
 - (NSMenu *)scaleMenu
 {
+#if __has_feature(objc_arc)
+	return [_scaleSliderItem menu];
+#else
 	return [scaleSliderItem menu];
+#endif
 }
+#if !__has_feature(objc_arc)
 - (NSSlider *)scaleSlider
 {
 	return scaleSlider;
 }
+//@synthesize documents = _documents;
 @synthesize defaultPageMenu;
-@synthesize currentDocument = _currentDocument;
+//@synthesize currentDocument = _currentDocument;
+#endif
 - (void)setCurrentDocument:(PGDocument *)document
 {
 	_currentDocument = document;
 	NSMenu *const menu = [_currentDocument pageMenu];
+#if __has_feature(objc_arc)
+	[_pageMenuItem setSubmenu:menu ? menu : [self defaultPageMenu]];
+#else
 	[pageMenuItem setSubmenu:menu ? menu : [self defaultPageMenu]];
+#endif
 }
 - (BOOL)pathFinderRunning
 {
@@ -391,18 +488,31 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 	return NO;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)addDocument:(PGDocument *)document
 {
 	NSParameterAssert([_documents indexOfObjectIdenticalTo:document] == NSNotFound);
-	if(![_documents count]) [windowsMenu addItem:windowsMenuSeparator];
+	if(![_documents count])
+#if __has_feature(objc_arc)
+		[_windowsMenu addItem:_windowsMenuSeparator];
+#else
+		[windowsMenu addItem:windowsMenuSeparator];
+#endif
 	[_documents addObject:document];
+#if __has_feature(objc_arc)
+	NSMenuItem *const item = [NSMenuItem new];
+#else
 	NSMenuItem *const item = [[[NSMenuItem alloc] init] autorelease];
+#endif
 	[item setRepresentedObject:document];
 	[item setAction:@selector(activateDocument:)];
 	[item setTarget:self];
+#if __has_feature(objc_arc)
+	[_windowsMenu addItem:item];
+#else
 	[windowsMenu addItem:item];
+#endif
 	[self _setFullscreen:YES];
 }
 - (void)removeDocument:(PGDocument *)document
@@ -411,9 +521,15 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 	if(document == [self currentDocument]) [self setCurrentDocument:nil];
 	if(!document) return;
 	[_documents removeObject:document];
+#if __has_feature(objc_arc)
+	NSUInteger const i = [_windowsMenu indexOfItemWithRepresentedObject:document];
+	if(NSNotFound != i) [_windowsMenu removeItemAtIndex:i];
+	if(![_documents count]) [_windowsMenuSeparator PG_removeFromMenu];
+#else
 	NSUInteger const i = [windowsMenu indexOfItemWithRepresentedObject:document];
 	if(NSNotFound != i) [windowsMenu removeItemAtIndex:i];
 	if(![_documents count]) [windowsMenuSeparator PG_removeFromMenu];
+#endif
 	[self _setFullscreen:[_documents count] > 0];
 }
 - (PGDocument *)documentForIdentifier:(PGResourceIdentifier *)ident
@@ -435,17 +551,28 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 }
 - (NSMenuItem *)windowsMenuItemForDocument:(PGDocument *)document
 {
+#if __has_feature(objc_arc)
+	NSInteger const i = [_windowsMenu indexOfItemWithRepresentedObject:document];
+	return -1 == i ? nil : [_windowsMenu itemAtIndex:i];
+#else
 	NSInteger const i = [windowsMenu indexOfItemWithRepresentedObject:document];
 	return -1 == i ? nil : [windowsMenu itemAtIndex:i];
+#endif
 }
 
-#pragma mark -
+//	MARK: -
 
 - (id)openDocumentWithContentsOfIdentifier:(PGResourceIdentifier *)ident display:(BOOL)flag
 {
 	if(!ident) return nil;
 	PGDocument *const doc = [self documentForIdentifier:ident];
+#if __has_feature(objc_arc)
+	return [self _openNew:!doc
+				 document:doc ? doc : [[PGDocument alloc] initWithIdentifier:[ident displayableIdentifier]]
+				  display:flag];
+#else
 	return [self _openNew:!doc document:doc ? doc : [[(PGDocument *)[PGDocument alloc] initWithIdentifier:[ident displayableIdentifier]] autorelease] display:flag];
+#endif
 }
 - (id)openDocumentWithContentsOfURL:(NSURL *)URL display:(BOOL)flag
 {
@@ -455,7 +582,13 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 {
 	PGDocument *const doc = [self documentForIdentifier:[aBookmark documentIdentifier]];
 	[doc openBookmark:aBookmark];
+#if __has_feature(objc_arc)
+	return [self _openNew:!doc
+				 document:doc ? doc : [[PGDocument alloc] initWithBookmark:aBookmark]
+				  display:flag];
+#else
 	return [self _openNew:!doc document:doc ? doc : [[[PGDocument alloc] initWithBookmark:aBookmark] autorelease] display:flag];
+#endif
 }
 - (void)noteNewRecentDocument:(PGDocument *)document
 {
@@ -466,14 +599,14 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 	[self _changeRecentDocumentIdentifiersWithDocument:document prepend:NO];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)handleAppleEvent:(NSAppleEventDescriptor *)event withReplyEvent:(NSAppleEventDescriptor *)replyEvent
 {
 	if([event eventClass] == kInternetEventClass && [event eventID] == kAEGetURL) [self openDocumentWithContentsOfURL:[NSURL URLWithString:[[event paramDescriptorForKeyword:keyDirectObject] stringValue]] display:YES];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)recentDocumentIdentifierDidChange:(NSNotification *)aNotif
 {
@@ -486,11 +619,16 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 	[[NSUserDefaults standardUserDefaults] setObject:archivedData forKey:PGRecentItemsKey];
 }
 
-#pragma mark -PGDocumentController(Private)
+//	MARK: - PGDocumentController(Private)
 
 - (void)_awakeAfterLocalizing
 {
-	for(NSMenuItem *const item in [orientationMenu itemArray]) [PGOrientationMenuIconCell addOrientationMenuIconCellToMenuItem:item];
+#if __has_feature(objc_arc)
+	for(NSMenuItem *const item in [_orientationMenu itemArray])
+#else
+	for(NSMenuItem *const item in [orientationMenu itemArray])
+#endif
+		[PGOrientationMenuIconCell addOrientationMenuIconCellToMenuItem:item];
 }
 - (void)_setFullscreen:(BOOL)flag
 {
@@ -587,7 +725,11 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 		[_fullscreenController prepareToExitFullscreen];
 		selectedNodes = _fullscreenController.selectedNodes;
 
+#if __has_feature(objc_arc)
+		NSMutableArray *const mutDocs = [docs mutableCopy];
+#else
 		NSMutableArray *const mutDocs = [[docs mutableCopy] autorelease];
+#endif
 		PGDocument *const currentDoc = [_fullscreenController activeDocument];
 		if(currentDoc) {
 			[mutDocs removeObjectIdenticalTo:currentDoc];
@@ -604,7 +746,9 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 				dc.selectedNodes = selectedNodes;
 		}
 		[[_fullscreenController window] close];
+#if !__has_feature(objc_arc)
 		[_fullscreenController release];
+#endif
 		_fullscreenController = nil;
 	} else if([docs count] && self.fullscreen) {
 		_inFullscreen = flag;
@@ -617,7 +761,11 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 			//	2023/10/02 get the selected nodes from the (old) thumbnail
 			//	browser before it is lost
 			if(nil == selectedNodes && currentDoc == doc)
+#if __has_feature(objc_arc)
+				selectedNodes = oldController.selectedNodes;
+#else
 				selectedNodes = [[oldController.selectedNodes retain] autorelease];
+#endif
 
 			[doc setDisplayController:_fullscreenController];
 			[[oldController window] close];
@@ -647,7 +795,9 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 	if(PGEqualObjects(anArray, _recentDocumentIdentifiers)) return;
 	[_recentDocumentIdentifiers PG_removeObjectObserver:self name:PGDisplayableIdentifierIconDidChangeNotification];
 	[_recentDocumentIdentifiers PG_removeObjectObserver:self name:PGDisplayableIdentifierDisplayNameDidChangeNotification];
+#if !__has_feature(objc_arc)
 	[_recentDocumentIdentifiers release];
+#endif
 	_recentDocumentIdentifiers = [[anArray subarrayWithRange:NSMakeRange(0, MIN([anArray count], [self maximumRecentDocumentCount]))] copy];
 	[_recentDocumentIdentifiers PG_addObjectObserver:self selector:@selector(recentDocumentIdentifierDidChange:) name:PGDisplayableIdentifierIconDidChangeNotification];
 	[_recentDocumentIdentifiers PG_addObjectObserver:self selector:@selector(recentDocumentIdentifierDidChange:) name:PGDisplayableIdentifierDisplayNameDidChangeNotification];
@@ -662,14 +812,18 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 		identifier == [recentDocumentIdentifiers objectAtIndex:0]) {
 		return;
 	}
+#if __has_feature(objc_arc)
+	NSMutableArray<PGDisplayableIdentifier*> *const identifiers = [recentDocumentIdentifiers mutableCopy];
+#else
 	NSMutableArray<PGDisplayableIdentifier*> *const identifiers = [[recentDocumentIdentifiers mutableCopy] autorelease];
+#endif
 	[identifiers removeObject:identifier];
 	if(prepend)
 		[identifiers insertObject:identifier atIndex:0];
 	[self setRecentDocumentIdentifiers:identifiers];
 }
 
-#pragma mark -NSResponder
+//	MARK: - NSResponder
 
 - (BOOL)performKeyEquivalent:(NSEvent *)anEvent
 {
@@ -682,7 +836,7 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 	return NO;
 }
 
-#pragma mark -NSObject
+//	MARK: - NSObject
 
 - (id)init
 {
@@ -725,7 +879,11 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 		_activityPanel = [[PGActivityPanelController alloc] init];
 
 		if(!PGSharedDocumentController) {
+#if __has_feature(objc_arc)
+			PGSharedDocumentController = self;
+#else
 			PGSharedDocumentController = [self retain];
+#endif
 			[[NSAppleEventManager sharedAppleEventManager] setEventHandler:self andSelector:@selector(handleAppleEvent:withReplyEvent:) forEventClass:kInternetEventClass andEventID:kAEGetURL];
 			[self setNextResponder:[NSApp nextResponder]];
 			[NSApp setNextResponder:self];
@@ -737,6 +895,7 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 {
 	if(PGSharedDocumentController == self) [[NSAppleEventManager sharedAppleEventManager] removeEventHandlerForEventClass:kInternetEventClass andEventID:kAEGetURL];
 	[self PG_removeObserver];
+#if !__has_feature(objc_arc)
 	[defaultPageMenu release];
 	[windowsMenuSeparator release];
 	[_recentDocumentIdentifiers release];
@@ -747,9 +906,10 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 	[_activityPanel release];
 //	[_classesByExtension release];	2023/10/29 not used; removed
 	[super dealloc];
+#endif
 }
 
-#pragma mark -NSObject(NSMenuValidation)
+//	MARK: - NSObject(NSMenuValidation)
 
 - (BOOL)validateMenuItem:(NSMenuItem *)anItem
 {
@@ -771,13 +931,31 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 	return [super validateMenuItem:anItem];
 }
 
-#pragma mark -NSObject(NSNibAwaking)
+//	MARK: - NSObject(NSNibAwaking)
 
 - (void)awakeFromNib
 {
+#if __has_feature(objc_arc)
+	[_windowsMenuSeparator PG_removeFromMenu];
+
+	[_zoomIn setKeyEquivalent:@"+"];
+	[_zoomIn setKeyEquivalentModifierMask:0];
+	[_zoomOut setKeyEquivalent:@"-"];
+	[_zoomOut setKeyEquivalentModifierMask:0];
+
+	[_scaleSliderItem setView:[_scaleSlider superview]];
+	[_scaleSlider setMinValue:log2(PGScaleMin)];
+	[_scaleSlider setMaxValue:log2(PGScaleMax)];
+
+	[_selectPreviousDocument setKeyEquivalent:[NSString stringWithFormat:@"%C", (unichar)0x21E1]];
+	[_selectPreviousDocument setKeyEquivalentModifierMask:NSEventModifierFlagCommand];
+	[_selectNextDocument setKeyEquivalent:[NSString stringWithFormat:@"%C", (unichar)0x21E3]];
+	[_selectNextDocument setKeyEquivalentModifierMask:NSEventModifierFlagCommand];
+#else
 	[defaultPageMenu retain];
 	[windowsMenuSeparator retain];
 	[windowsMenuSeparator PG_removeFromMenu];
+
 	[zoomIn setKeyEquivalent:@"+"];
 	[zoomIn setKeyEquivalentModifierMask:0];
 	[zoomOut setKeyEquivalent:@"-"];
@@ -791,6 +969,7 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 	[selectPreviousDocument setKeyEquivalentModifierMask:NSEventModifierFlagCommand];
 	[selectNextDocument setKeyEquivalent:[NSString stringWithFormat:@"%C", (unichar)0x21E3]];
 	[selectNextDocument setKeyEquivalentModifierMask:NSEventModifierFlagCommand];
+#endif
 
 	[self _setFullscreen:_fullscreen];
 	[self setCurrentDocument:nil];
@@ -798,7 +977,7 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 	[self performSelector:@selector(_awakeAfterLocalizing) withObject:nil afterDelay:0.0f inModes:[NSArray arrayWithObject:(NSString *)kCFRunLoopCommonModes]];
 }
 
-#pragma mark -<NSApplicationDelegate>
+//	MARK: - <NSApplicationDelegate>
 
 - (BOOL)application:(NSApplication *)sender openFile:(NSString *)filename
 {
@@ -817,11 +996,11 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 	[sender replyToOpenOrPrint:NSApplicationDelegateReplySuccess];
 }
 
-#pragma mark -<NSMenuDelegate>
+//	MARK: - <NSMenuDelegate>
 
 - (void)menuNeedsUpdate:(NSMenu *)recentDocumentsMenu
 {
-	[recentDocumentsMenu PG_removeAllItems];
+	[recentDocumentsMenu removeAllItems];
 	BOOL addedAnyItems = NO;	//	could be replaced by testing "if(0 != [recentDocumentsMenu numberOfItems])" instead of "if(addedAnyItems)"
 	NSArray<PGDisplayableIdentifier*> *const identifiers = [self recentDocumentIdentifiers];
 	for(PGDisplayableIdentifier *const identifier in identifiers) {
@@ -834,14 +1013,22 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 			uniqueName = NO;
 			break;
 		}
+#if __has_feature(objc_arc)
+		NSMenuItem *const item = [[NSMenuItem alloc] initWithTitle:@"" action:@selector(openRecentDocument:) keyEquivalent:@""];
+#else
 		NSMenuItem *const item = [[[NSMenuItem alloc] initWithTitle:@"" action:@selector(openRecentDocument:) keyEquivalent:@""] autorelease];
+#endif
 		[item setAttributedTitle:[identifier attributedStringWithAncestory:!uniqueName]];
 		[item setRepresentedObject:identifier];
 		[recentDocumentsMenu addItem:item];
 		addedAnyItems = YES;
 	}
 	if(addedAnyItems) [recentDocumentsMenu addItem:[NSMenuItem separatorItem]];
+#if __has_feature(objc_arc)
+	[recentDocumentsMenu addItem:[[NSMenuItem alloc] initWithTitle:NSLocalizedString(@"Clear Menu", @"Clear the Open Recent menu. Should be the same as the standard text.") action:@selector(clearRecentDocuments:) keyEquivalent:@""]];
+#else
 	[recentDocumentsMenu addItem:[[[NSMenuItem alloc] initWithTitle:NSLocalizedString(@"Clear Menu", @"Clear the Open Recent menu. Should be the same as the standard text.") action:@selector(clearRecentDocuments:) keyEquivalent:@""] autorelease]];
+#endif
 }
 
 @end
@@ -943,19 +1130,32 @@ static void (*PGNSMenuItemSetEnabled)(id, SEL, BOOL);
 
 @end
 
+static
+void
+EnableViews(NSView *view, BOOL enabled, BOOL recursive) {
+	if([view respondsToSelector:@selector(setEnabled:)])
+		[(NSControl *)view setEnabled:enabled];
+
+	if(!recursive)
+		return;
+
+	for(NSView *const subview in view.subviews)
+		EnableViews(subview, enabled, recursive);
+}
+
 @implementation PGMenuItem
 
 - (void)setEnabled:(BOOL)flag
 {
 	PGNSMenuItemSetEnabled(self, _cmd, flag);
-	[[self view] PG_setEnabled:flag recursive:YES];
+	EnableViews(self.view, flag, YES);	//	[[self view] PG_setEnabled:flag recursive:YES];
 }
 
 @end
 
 /* @implementation PGButton
 
-#pragma mark -NSView
+//	MARK: - NSView
 
 - (BOOL)performKeyEquivalent:(NSEvent *)anEvent
 {
