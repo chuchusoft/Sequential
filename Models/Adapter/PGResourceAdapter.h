@@ -44,6 +44,7 @@ typedef NSInteger PGRecursionPolicy;
 @end
 
 @interface PGResourceAdapter : NSObject <PGActivityOwner, PGResourceAdapting, PGResourceAdapterImageGeneratorCompletion>
+#if !__has_feature(objc_arc)
 {
 	@private
 	PGNode *_node;
@@ -54,6 +55,7 @@ typedef NSInteger PGRecursionPolicy;
 	NSImage *_realThumbnail;
 	NSOperation *_generateImageOperation;	//	2023/10/21 generates full image and/or thumbnail if neither exist
 }
+#endif
 
 + (NSDictionary *)typesDictionary;
 + (NSArray *)supportedFileTypes;
@@ -61,7 +63,11 @@ typedef NSInteger PGRecursionPolicy;
 
 - (id)initWithNode:(PGNode *)node dataProvider:(PGDataProvider *)dataProvider;
 @property(readonly) PGNode *node;
+#if __has_feature(objc_arc)
+@property(readonly) __kindof PGDataProvider *dataProvider;
+#else
 @property(readonly) id dataProvider;
+#endif
 
 @property(readonly) PGContainerAdapter *containerAdapter;
 @property(readonly) PGContainerAdapter *rootContainerAdapter;
