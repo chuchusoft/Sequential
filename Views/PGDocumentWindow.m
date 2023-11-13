@@ -28,21 +28,36 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 //#import "PGBezelPanel.h"
 #import "PGDragHighlightView.h"
 
+#if __has_feature(objc_arc)
+@interface PGDocumentWindow ()
+@property (nonatomic, strong) PGBezelPanel *dragHighlightPanel;
+@end
+#endif
+
+//	MARK: -
 @implementation PGDocumentWindow
 
-#pragma mark NSDraggingDestination Protocol
+//	MARK: - <NSDraggingDestination>
 
 - (NSDragOperation)draggingEntered:(id<NSDraggingInfo>)sender
 {
 	NSDragOperation const op = [(id<PGDocumentWindowDelegate>)[self delegate] window:self dragOperationForInfo:sender];
 	if(NSDragOperationNone == op) return NSDragOperationNone;
+#if __has_feature(objc_arc)
+	_dragHighlightPanel = [PGDragHighlightView PG_bezelPanel];
+#else
 	_dragHighlightPanel = [[PGDragHighlightView PG_bezelPanel] retain];
+#endif
 	[_dragHighlightPanel displayOverWindow:self];
 	return op;
 }
 - (void)draggingExited:(id<NSDraggingInfo>)sender
 {
+#if __has_feature(objc_arc)
+	[_dragHighlightPanel fadeOut];
+#else
 	[[_dragHighlightPanel autorelease] fadeOut];
+#endif
 	_dragHighlightPanel = nil;
 }
 
@@ -56,7 +71,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[self draggingExited:nil];
 }
 
-#pragma mark NSWindow
+//	MARK: - NSWindow
 
 - (void)close
 {
@@ -67,16 +82,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 //	NSEnableScreenUpdates();	2021/07/21 deprecated
 }
 
-#pragma mark NSObject
+//	MARK: - NSObject
 
+#if !__has_feature(objc_arc)
 - (void)dealloc
 {
 	[_dragHighlightPanel release];
 	[super dealloc];
 }
+#endif
 
 @end
 
+//	MARK: -
 @implementation NSObject(PGDocumentWindowDelegate)
 
 - (NSDragOperation)window:(PGDocumentWindow *)window dragOperationForInfo:(id<NSDraggingInfo>)info
