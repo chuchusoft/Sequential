@@ -40,10 +40,31 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 {
 	if(!source) return nil;
 	CGImageRef const image = CGImageSourceCreateImageAtIndex(source, i, NULL);
+#if __has_feature(objc_arc)
+	NSBitmapImageRep *const rep = [[NSBitmapImageRep alloc] initWithCGImage:image];
+#else
 	NSBitmapImageRep *const rep = [[[NSBitmapImageRep alloc] initWithCGImage:image] autorelease];
+#endif
 	CGImageRelease(image);
 	return rep;
 }
+
+#if __has_feature(objc_arc)
+
+@interface PGGenericImageAdapter()
+
+@property (nonatomic, assign) BOOL reading;
+@property (nonatomic, assign) BOOL readFailed;
+@property (nonatomic, assign) PGOrientation orientation;
+@property (nonatomic, strong) NSImageRep *cachedRep;
+
+- (NSDictionary *)_imageSourceOptions;
+- (void)_setImageProperties:(NSDictionary *)properties;
+- (void)_readFinishedWithImageRep:(NSImageRep *)aRep;
+
+@end
+
+#else
 
 @interface PGGenericImageAdapter(Private)
 
@@ -53,8 +74,14 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 
 @end
 
+#endif
+
 #pragma mark -
 @implementation PGGenericImageAdapter
+
+#if __has_feature(objc_arc)
+@synthesize imageProperties = _imageProperties;
+#endif
 
 #pragma mark Private Protocol
 
@@ -67,7 +94,9 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 - (void)_setImageProperties:(NSDictionary *)properties
 {
 	_orientation = PGOrientationWithTIFFOrientation([[properties objectForKey:(NSString *)kCGImagePropertyOrientation] unsignedIntegerValue]);
+#if !__has_feature(objc_arc)
 	[_imageProperties release];
+#endif
 	_imageProperties = [properties copy];
 }
 - (void)_readFinishedWithImageRep:(NSImageRep *)aRep
@@ -75,8 +104,12 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 	_reading = NO;
 	_readFailed = !aRep;
 	[[self node] noteIsViewableDidChange];
+#if __has_feature(objc_arc)
+	_cachedRep = aRep;
+#else
 	[_cachedRep release];
 	_cachedRep = [aRep retain];
+#endif
 	[[self document] noteNodeDidCache:[self node]];
 	[[self node] readFinishedWithImageRep:aRep];
 }
@@ -100,19 +133,25 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 
 #pragma mark -
 
+#if !__has_feature(objc_arc)
 - (NSDictionary *)imageProperties
 {
 	return [[_imageProperties retain] autorelease];
 }
+#endif
 - (PGOrientation)orientationWithBase:(BOOL)flag
 {
 	return PGAddOrientation(_orientation, [super orientationWithBase:flag]);
 }
 - (void)clearCache
 {
+#if !__has_feature(objc_arc)
 	[_imageProperties release];
+#endif
 	_imageProperties = nil;
+#if !__has_feature(objc_arc)
 	[_cachedRep release];
+#endif
 	_cachedRep = nil;
 }
 
@@ -197,12 +236,20 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 					[NSMutableDictionary dictionaryWithCapacity:capacity] : 0;
 				if(sourceProperties) {
 					if(md)
+#if __has_feature(objc_arc)
+						[md addEntriesFromDictionary:(__bridge NSDictionary *)sourceProperties];
+#else
 						[md addEntriesFromDictionary:(NSDictionary *)sourceProperties];
+#endif
 					CFRelease(sourceProperties);
 				}
 				if(properties) {
 					if(md)
+#if __has_feature(objc_arc)
+						[md addEntriesFromDictionary:(__bridge NSDictionary *)properties];
+#else
 						[md addEntriesFromDictionary:(NSDictionary *)properties];
+#endif
 					CFRelease(properties);
 				}
 
@@ -235,6 +282,24 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 		NSBitmapImageRep *const repForThumb = 0 == thumbnailFrameIndex && rep0 ?
 			rep0 : PGImageSourceImageRepAtIndex(source, thumbnailFrameIndex);
 		if(repForThumb && ![operation isCancelled]) {
+#if __has_feature(objc_arc)
+			CFDictionaryRef const properties = 0 == thumbnailFrameIndex && image0properties ?
+				CFRetain(image0properties) :
+				CGImageSourceCopyPropertiesAtIndex(source, thumbnailFrameIndex, NULL);
+
+			CFNumberRef propertyOrientation = CFDictionaryGetValue(properties, kCGImagePropertyOrientation);
+			NSUInteger propOrientationValue = 0;
+			if(propertyOrientation && CFNumberGetTypeID() == CFGetTypeID(propertyOrientation))
+				(void) CFNumberGetValue(propertyOrientation, kCFNumberNSIntegerType, &propOrientationValue);
+
+			PGOrientation const orientation = PGOrientationWithTIFFOrientation(propOrientationValue);
+			[self _setThumbnailImageInOperation:operation
+									   imageRep:repForThumb
+								  thumbnailSize:size
+									orientation:orientation
+										 opaque:NO
+					setParentContainerThumbnail:NO];
+#else
 			NSDictionary *const properties = 0 == thumbnailFrameIndex && image0properties ?
 				(NSDictionary *)image0properties :
 				[(NSDictionary *)CGImageSourceCopyPropertiesAtIndex(source, thumbnailFrameIndex, NULL) autorelease];
@@ -247,6 +312,7 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 									orientation:orientation
 										 opaque:NO
 					setParentContainerThumbnail:NO];
+#endif
 		}
 	}
 
@@ -258,11 +324,13 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 
 #pragma mark NSObject
 
+#if !__has_feature(objc_arc)
 - (void)dealloc
 {
 	[_imageProperties release];
 	[_cachedRep release];
 	[super dealloc];
 }
+#endif
 
 @end
