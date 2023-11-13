@@ -32,11 +32,27 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 NSString *const PGBezelPanelFrameShouldChangeNotification = @"PGBezelPanelFrameShouldChange";
 NSString *const PGBezelPanelFrameDidChangeNotification    = @"PGBezelPanelFrameDidChange";
 
+#if __has_feature(objc_arc)
+
+@interface PGBezelPanel ()
+
+@property (nonatomic, assign) BOOL acceptsEvents;
+@property (nonatomic, assign) BOOL canBecomeKey;
+@property (nonatomic, assign) PGInset frameInset;
+
+- (void)_updateFrameWithWindow:(NSWindow *)aWindow display:(BOOL)flag;
+
+@end
+
+#else
+
 @interface PGBezelPanel(Private)
 
 - (void)_updateFrameWithWindow:(NSWindow *)aWindow display:(BOOL)flag;
 
 @end
+
+#endif
 
 @implementation PGBezelPanel
 
@@ -80,6 +96,7 @@ NSString *const PGBezelPanelFrameDidChangeNotification    = @"PGBezelPanelFrameD
 
 #pragma mark -
 
+#if !__has_feature(objc_arc)
 - (BOOL)acceptsEvents
 {
 	return _acceptsEvents;
@@ -88,6 +105,7 @@ NSString *const PGBezelPanelFrameDidChangeNotification    = @"PGBezelPanelFrameD
 {
 	_acceptsEvents = flag;
 }
+#endif
 - (void)setCanBecomeKey:(BOOL)flag
 {
 	_canBecomeKey = flag;
@@ -95,6 +113,7 @@ NSString *const PGBezelPanelFrameDidChangeNotification    = @"PGBezelPanelFrameD
 
 #pragma mark -
 
+#if !__has_feature(objc_arc)
 - (PGInset)frameInset
 {
 	return _frameInset;
@@ -103,6 +122,7 @@ NSString *const PGBezelPanelFrameDidChangeNotification    = @"PGBezelPanelFrameD
 {
 	_frameInset = inset;
 }
+#endif
 
 #pragma mark -
 
@@ -200,7 +220,9 @@ NSString *const PGBezelPanelFrameDidChangeNotification    = @"PGBezelPanelFrameD
 - (void)dealloc
 {
 	[self PG_removeObserver];
+#if !__has_feature(objc_arc)
 	[super dealloc];
+#endif
 }
 
 @end
@@ -209,7 +231,11 @@ NSString *const PGBezelPanelFrameDidChangeNotification    = @"PGBezelPanelFrameD
 
 + (id)PG_bezelPanel
 {
+#if __has_feature(objc_arc)
+	return [[PGBezelPanel alloc] initWithContentView:[[self alloc] initWithFrame:NSZeroRect]];
+#else
 	return [[[PGBezelPanel alloc] initWithContentView:[[[self alloc] initWithFrame:NSZeroRect] autorelease]] autorelease];
+#endif
 }
 
 @end
