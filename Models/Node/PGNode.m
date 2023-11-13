@@ -60,6 +60,30 @@ enum {
 	PGNodeLoadingOrReading = PGNodeLoading | PGNodeReading
 }; // PGNodeStatus.
 
+#if __has_feature(objc_arc)
+
+@interface PGNode()
+
+@property (nonatomic, weak) id<PGNodeParenting> parent;
+@property (nonatomic, strong) PGDisplayableIdentifier *identifier;
+//@property (nonatomic, strong) PGDataProvider *dataProvider;
+@property (nonatomic, strong) NSMutableArray<PGResourceAdapter *> *potentialAdapters;
+@property (nonatomic, strong) PGResourceAdapter *resourceAdapter;//@property (nonatomic, strong) PGResourceAdapter *adapter;
+@property (nonatomic, assign) PGNodeStatus status;
+
+@property (nonatomic, assign) BOOL viewable;
+@property (nonatomic, strong) NSMenuItem *menuItem;
+@property (nonatomic, assign) BOOL allowMenuItemUpdates;
+
+- (void)_stopLoading;
+
+- (void)_updateMenuItem;
+- (void)_updateFileAttributes;
+
+@end
+
+#else
+
 @interface PGNode(Private)
 
 - (void)_setResourceAdapter:(PGResourceAdapter *)adapter;
@@ -69,6 +93,8 @@ enum {
 - (void)_updateFileAttributes;
 
 @end
+
+#endif
 
 @implementation PGNode
 
@@ -88,15 +114,25 @@ enum {
 
 #pragma mark -PGNode
 
+@synthesize dataProvider = _dataProvider;
+
 - (id)initWithParent:(id<PGNodeParenting>)parent identifier:(PGDisplayableIdentifier *)ident
 {
 	if(!(self = [super init])) return nil;
 	if(!ident) {
+#if __has_feature(objc_arc)
+		self = nil;
+#else
 		[self release];
+#endif
 		return nil;
 	}
 	_parent = parent;
+#if __has_feature(objc_arc)
+	_identifier = ident;
+#else
 	_identifier = [ident retain];
+#endif
 	_menuItem = [[NSMenuItem alloc] init];
 	[_menuItem setRepresentedObject:[NSValue valueWithNonretainedObject:self]];
 	[_menuItem setAction:@selector(jumpToPage:)];
@@ -106,53 +142,69 @@ enum {
 	[_identifier PG_addObserver:self selector:@selector(identifierDisplayNameDidChange:) name:PGDisplayableIdentifierDisplayNameDidChangeNotification];
 	return self;
 }
+#if !__has_feature(objc_arc)
 - (PGDisplayableIdentifier *)identifier
 {
 	return [[_identifier retain] autorelease];
 }
+#endif
 
 #pragma mark -
 
+#if !__has_feature(objc_arc)
 - (PGDataProvider *)dataProvider
 {
 	return [[_dataProvider retain] autorelease];
 }
+#endif
 - (void)setDataProvider:(PGDataProvider *)dp
 {
 	NSParameterAssert(dp);
 	if(dp == _dataProvider) return;
+#if __has_feature(objc_arc)
+	_dataProvider = dp;
+#else
 	[_dataProvider release];
 	_dataProvider = [dp retain];
+#endif
 	[self reload];
 }
 - (void)reload
 {
 	_status |= PGNodeLoading;
+#if !__has_feature(objc_arc)
 	[_potentialAdapters release];
+#endif
 	_potentialAdapters = [[_dataProvider adaptersForNode:self] mutableCopy];
 	[self _setResourceAdapter:[_potentialAdapters lastObject]];
 	if([_potentialAdapters count]) [_potentialAdapters removeLastObject];
-	[_adapter loadIfNecessary];
+#if __has_feature(objc_arc)
+	[_resourceAdapter loadIfNecessary];
+#else
+	[_resourceAdapter loadIfNecessary];
+#endif
 }
+#if !__has_feature(objc_arc)
 - (PGResourceAdapter *)resourceAdapter
 {
-	return [[_adapter retain] autorelease];
+	return [[_resourceAdapter retain] autorelease];
 }
+#endif
 - (void)loadFinishedForAdapter:(PGResourceAdapter *)adapter
 {
 	NSParameterAssert(PGNodeLoading & _status);
-	NSParameterAssert(adapter == _adapter);
+	NSParameterAssert(adapter == _resourceAdapter);
 	[self _stopLoading];
 	[self readIfNecessary];
 }
 - (void)fallbackFromFailedAdapter:(PGResourceAdapter *)adapter
 {
 	NSParameterAssert(PGNodeLoading & _status);
-	NSParameterAssert(adapter == _adapter);
+	NSParameterAssert(adapter == _resourceAdapter);
 	[self _setResourceAdapter:[_potentialAdapters lastObject]];
 	if(![_potentialAdapters count]) return [self _stopLoading];
 	[_potentialAdapters removeLastObject];
-	[_adapter loadIfNecessary];
+	[_resourceAdapter loadIfNecessary];
 }
 
 #pragma mark -
@@ -169,17 +221,23 @@ enum {
 {
 	return _viewable ? self : [[self parentNode] viewableAncestor];
 }
+#if !__has_feature(objc_arc)
 - (NSMenuItem *)menuItem
 {
 	return [[_menuItem retain] autorelease];
 }
+#endif
 - (BOOL)canBookmark
 {
 	return [self isViewable] && [[self identifier] hasTarget];
 }
 - (PGBookmark *)bookmark
 {
+#if __has_feature(objc_arc)
+	return [[PGBookmark alloc] initWithNode:self];
+#else
 	return [[[PGBookmark alloc] initWithNode:self] autorelease];
+#endif
 }
 
 #pragma mark -
@@ -193,7 +251,7 @@ enum {
 }
 - (void)readIfNecessary
 {
-	if((PGNodeLoadingOrReading & _status) == PGNodeReading) [_adapter read];
+	if((PGNodeLoadingOrReading & _status) == PGNodeReading) [_resourceAdapter read];
 }
 - (void)setIsReading:(BOOL)reading {	//	2023/10/21
 	NSParameterAssert((PGNodeLoadingOrReading & _status) == PGNodeNothing ||
@@ -265,9 +323,17 @@ enum {
 			data = [[self resourceAdapter] data];
 
 			[pboard addTypes:[NSArray arrayWithObject:NSPasteboardTypeRTFD] owner:nil];
+#if __has_feature(objc_arc)
+			NSFileWrapper *const wrapper = [[NSFileWrapper alloc] initRegularFileWithContents:data];
+#else
 			NSFileWrapper *const wrapper = [[[NSFileWrapper alloc] initRegularFileWithContents:data] autorelease];
+#endif
 			[wrapper setPreferredFilename:[[self identifier] displayName]];
+#if __has_feature(objc_arc)
+			NSAttributedString *const string = [NSAttributedString attributedStringWithAttachment:[[NSTextAttachment alloc] initWithFileWrapper:wrapper]];
+#else
 			NSAttributedString *const string = [NSAttributedString attributedStringWithAttachment:[[[NSTextAttachment alloc] initWithFileWrapper:wrapper] autorelease]];
+#endif
 			//	2021/07/21 cannot pass nil to -RTFDFileWrapperFromRange::documentAttributes:
 			//	for the documentAttributes: parameter
 			[pboard setData:[string RTFDFromRange:NSMakeRange(0, [string length]) documentAttributes:@{NSDocumentTypeDocumentAttribute:@"some doc type"}] forType:NSPasteboardTypeRTFD];
@@ -348,7 +414,7 @@ enum {
 - (void)noteIsViewableDidChange
 {
 	BOOL const showsLoadingIndicator = !!(PGNodeLoading & _status);
-	BOOL const viewable = showsLoadingIndicator || [_adapter adapterIsViewable];
+	BOOL const viewable = showsLoadingIndicator || [_resourceAdapter adapterIsViewable];
 	if(viewable == _viewable) return;
 	_viewable = viewable;
 	[[self document] noteNodeIsViewableDidChange:self];
@@ -358,18 +424,24 @@ enum {
 
 - (void)_setResourceAdapter:(PGResourceAdapter *)adapter
 {
-	if(adapter == _adapter) return;
-	[[_adapter activity] setParentActivity:nil];
-	[_adapter release];
-	_adapter = [adapter retain];
+	if(adapter == _resourceAdapter) return;
+	[[_resourceAdapter activity] setParentActivity:nil];
+#if __has_feature(objc_arc)
+	_resourceAdapter = adapter;
+#else
+	[_resourceAdapter release];
+	_resourceAdapter = [adapter retain];
+#endif
 	PGActivity *const parentActivity = [[self parentAdapter] activity];
-	[[_adapter activity] setParentActivity:parentActivity ? parentActivity : [[self document] activity]];
+	[[_resourceAdapter activity] setParentActivity:parentActivity ? parentActivity : [[self document] activity]];
 	[self _updateFileAttributes];
 	[self noteIsViewableDidChange];
 }
 - (void)_stopLoading
 {
+#if !__has_feature(objc_arc)
 	[_potentialAdapters release];
+#endif
 	_potentialAdapters = nil;
 	_status &= ~PGNodeLoading;
 	[self noteIsViewableDidChange];
@@ -381,7 +453,11 @@ enum {
 - (void)_updateMenuItem
 {
 	if(!_allowMenuItemUpdates) return;
+#if __has_feature(objc_arc)
+	NSMutableAttributedString *const label = [[[self identifier] attributedStringWithAncestory:NO] mutableCopy];
+#else
 	NSMutableAttributedString *const label = [[[[self identifier] attributedStringWithAncestory:NO] mutableCopy] autorelease];
+#endif
 	NSString *info = nil;
 	NSDate *date = nil;
 	PGDataProvider *const dp = [[self resourceAdapter] dataProvider];
@@ -392,8 +468,23 @@ enum {
 	//	case PGSortBySize: info = [[dp dataLength] PG_bytesAsLocalizedString]; break;
 		case PGSortByKind: info = [dp kindString]; break;
 	}
+#if __has_feature(objc_arc)
+	if(date && !info)
+		info = [NSDateFormatter localizedStringFromDate:date
+											  dateStyle:NSDateFormatterShortStyle
+											  timeStyle:NSDateFormatterShortStyle];
+#else
 	if(date && !info) info = [date PG_localizedStringWithDateStyle:kCFDateFormatterShortStyle timeStyle:kCFDateFormatterShortStyle];
-	if(info) [label appendAttributedString:[[[NSAttributedString alloc] initWithString:[NSString stringWithFormat:@" (%@)", info] attributes:[NSDictionary dictionaryWithObjectsAndKeys:[NSColor grayColor], NSForegroundColorAttributeName, [NSFont boldSystemFontOfSize:12], NSFontAttributeName, nil]] autorelease]];
+#endif
+	if(info)
+#if __has_feature(objc_arc)
+		[label appendAttributedString:[[NSAttributedString alloc] initWithString:[NSString stringWithFormat:@" (%@)", info]
+																	  attributes:@{
+			NSForegroundColorAttributeName: NSColor.grayColor,
+			NSFontAttributeName: [NSFont boldSystemFontOfSize:12]}]];
+#else
+		[label appendAttributedString:[[[NSAttributedString alloc] initWithString:[NSString stringWithFormat:@" (%@)", info] attributes:[NSDictionary dictionaryWithObjectsAndKeys:[NSColor grayColor], NSForegroundColorAttributeName, [NSFont boldSystemFontOfSize:12], NSFontAttributeName, nil]] autorelease]];
+#endif
 	[_menuItem setAttributedTitle:label];
 }
 - (void)_updateFileAttributes
@@ -406,19 +497,21 @@ enum {
 
 - (void)dealloc
 {
-	[[_adapter activity] setParentActivity:nil];
+	[[_resourceAdapter activity] setParentActivity:nil];
 
 	// Using our generic -PG_removeObserver is about twice as slow as removing the observer for the specific objects we care about. When closing huge folders of thousands of files, this makes a big difference. Even now it's still the slowest part.
 	[_identifier PG_removeObserver:self name:PGDisplayableIdentifierIconDidChangeNotification];
 	[_identifier PG_removeObserver:self name:PGDisplayableIdentifierDisplayNameDidChangeNotification];
+#if !__has_feature(objc_arc)
 	[_identifier release];
 
 	[_dataProvider release];
 	[_potentialAdapters release];
-	[_adapter release];
+	[_resourceAdapter release];
 
 	[_menuItem release];
 	[super dealloc];
+#endif
 }
 
 #pragma mark -NSObject(NSObject)
@@ -436,7 +529,8 @@ enum {
 
 - (NSString *)description
 {
-	return [NSString stringWithFormat:@"<%@(%@) %p: %@>", [self class], [_adapter class], self, [self identifier]];
+	return [NSString stringWithFormat:@"<%@(%@) %p: %@>",
+		self.class, _resourceAdapter.class, self, self.identifier];
 }
 
 #pragma mark -<PGResourceAdapting>
@@ -464,12 +558,12 @@ enum {
 {
 	[[self identifier] noteNaturalDisplayNameDidChange];
 	[self _updateFileAttributes];
-	[_adapter noteFileEventDidOccurDirect:flag];
+	[_resourceAdapter noteFileEventDidOccurDirect:flag];
 }
 - (void)noteSortOrderDidChange
 {
 	[self _updateMenuItem];
-	[_adapter noteSortOrderDidChange];
+	[_resourceAdapter noteSortOrderDidChange];
 }
 
 @end
