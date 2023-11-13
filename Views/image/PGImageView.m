@@ -37,6 +37,45 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #define PGAnimateSizeChanges true
 #define PGDebugDrawingModes false
 
+#if __has_feature(objc_arc)
+
+static __strong NSImage *PGRoundedCornerImages[4];
+static NSSize PGRoundedCornerSizes[4];
+
+@interface PGImageView()
+
+@property (nonatomic, assign) NSSize size;
+@property (nonatomic, assign) NSSize immediateSize;
+@property (nonatomic, assign) NSTimeInterval lastSizeAnimationTime;
+@property (nonatomic, strong) NSTimer *sizeTransitionTimer;
+
+@property (nonatomic, assign) NSUInteger pauseCount;
+
+@property (nonatomic, strong) NSImage *image;
+@property (nonatomic, assign) BOOL isPDF;
+@property (nonatomic, assign) NSUInteger numberOfFrames;
+//@property (nonatomic, assign) CGLayerRef _cacheLayer;		2023/10/16 removed; -setUsesCaching: is now a no-op
+@property (nonatomic, assign) BOOL awaitingUpdate;
+
+- (void)_runAnimationTimer;
+- (void)_animate;
+- (void)_invalidateCache;
+- (void)_cache;
+//	2023/10/16 replaced with -_drawImageWithFrame:
+//- (void)_drawImageWithFrame:(NSRect)aRect compositeCopy:(BOOL)compositeCopy rects:(NSRect const *)rects count:(NSUInteger)count;
+- (void)_drawImageWithFrame:(NSRect)aRect;
+@property(readonly) BOOL _shouldDrawRoundedCorners;
+- (BOOL)_needsToDrawRoundedCornersForImageRect:(NSRect)r rects:(NSRect const *)rects count:(NSUInteger)count;
+- (void)_getRoundedCornerRects:(NSRectArray)rects forRect:(NSRect)r;
+- (NSAffineTransform *)_transformWithRotationInDegrees:(CGFloat)val;
+- (BOOL)_setSize:(NSSize)size;
+- (void)_sizeTransitionOneFrame;
+- (void)_updateFrameSize;
+- (void)_update;
+@end
+
+#else
+
 static NSImage *PGRoundedCornerImages[4];
 static NSSize PGRoundedCornerSizes[4];
 
@@ -61,17 +100,19 @@ static NSSize PGRoundedCornerSizes[4];
 
 @end
 
-#pragma mark -
+#endif
+
+//	MARK: -
 @implementation PGImageView
 
-#pragma mark +PGImageView
+//	MARK: +PGImageView
 
 + (NSArray *)pasteboardTypes
 {
 	return [NSArray arrayWithObjects:NSPasteboardTypeTIFF, nil];
 }
 
-#pragma mark +NSObject
+//	MARK: +NSObject
 
 + (void)initialize
 {
@@ -80,20 +121,25 @@ static NSSize PGRoundedCornerSizes[4];
 	[self exposeBinding:@"antialiasWhenUpscaling"];
 	[self exposeBinding:@"usesRoundedCorners"];
 
+#if __has_feature(objc_arc)
+	PGRoundedCornerImages[PGMinXMinYCorner] = [NSImage imageNamed:@"Corner-Bottom-Left"];
+	PGRoundedCornerImages[PGMaxXMinYCorner] = [NSImage imageNamed:@"Corner-Bottom-Right"];
+	PGRoundedCornerImages[PGMinXMaxYCorner] = [NSImage imageNamed:@"Corner-Top-Left"];
+	PGRoundedCornerImages[PGMaxXMaxYCorner] = [NSImage imageNamed:@"Corner-Top-Right"];
+#else
 	PGRoundedCornerImages[PGMinXMinYCorner] = [[NSImage imageNamed:@"Corner-Bottom-Left"] retain];
 	PGRoundedCornerImages[PGMaxXMinYCorner] = [[NSImage imageNamed:@"Corner-Bottom-Right"] retain];
 	PGRoundedCornerImages[PGMinXMaxYCorner] = [[NSImage imageNamed:@"Corner-Top-Left"] retain];
 	PGRoundedCornerImages[PGMaxXMaxYCorner] = [[NSImage imageNamed:@"Corner-Top-Right"] retain];
+#endif
 	PGRoundedCornerSizes[PGMinXMinYCorner] = [PGRoundedCornerImages[PGMinXMinYCorner] size];
 	PGRoundedCornerSizes[PGMaxXMinYCorner] = [PGRoundedCornerImages[PGMaxXMinYCorner] size];
 	PGRoundedCornerSizes[PGMinXMaxYCorner] = [PGRoundedCornerImages[PGMinXMaxYCorner] size];
 	PGRoundedCornerSizes[PGMaxXMaxYCorner] = [PGRoundedCornerImages[PGMaxXMaxYCorner] size];
 }
 
-#pragma mark - PGImageView
+//	MARK: - PGImageView
 
-@synthesize rep = _rep;
-@synthesize orientation = _orientation;
 - (NSSize)size
 {
 	return _sizeTransitionTimer ? _size : _immediateSize;
@@ -108,7 +154,6 @@ static NSSize PGRoundedCornerSizes[4];
 	NSSize const o = [self originalSize];
 	return (s.width / o.width + s.height / o.height) / 2.0f;
 }
-@synthesize rotationInDegrees = _rotationInDegrees;
 - (void)setRotationInDegrees:(CGFloat)val
 {
 	if(val == _rotationInDegrees) return;
@@ -116,7 +161,6 @@ static NSSize PGRoundedCornerSizes[4];
 	[self _updateFrameSize];
 	[self setNeedsDisplay:YES];
 }
-@synthesize antialiasWhenUpscaling = _antialiasWhenUpscaling;
 - (void)setAntialiasWhenUpscaling:(BOOL)flag
 {
 	if(flag == _antialiasWhenUpscaling) return;
@@ -131,7 +175,6 @@ static NSSize PGRoundedCornerSizes[4];
 	NSSize const imageSize = NSMakeSize([_rep pixelsWide], [_rep pixelsHigh]), viewSize = [self size];
 	return imageSize.width < viewSize.width && imageSize.height < viewSize.height ? NSImageInterpolationNone : NSImageInterpolationHigh;
 }
-@synthesize usesRoundedCorners = _usesRoundedCorners;
 - (void)setUsesRoundedCorners:(BOOL)flag
 {
 	if(flag == _usesRoundedCorners) return;
@@ -139,7 +182,6 @@ static NSSize PGRoundedCornerSizes[4];
 	[self _invalidateCache];
 	[self setNeedsDisplay:YES];
 }
-@synthesize usesCaching = _usesCaching;
 - (void)setUsesCaching:(BOOL)flag
 {
 	if(flag == _usesCaching) return;
@@ -150,13 +192,12 @@ static NSSize PGRoundedCornerSizes[4];
 //	else [self _invalidateCache];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (BOOL)canAnimateRep
 {
 	return _numberOfFrames > 1;
 }
-@synthesize animates = _animates;
 - (void)setAnimates:(BOOL)flag
 {
 	if(flag == _animates) return;
@@ -179,7 +220,7 @@ static NSSize PGRoundedCornerSizes[4];
 	[self _runAnimationTimer];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)setImageRep:(NSImageRep *)rep orientation:(PGOrientation)orientation size:(NSSize)size
 {
@@ -190,11 +231,17 @@ static NSSize PGRoundedCornerSizes[4];
 	[_image setSize:NSMakeSize([rep pixelsWide], [rep pixelsHigh])];
 	if(rep != _rep) {
 		[_image removeRepresentation:_rep];
+#if !__has_feature(objc_arc)
 		[_rep release];
+#endif
 		_rep = nil;
 
 		[self setSize:size allowAnimation:NO];
+#if __has_feature(objc_arc)
+		_rep = rep;
+#else
 		_rep = [rep retain];
+#endif
 		[_image addRepresentation:_rep];
 
 		_isPDF = [_rep isKindOfClass:[NSPDFImageRep class]];
@@ -217,12 +264,27 @@ static NSSize PGRoundedCornerSizes[4];
 	}
 	if(NSEqualSizes(size, [self size])) return;
 	_size = size;
-	if(!_sizeTransitionTimer) _sizeTransitionTimer = [[self PG_performSelector:@selector(_sizeTransitionOneFrame) withObject:nil fireDate:nil interval:PGAnimationFramerate options:PGRepeatOnInterval] retain];
+	if(!_sizeTransitionTimer)
+#if __has_feature(objc_arc)
+		_sizeTransitionTimer = [self PG_performSelector:@selector(_sizeTransitionOneFrame)
+											 withObject:nil
+											   fireDate:nil
+											   interval:PGAnimationFramerate
+												options:PGRepeatOnInterval];
+#else
+		_sizeTransitionTimer = [[self PG_performSelector:@selector(_sizeTransitionOneFrame)
+											  withObject:nil
+												fireDate:nil
+												interval:PGAnimationFramerate
+												 options:PGRepeatOnInterval] retain];
+#endif
 }
 - (void)stopAnimatedSizeTransition
 {
 	[_sizeTransitionTimer invalidate];
+#if !__has_feature(objc_arc)
 	[_sizeTransitionTimer release];
+#endif
 	_sizeTransitionTimer = nil;
 	_lastSizeAnimationTime = 0.0f;
 	[self _setSize:_size];
@@ -237,7 +299,7 @@ static NSSize PGRoundedCornerSizes[4];
 	return [[self _transformWithRotationInDegrees:val] transformPoint:PGOffsetPointByXY(p, NSMidX(b2), NSMidY(b2))];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (BOOL)writeToPasteboard:(NSPasteboard *)pboard types:(NSArray *)types
 {
@@ -250,7 +312,7 @@ static NSSize PGRoundedCornerSizes[4];
 	return YES;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)appDidHide:(NSNotification *)aNotif
 {
@@ -261,7 +323,7 @@ static NSSize PGRoundedCornerSizes[4];
 	self.paused = NO;
 }
 
-#pragma mark - PGImageView(Private)
+//	MARK: - PGImageView(Private)
 
 - (BOOL)_imageIsOpaque
 {
@@ -480,7 +542,7 @@ static NSSize PGRoundedCornerSizes[4];
 	[self setNeedsDisplay:YES];
 }
 
-#pragma mark - NSView
+//	MARK: - NSView
 
 - (id)initWithFrame:(NSRect)aRect
 {
@@ -581,7 +643,7 @@ static NSSize PGRoundedCornerSizes[4];
 	[self _invalidateCache];
 }
 
-#pragma mark - NSView(PGClipViewAdditions)
+//	MARK: - NSView(PGClipViewAdditions)
 
 - (BOOL)PG_acceptsClicksInClipView:(PGClipView *)sender
 {
@@ -592,7 +654,7 @@ static NSSize PGRoundedCornerSizes[4];
 	return YES;
 }
 
-#pragma mark - NSObject
+//	MARK: - NSObject
 
 - (id)init
 {
@@ -610,8 +672,10 @@ static NSSize PGRoundedCornerSizes[4];
 	NSParameterAssert(!_rep);
 	[self _invalidateCache];
 	[self setAnimates:NO];
+#if !__has_feature(objc_arc)
 	[_image release];
 	[super dealloc];
+#endif
 }
 
 @end
