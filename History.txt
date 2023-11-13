@@ -1,3 +1,12 @@
+2.5.0 (2023-11-??)
+- converted the codebase to build under Automatic Reference Counting (ARC);
+  the codebase can still build under Manual Retain Release (MRR) but this will
+  be removed later when all breaking changes have been fixed.
+- in the thumbnail view, the selection color of selected siblings and parents
+  of the active (displayed) item is now distinct from that of the active item.
+- when multiple documents are open, the thumbnail view is now drawn using the
+  correct highlight colors for the main (active) window and inactive windows.
+
 2.4.0 (2023-11-02)
 - PDF image drawing was being cached in a layer which resulted in a sub-optimal
   rendering appearance on high-DPI screens; now, PDF image drawing is no longer
