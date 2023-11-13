@@ -37,7 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 @property (nonatomic, strong) PGClipView *clipView;
 @property (nonatomic, strong) NSView *view;
 @property (nonatomic, strong) NSMutableArray<__kindof NSView *> *clipViews;
-@property (nonatomic, copy) NSMutableArray *views;
+@property (nonatomic, strong) NSMutableArray *views;
 @end
 
 #endif
@@ -145,8 +145,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		[self addSubview:_clipView];
 		_view = [[NSView alloc] initWithFrame:NSZeroRect];
 		[_clipView setDocumentView:_view];
-		_clipViews = [[NSMutableArray alloc] init];
-		_views = [[NSMutableArray alloc] init];
+		_clipViews = [NSMutableArray new];
+		_views = [NSMutableArray new];
 		_columnWidth = 128.0f + 12.0f;
 	}
 	return self;
