@@ -58,6 +58,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import "PGGeometry.h"
 #import "PGKeyboardLayout.h"
 
+static
+BOOL
+SetDesktopImage(NSScreen *screen, NSURL *URL) {
+	NSWorkspace *const ws = [NSWorkspace sharedWorkspace];
+	return [ws setDesktopImageURL:URL
+						forScreen:screen
+						  options:[ws desktopImageOptionsForScreen:screen]
+							error:NULL];
+}
+
+//	MARK: -
 NSString *const PGDisplayControllerActiveNodeDidChangeNotification = @"PGDisplayControllerActiveNodeDidChange";
 NSString *const PGDisplayControllerActiveNodeWasReadNotification = @"PGDisplayControllerActiveNodeWasRead";
 NSString *const PGDisplayControllerTimerDidChangeNotification = @"PGDisplayControllerTimerDidChange";
@@ -76,7 +87,76 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	return NSMakeSize(MIN(MAX(min.width, size.width), max.width), MIN(MAX(min.height, size.height), max.height));
 }
 
-#pragma mark -
+static
+void
+SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
+#if __has_feature(objc_arc)
+	NSMutableAttributedString *const str = [anObject mutableCopy];
+#else
+	NSMutableAttributedString *const str = [[anObject mutableCopy] autorelease];
+#endif
+	[str addAttributes:[c.attributedStringValue attributesAtIndex:0 effectiveRange:NULL]
+				 range:NSMakeRange(0, str.length)];
+	[c setAttributedStringValue:str];
+}
+
+
+//	MARK: -
+
+#if __has_feature(objc_arc)
+
+@interface PGDisplayController ()
+
+@property (nonatomic, weak) IBOutlet PGClipView *clipView;
+@property (nonatomic, weak) IBOutlet PGFindView *findView;
+@property (nonatomic, weak) IBOutlet NSSearchField *searchField;
+@property (nonatomic, weak) IBOutlet NSView *errorView;
+@property (nonatomic, weak) IBOutlet NSTextField *errorLabel;
+@property (nonatomic, weak) IBOutlet NSTextField *errorMessage;
+@property (nonatomic, weak) IBOutlet NSButton *reloadButton;
+//	the original code -retain'd passwordView but there appears to be no
+//	valid reason for doing this because the view should not be released
+//	while this instance is alive; for the ARC version, passwordView is
+//	weak-referenced until it is proven that it needs a strong-reference
+@property (nonatomic, weak) IBOutlet NSView *passwordView;
+@property (nonatomic, weak) IBOutlet NSTextField *passwordLabel;
+@property (nonatomic, weak) IBOutlet NSTextField *passwordField;
+
+//	PGDocument *_activeDocument;
+@property (nonatomic, strong) PGNode *activeNode;
+@property (nonatomic, strong) PGImageView *imageView;
+//	PGPageLocation _initialLocation;
+//	BOOL _reading;
+@property (nonatomic, assign) NSUInteger displayImageIndex;
+
+@property (nonatomic, strong) PGBezelPanel *graphicPanel;
+@property (nonatomic, strong) PGLoadingGraphic *loadingGraphic;
+@property (nonatomic, strong) PGBezelPanel *infoPanel;
+
+@property (nonatomic, strong) PGThumbnailController *thumbnailController;
+
+@property (nonatomic, strong) PGBezelPanel *findPanel;
+@property (nonatomic, strong) PGFindlessTextView *findFieldEditor;
+
+@property (nonatomic, strong) NSDate *nextTimerFireDate;
+@property (nonatomic, strong) NSTimer *timer;
+
+- (void)_setClipViewBackground;
+- (void)_setImageView:(PGImageView *)aView;
+- (BOOL)_setActiveNode:(PGNode *)aNode;
+- (void)_readActiveNode;
+- (void)_readFinished;
+- (NSSize)_sizeForImageRep:(NSImageRep *)rep orientation:(PGOrientation)orientation;
+- (NSSize)_sizeForImageRep:(NSImageRep *)rep orientation:(PGOrientation)orientation scaleMode:(PGImageScaleMode)scaleMode factor:(float)factor;
+- (void)_updateImageViewSizeAllowAnimation:(BOOL)flag;
+- (void)_updateNodeIndex;
+- (void)_updateInfoPanelText;
+- (void)_setCopyAsDesktopPicturePanelDidEnd:(NSSavePanel *)savePanel returnCode:(NSInteger)returnCode contextInfo:(void *)contextInfo;
+- (void)_offerToOpenBookmarkAlertDidEnd:(NSAlert *)alert returnCode:(NSInteger)returnCode bookmark:(PGBookmark *)bookmark;
+
+@end
+
+#else
 
 @interface PGDisplayController(Private)
 
@@ -95,7 +175,9 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 
 @end
 
-#pragma mark -
+#endif
+
+//	MARK: -
 
 @implementation PGDisplayController
 
@@ -104,7 +186,7 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	return [NSArray PG_arrayWithContentsOfArrays:[PGNode pasteboardTypes], [PGImageView pasteboardTypes], nil];
 }
 
-#pragma mark - NSObject
+//	MARK: - NSObject
 
 + (void)initialize
 {
@@ -115,7 +197,7 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	return [NSUserDefaultsController sharedUserDefaultsController];
 }
 
-#pragma mark - PGDisplayController
+//	MARK: - PGDisplayController
 
 - (IBAction)reveal:(id)sender
 {
@@ -124,7 +206,12 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	} else {
 		NSString *const path = [[[[self activeNode] identifier] URLByFollowingAliases:NO] path];
 		if([[PGDocumentController sharedDocumentController] pathFinderRunning]) {
+#if __has_feature(objc_arc)
+			if([[[NSAppleScript alloc] initWithSource:[NSString stringWithFormat:@"tell application \"Path Finder\"\nactivate\nreveal \"%@\"\nend tell", path]] executeAndReturnError:NULL])
+				return;
+#else
 			if([[[[NSAppleScript alloc] initWithSource:[NSString stringWithFormat:@"tell application \"Path Finder\"\nactivate\nreveal \"%@\"\nend tell", path]] autorelease] executeAndReturnError:NULL]) return;
+#endif
 		} else {
 		//	if([[NSWorkspace sharedWorkspace] selectFile:path inFileViewerRootedAtPath:nil]) return;
 			NSString*	rootPath = [NSString stringWithUTF8String:
@@ -141,12 +228,19 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 }
 - (IBAction)saveImagesTo:(id)sender
 {
+#if __has_feature(objc_arc)
+	[[[PGImageSaveAlert alloc] initWithRoot:[[self activeDocument] node] initialSelection:[self selectedNodes]] beginSheetForWindow:[self windowForSheet]];
+#else
 	[[[[PGImageSaveAlert alloc] initWithRoot:[[self activeDocument] node] initialSelection:[self selectedNodes]] autorelease] beginSheetForWindow:[self windowForSheet]];
+#endif
 }
 - (IBAction)setAsDesktopPicture:(id)sender
 {
 	PGResourceIdentifier *const ident = [[self activeNode] identifier];
-	if(![ident isFileIdentifier] || ![[NSScreen PG_mainScreen] PG_setDesktopImageURL:[ident URLByFollowingAliases:YES]]) NSBeep();
+//	if(![ident isFileIdentifier] || ![[NSScreen PG_mainScreen] PG_setDesktopImageURL:[ident URLByFollowingAliases:YES]]) NSBeep();
+	if(!ident.isFileIdentifier ||
+		!SetDesktopImage([NSScreen PG_mainScreen], [ident URLByFollowingAliases:YES]))
+		NSBeep();
 }
 - (IBAction)setCopyAsDesktopPicture:(id)sender
 {
@@ -201,7 +295,7 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	if(!movedAnything) NSBeep();	//	2021/07/21 this might be too early (block not completed yet)
 }
 
-#pragma mark -
+//	MARK: -
 
 - (IBAction)copy:(id)sender
 {
@@ -219,21 +313,29 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 		case NSFindPanelActionNext:
 		case NSFindPanelActionPrevious:
 		{
+#if __has_feature(objc_arc)
+			NSArray *const terms = [[_searchField stringValue] PG_searchTerms];
+#else
 			NSArray *const terms = [[searchField stringValue] PG_searchTerms];
+#endif
 			if(terms && [terms count] && ![self tryToSetActiveNode:[[[self activeNode] resourceAdapter] sortedViewableNodeNext:[sender tag] == NSFindPanelActionNext matchSearchTerms:terms] forward:YES]) NSBeep();
 			break;
 		}
 		default:
 			NSBeep();
 	}
+#if __has_feature(objc_arc)
+	if([_findPanel isKeyWindow]) [_findPanel makeFirstResponder:_searchField];
+#else
 	if([_findPanel isKeyWindow]) [_findPanel makeFirstResponder:searchField];
+#endif
 }
 - (IBAction)hideFindPanel:(id)sender
 {
 	[self setFindPanelShown:NO];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (IBAction)toggleFullscreen:(id)sender
 {
@@ -292,7 +394,7 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	[[self activeDocument] setAnimatesImages:nowPlaying];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (IBAction)changeImageScaleMode:(id)sender
 {
@@ -322,7 +424,7 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	[[[PGDocumentController sharedDocumentController] scaleMenu] update];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (IBAction)previousPage:(id)sender
 {
@@ -342,7 +444,7 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	[self setActiveNode:[[[[self activeDocument] node] resourceAdapter] sortedViewableNodeFirst:NO] forward:NO];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (IBAction)firstOfPreviousFolder:(id)sender
 {
@@ -375,7 +477,7 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	[self setActiveNode:[[[self activeNode] resourceAdapter] sortedViewableNodeInFolderFirst:NO] forward:NO];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (IBAction)jumpToPage:(id)sender
 {
@@ -385,7 +487,7 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	[self setActiveNode:node forward:YES];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (IBAction)pauseDocument:(id)sender
 {
@@ -397,11 +499,15 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	[[self activeDocument] close];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (IBAction)reload:(id)sender
 {
+#if __has_feature(objc_arc)
+	[_reloadButton setEnabled:NO];
+#else
 	[reloadButton setEnabled:NO];
+#endif
 	[[self activeNode] reload];
 	[self _readActiveNode];
 }
@@ -411,14 +517,16 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	[activeNode PG_addObserver:self selector:@selector(nodeLoadingDidProgress:) name:PGNodeLoadingDidProgressNotification];
 	[activeNode PG_addObserver:self selector:@selector(nodeReadyForViewing:) name:PGNodeReadyForViewingNotification];
 	// TODO: Figure this out.
-//	[[[activeNode resourceAdapter] info] setObject:[passwordField stringValue] forKey:PGPasswordKey];
+//	[[[activeNode resourceAdapter] info] setObject:[_passwordField stringValue] forKey:PGPasswordKey];
 	[activeNode becomeViewed];
 }
 
-#pragma mark -
+//	MARK: -
 
+#if !__has_feature(objc_arc)
 @synthesize activeDocument = _activeDocument;
 @synthesize activeNode = _activeNode;
+#endif
 - (NSWindow *)windowForSheet
 {
 	return [self window];
@@ -438,12 +546,18 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	NSSet *const selectedNodes = [self selectedNodes];
 	return [selectedNodes count] == 1 ? [selectedNodes anyObject] : nil;
 }
+#if !__has_feature(objc_arc)
 @synthesize clipView;
 @synthesize initialLocation = _initialLocation;
 @synthesize reading = _reading;
+#endif
 - (BOOL)isDisplayingImage
 {
+#if __has_feature(objc_arc)
+	return [_clipView documentView] == _imageView;
+#else
 	return [clipView documentView] == _imageView;
+#endif
 }
 - (BOOL)canShowInfo
 {
@@ -478,7 +592,11 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 }
 - (NSDate *)nextTimerFireDate
 {
+#if __has_feature(objc_arc)
+	return _nextTimerFireDate;
+#else
 	return [[_nextTimerFireDate retain] autorelease];
+#endif
 }
 - (BOOL)timerRunning
 {
@@ -486,12 +604,25 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 }
 - (void)setTimerRunning:(BOOL)run
 {
+#if !__has_feature(objc_arc)
 	[_nextTimerFireDate release];
+#endif
 	[_timer invalidate];
+#if !__has_feature(objc_arc)
 	[_timer release];
+#endif
 	if(run) {
 		_nextTimerFireDate = [[NSDate alloc] initWithTimeIntervalSinceNow:[[self activeDocument] timerInterval]];
+#if __has_feature(objc_arc)
+		_timer = [self PG_performSelector:@selector(advanceOnTimer)
+							   withObject:nil
+								 fireDate:_nextTimerFireDate
+								 interval:0.0f
+								  options:kNilOptions
+									 mode:NSDefaultRunLoopMode];
+#else
 		_timer = [[self PG_performSelector:@selector(advanceOnTimer) withObject:nil fireDate:_nextTimerFireDate interval:0.0f options:kNilOptions mode:NSDefaultRunLoopMode] retain];
+#endif
 	} else {
 		_nextTimerFireDate = nil;
 		_timer = nil;
@@ -499,14 +630,18 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	[self PG_postNotificationName:PGDisplayControllerTimerDidChangeNotification];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (BOOL)setActiveDocument:(PGDocument *)document closeIfAppropriate:(BOOL)flag
 {
 	if(document == _activeDocument) return NO;
 	if(_activeDocument) {
 		if(_reading) [_imageView setImageRep:nil orientation:PGUpright size:NSZeroSize];
+#if __has_feature(objc_arc)
+		[_activeDocument storeNode:[self activeNode] imageView:_imageView offset:[_clipView pinLocationOffset] query:[_searchField stringValue]];
+#else
 		[_activeDocument storeNode:[self activeNode] imageView:_imageView offset:[clipView pinLocationOffset] query:[searchField stringValue]];
+#endif
 		[self _setImageView:nil];
 		[_activeDocument PG_removeObserver:self name:PGDocumentWillRemoveNodesNotification];
 		[_activeDocument PG_removeObserver:self name:PGDocumentSortedNodesDidChangeNotification];
@@ -541,13 +676,17 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 		//		invalid memory.
 		//	Solution: release the _thumbnailController.
 		if(_thumbnailController) {
+#if !__has_feature(objc_arc)
 			[_thumbnailController release];
+#endif
 			_thumbnailController	=	nil;	//	2023/08/21 required to be nil
 		}
 	}
 	if(flag && !document && _activeDocument) {
 		_activeDocument = nil;
+#if !__has_feature(objc_arc)
 		[[self retain] autorelease]; // Necessary if the find panel is open.
+#endif
 		[[self window] close];
 		return YES;
 	}
@@ -577,20 +716,36 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 		[self _setImageView:view];
 		if([view rep]) {
 			[self _setActiveNode:node];
+#if __has_feature(objc_arc)
+			[_clipView setDocumentView:view];
+#else
 			[clipView setDocumentView:view];
+#endif
 			[view setImageRep:[view rep] orientation:[view orientation] size:[self _sizeForImageRep:[view rep] orientation:[view orientation]]];
+#if __has_feature(objc_arc)
+			[_clipView scrollPinLocationToOffset:offset animation:PGNoAnimation];
+#else
 			[clipView scrollPinLocationToOffset:offset animation:PGNoAnimation];
+#endif
 			[self _readFinished];
 		} else {
+#if __has_feature(objc_arc)
+			[_clipView setDocumentView:view];
+#else
 			[clipView setDocumentView:view];
+#endif
 			[self setActiveNode:node forward:YES];
 		}
 		[self documentNodeIsViewableDidChange:nil]; // In case the node has become unviewable in the meantime.
+#if __has_feature(objc_arc)
+		[_searchField setStringValue:query];
+#else
 		[searchField setStringValue:query];
+#endif
 
 		[self documentReadingDirectionDidChange:nil];
 		[self documentShowsInfoDidChange:nil];
-		[self documentShowsThumbnailsDidChange:nil];
+		[self documentShowsThumbnailsDidChange:nil];	//	creates the thumbnailController
 		[_thumbnailController setDocument:_activeDocument];
 	//	NSEnableScreenUpdates();	2021/07/21 deprecated
 	}
@@ -602,7 +757,7 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	[[self window] makeKeyAndOrderFront:self];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)setActiveNode:(PGNode *)aNode forward:(BOOL)flag
 {
@@ -654,24 +809,34 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	[self setActiveNode:node forward:YES];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)showLoadingIndicator
 {
 	if(_loadingGraphic) return;
+#if __has_feature(objc_arc)
+	_loadingGraphic = [PGLoadingGraphic loadingGraphic];
+#else
 	_loadingGraphic = [[PGLoadingGraphic loadingGraphic] retain];
+#endif
 	[_loadingGraphic setProgress:[[[[self activeNode] resourceAdapter] activity] progress]];
 	[[_graphicPanel content] pushGraphic:_loadingGraphic window:[self window]];
 }
 - (void)offerToOpenBookmark:(PGBookmark *)bookmark
 {
-	NSAlert *const alert = [[NSAlert alloc] init];
+#if __has_feature(objc_arc)
+	NSAlert *alert = [NSAlert new];
+#else
+	NSAlert *const alert = [NSAlert new];
+#endif
 	[alert setMessageText:[NSString stringWithFormat:NSLocalizedString(@"This document has a bookmark for the page %@.", @"Offer to resume from bookmark alert message text. %@ is replaced with the page name."), [[bookmark fileIdentifier] displayName]]];
 	[alert setInformativeText:NSLocalizedString(@"If you don't resume from this page, the bookmark will be kept and you will start from the first page as usual.", @"Offer to resume from bookmark alert informative text.")];
 	[[alert addButtonWithTitle:NSLocalizedString(@"Resume", @"Do resume from bookmark button.")] setKeyEquivalent:@"\r"];
 	[[alert addButtonWithTitle:NSLocalizedString(@"Don't Resume", @"Don't resume from bookmark button.")] setKeyEquivalent:@"\e"];
 	NSWindow *const window = [self windowForSheet];
+#if !__has_feature(objc_arc)
 	[bookmark retain];
+#endif
 	if(window)
 	//	[alert beginSheetModalForWindow:window modalDelegate:self didEndSelector:@selector(_offerToOpenBookmarkAlertDidEnd:returnCode:bookmark:) contextInfo:bookmark];
 		[alert beginSheetModalForWindow:window completionHandler:^(NSModalResponse returnCode) {
@@ -680,7 +845,11 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	//	 (void (^ _Nullable)(NSModalResponse returnCode))handler];
 	else {
 		[self _offerToOpenBookmarkAlertDidEnd:alert returnCode:[alert runModal] bookmark:bookmark];
+#if __has_feature(objc_arc)
+		alert = nil;
+#else
 		[alert release];
+#endif
 	}
 }
 - (void)advanceOnTimer
@@ -688,7 +857,7 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	[self setTimerRunning:[self tryToGoForward:YES allowAlerts:YES]];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)zoomBy:(CGFloat)factor animate:(BOOL)flag
 {
@@ -734,14 +903,14 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	return didAnything;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)clipViewFrameDidChange:(NSNotification *)aNotif
 {
 	[self _updateImageViewSizeAllowAnimation:NO];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)nodeLoadingDidProgress:(NSNotification *)aNotif
 {
@@ -753,26 +922,63 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	NSParameterAssert([aNotif object] == [self activeNode]);
 	NSError *const error = [[[self activeNode] resourceAdapter] error];
 	if(!error) {
+#if __has_feature(objc_arc)
+		NSPoint const relativeCenter = [_clipView relativeCenter];
+#else
 		NSPoint const relativeCenter = [clipView relativeCenter];
+#endif
 		NSImageRep *const rep = [[aNotif userInfo] objectForKey:PGImageRepKey];
 		PGOrientation const orientation = [[[self activeNode] resourceAdapter] orientationWithBase:YES];
 		[_imageView setImageRep:rep orientation:orientation size:[self _sizeForImageRep:rep orientation:orientation]];
+#if __has_feature(objc_arc)
+		[_clipView setDocumentView:_imageView];
+		if(PGPreserveLocation == _initialLocation)
+			[_clipView scrollRelativeCenterTo:relativeCenter animation:PGNoAnimation];
+		else
+			[_clipView scrollToLocation:_initialLocation animation:PGNoAnimation];
+		[[self window] makeFirstResponder:_clipView];
+#else
 		[clipView setDocumentView:_imageView];
-		if(PGPreserveLocation == _initialLocation) [clipView scrollRelativeCenterTo:relativeCenter animation:PGNoAnimation];
-		else [clipView scrollToLocation:_initialLocation animation:PGNoAnimation];
+		if(PGPreserveLocation == _initialLocation)
+			[clipView scrollRelativeCenterTo:relativeCenter animation:PGNoAnimation];
+		else
+			[clipView scrollToLocation:_initialLocation animation:PGNoAnimation];
 		[[self window] makeFirstResponder:clipView];
+#endif
 	} else if(PGEqualObjects([error domain], PGNodeErrorDomain)) switch([error code]) {
 		case PGGenericError:
-			[errorLabel PG_setAttributedStringValue:[[[_activeNode resourceAdapter] dataProvider] attributedString]];
+#if __has_feature(objc_arc)
+			SetControlAttributedStringValue(_errorLabel,
+				[_activeNode.resourceAdapter.dataProvider attributedString]);
+		//	[_errorLabel PG_setAttributedStringValue:[[[_activeNode resourceAdapter] dataProvider] attributedString]];
+			[_errorMessage setStringValue:[error localizedDescription]];
+			[_errorView setFrameSize:NSMakeSize(NSWidth([_errorView frame]), NSHeight([_errorView frame]) - NSHeight([_errorMessage frame]) + [[_errorMessage cell] cellSizeForBounds:NSMakeRect(0.0f, 0.0f, NSWidth([_errorMessage frame]), CGFLOAT_MAX)].height)];
+			[_reloadButton setEnabled:YES];
+			[_clipView setDocumentView:_errorView];
+#else
+			SetControlAttributedStringValue(errorLabel,
+				[_activeNode.resourceAdapter.dataProvider attributedString]);
+		//	[errorLabel PG_setAttributedStringValue:[[[_activeNode resourceAdapter] dataProvider] attributedString]];
 			[errorMessage setStringValue:[error localizedDescription]];
 			[errorView setFrameSize:NSMakeSize(NSWidth([errorView frame]), NSHeight([errorView frame]) - NSHeight([errorMessage frame]) + [[errorMessage cell] cellSizeForBounds:NSMakeRect(0.0f, 0.0f, NSWidth([errorMessage frame]), CGFLOAT_MAX)].height)];
 			[reloadButton setEnabled:YES];
 			[clipView setDocumentView:errorView];
+#endif
 			break;
 		case PGPasswordError:
-			[passwordLabel PG_setAttributedStringValue:[[[_activeNode resourceAdapter] dataProvider] attributedString]];
+#if __has_feature(objc_arc)
+			SetControlAttributedStringValue(_passwordLabel,
+				[_activeNode.resourceAdapter.dataProvider attributedString]);
+		//	[_passwordLabel PG_setAttributedStringValue:[[[_activeNode resourceAdapter] dataProvider] attributedString]];
+			[_passwordField setStringValue:@""];
+			[_clipView setDocumentView:_passwordView];
+#else
+			SetControlAttributedStringValue(passwordLabel,
+				[_activeNode.resourceAdapter.dataProvider attributedString]);
+		//	[passwordLabel PG_setAttributedStringValue:[[[_activeNode resourceAdapter] dataProvider] attributedString]];
 			[passwordField setStringValue:@""];
 			[clipView setDocumentView:passwordView];
+#endif
 			break;
 	}
 	if(![_imageView superview]) [_imageView setImageRep:nil orientation:PGUpright size:NSZeroSize];
@@ -780,7 +986,7 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	[_thumbnailController clipViewBoundsDidChange:nil];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)documentWillRemoveNodes:(NSNotification *)aNotif
 {
@@ -823,7 +1029,7 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	[_imageView setImageRep:[_imageView rep] orientation:o size:[self _sizeForImageRep:[_imageView rep] orientation:o]];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)documentShowsInfoDidChange:(NSNotification *)aNotif
 {
@@ -848,7 +1054,9 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 		[_thumbnailController PG_removeObserver:self
 										   name:PGThumbnailControllerContentInsetDidChangeNotification];
 		[_thumbnailController fadeOut];
+#if !__has_feature(objc_arc)
 		[_thumbnailController release];
+#endif
 		_thumbnailController = nil;
 		[self thumbnailControllerContentInsetDidChange:nil];
 	}
@@ -882,7 +1090,7 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	[self setTimerRunning:[self timerRunning]];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)thumbnailControllerContentInsetDidChange:(NSNotification *)aNotif
 {
@@ -894,8 +1102,13 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 		inset = PGAddInsets(inset, thumbnailInset);
 		minSize.width += thumbnailInset.minX + thumbnailInset.maxX;
 	}
+#if __has_feature(objc_arc)
+	[_clipView setBoundsInset:inset];
+	[_clipView displayIfNeeded];
+#else
 	[clipView setBoundsInset:inset];
 	[clipView displayIfNeeded];
+#endif
 	[_findPanel setFrameInset:inset];
 	[_graphicPanel setFrameInset:inset];
 	[self _updateImageViewSizeAllowAnimation:NO];
@@ -923,7 +1136,7 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 		[self _setClipViewBackground];	//	updates only when in fullscreen mode
 }
 
-#pragma mark - PGDisplayController(Private)
+//	MARK: - PGDisplayController(Private)
 
 - (void)_setClipViewBackground {
 	//	2023/08/14 added this method to enable the background color to depend on
@@ -931,9 +1144,15 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	//	used in fullscreen mode.
 	if(PGDocumentController.sharedDocumentController.fullscreen &&
 		![NSUserDefaults.standardUserDefaults boolForKey:PGBackgroundColorUsedInFullScreenKey])
+#if __has_feature(objc_arc)
+		[_clipView setBackgroundColor:NSColor.blackColor];
+	else
+		[_clipView setBackgroundColor:[PGPreferenceWindowController.sharedPrefController backgroundPatternColor]];
+#else
 		[clipView setBackgroundColor:NSColor.blackColor];
 	else
 		[clipView setBackgroundColor:[PGPreferenceWindowController.sharedPrefController backgroundPatternColor]];
+#endif
 }
 
 - (void)_setImageView:(PGImageView *)aView
@@ -941,8 +1160,12 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	if(aView == _imageView) return;
 	[_imageView unbind:@"antialiasWhenUpscaling"];
 	[_imageView unbind:@"usesRoundedCorners"];
+#if __has_feature(objc_arc)
+	_imageView = aView;
+#else
 	[_imageView release];
 	_imageView = [aView retain];
+#endif
 	[_imageView bind:@"antialiasWhenUpscaling" toObject:[NSUserDefaults standardUserDefaults] withKeyPath:PGAntialiasWhenUpscalingKey options:nil];
 	[self documentAnimatesImagesDidChange:nil];
 }
@@ -951,8 +1174,12 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	if(aNode == _activeNode) return NO;
 	[_activeNode PG_removeObserver:self name:PGNodeLoadingDidProgressNotification];
 	[_activeNode PG_removeObserver:self name:PGNodeReadyForViewingNotification];
+#if __has_feature(objc_arc)
+	_activeNode = aNode;
+#else
 	[_activeNode release];
 	_activeNode = [aNode retain];
+#endif
 	[self _updateNodeIndex];
 	[self _updateInfoPanelText];
 
@@ -987,7 +1214,9 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	_reading = NO;
 	[self PG_cancelPreviousPerformRequestsWithSelector:@selector(showLoadingIndicator) object:nil];
 	[[_graphicPanel content] popGraphicsOfType:PGSingleImageGraphic]; // Hide most alerts.
+#if !__has_feature(objc_arc)
 	[_loadingGraphic release];
+#endif
 	_loadingGraphic = nil;
 	[self PG_postNotificationName:PGDisplayControllerActiveNodeWasReadNotification];
 }
@@ -1013,11 +1242,19 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 		BOOL const resIndependent = [[[self activeNode] resourceAdapter] isResolutionIndependent];
 		NSSize const minSize = constraint != PGUpscaleOnly || resIndependent ? NSZeroSize : newSize;
 		NSSize const maxSize = constraint != PGDownscaleOnly || resIndependent ? NSMakeSize(CGFLOAT_MAX, CGFLOAT_MAX) : newSize;
+#if __has_feature(objc_arc)
+		NSRect const bounds = [_clipView insetBounds];
+#else
 		NSRect const bounds = [clipView insetBounds];
+#endif
 		CGFloat scaleX = NSWidth(bounds) / round(newSize.width);
 		CGFloat scaleY = NSHeight(bounds) / round(newSize.height);
 		if(PGAutomaticScale == scaleMode) {
+#if __has_feature(objc_arc)
+			NSSize const scrollMax = [_clipView maximumDistanceForScrollType:PGScrollByPage];
+#else
 			NSSize const scrollMax = [clipView maximumDistanceForScrollType:PGScrollByPage];
+#endif
 			if(scaleX > scaleY) scaleX = scaleY = MAX(scaleY, MIN(scaleX, (floor(newSize.height * scaleX / scrollMax.height + 0.3f) * scrollMax.height) / newSize.height));
 			else if(scaleX < scaleY) scaleX = scaleY = MAX(scaleX, MIN(scaleY, (floor(newSize.width * scaleY / scrollMax.width + 0.3f) * scrollMax.width) / newSize.width));
 		} else if(PGViewFitScale == scaleMode) scaleX = scaleY = MIN(scaleX, scaleY);
@@ -1116,15 +1353,19 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 //	NSURL *const URL = [[savePanel filename] PG_fileURL];
 	NSURL *const URL = savePanel.URL;
 	[[[[self activeNode] resourceAdapter] data] writeToURL:URL atomically:NO];
-	if(![[NSScreen PG_mainScreen] PG_setDesktopImageURL:URL]) NSBeep();
+//	if(![[NSScreen PG_mainScreen] PG_setDesktopImageURL:URL]) NSBeep();
+	if(!SetDesktopImage([NSScreen PG_mainScreen], URL)) NSBeep();
 }
 - (void)_offerToOpenBookmarkAlertDidEnd:(NSAlert *)alert returnCode:(NSInteger)returnCode bookmark:(PGBookmark *)bookmark
 {
+#if __has_feature(objc_arc)
+#else
 	[bookmark autorelease];
+#endif
 	if(NSAlertFirstButtonReturn == returnCode) [[self activeDocument] openBookmark:bookmark];
 }
 
-#pragma mark -NSWindowController
+//	MARK: -NSWindowController
 
 - (IBAction)showWindow:(id)sender
 {
@@ -1134,24 +1375,38 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	[_thumbnailController display];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)windowDidLoad
 {
 	[super windowDidLoad];
+#if !__has_feature(objc_arc)
 	[passwordView retain];
+#endif
 
 //	[[self window] useOptimizedDrawing:YES];	2021/07/21 deprecated
 	[[self window] setMinSize:PGWindowMinSize];
 
 	NSImage *const cursorImage = [NSImage imageNamed:@"Cursor-Hand-Pointing"];
+#if __has_feature(objc_arc)
+	[_clipView setAcceptsFirstResponder:YES];
+	[_clipView setCursor:cursorImage ? [[NSCursor alloc] initWithImage:cursorImage hotSpot:NSMakePoint(5.0f, 0.0f)] : [NSCursor pointingHandCursor]];
+	[_clipView setPostsFrameChangedNotifications:YES];
+	[_clipView PG_addObserver:self selector:@selector(clipViewFrameDidChange:) name:NSViewFrameDidChangeNotification];
+#else
 	[clipView setAcceptsFirstResponder:YES];
 	[clipView setCursor:cursorImage ? [[[NSCursor alloc] initWithImage:cursorImage hotSpot:NSMakePoint(5.0f, 0.0f)] autorelease] : [NSCursor pointingHandCursor]];
 	[clipView setPostsFrameChangedNotifications:YES];
 	[clipView PG_addObserver:self selector:@selector(clipViewFrameDidChange:) name:NSViewFrameDidChangeNotification];
+#endif
 
+#if __has_feature(objc_arc)
+	_findPanel = [[PGBezelPanel alloc] initWithContentView:_findView];
+	[_findPanel setInitialFirstResponder:_searchField];
+#else
 	_findPanel = [[PGBezelPanel alloc] initWithContentView:findView];
 	[_findPanel setInitialFirstResponder:searchField];
+#endif
 	[_findPanel setDelegate:self];
 	[_findPanel setAcceptsEvents:YES];
 	[_findPanel setCanBecomeKey:YES];
@@ -1169,7 +1424,11 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	} else {
 		[[self window] setRepresentedURL:URL];
 		NSButton *const docButton = [[self window] standardWindowButton:NSWindowDocumentIconButton];
+#if __has_feature(objc_arc)
+		NSImage *const image = [identifier.icon copy];
+#else
 		NSImage *const image = [[[identifier icon] copy] autorelease];
+#endif
 		[image setSize:[docButton bounds].size];
 		[image recache];
 		[docButton setImage:image];
@@ -1181,7 +1440,11 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 		blank;
 
 	[[self window] setTitle:title ? [title stringByAppendingString:titleDetails] : blank];
+#if __has_feature(objc_arc)
+	NSMutableAttributedString *const menuLabel = [[identifier attributedStringWithAncestory:NO] mutableCopy];
+#else
 	NSMutableAttributedString *const menuLabel = [[[identifier attributedStringWithAncestory:NO] mutableCopy] autorelease];
+#endif
 	[[menuLabel mutableString] appendString:titleDetails];
 	[[[PGDocumentController sharedDocumentController] windowsMenuItemForDocument:[self activeDocument]] setAttributedTitle:menuLabel];
 }
@@ -1190,22 +1453,27 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	[[self activeDocument] close];
 }
 
-#pragma mark - NSResponder
+//	MARK: - NSResponder
 
 - (id)validRequestorForSendType:(NSString *)sendType returnType:(NSString *)returnType
 {
 	return ![returnType length] && [self writeSelectionToPasteboard:nil types:[NSArray arrayWithObject:sendType]] ? self : [super validRequestorForSendType:sendType returnType:returnType];
 }
 
-#pragma mark - NSObject
+//	MARK: - NSObject
 
 - (id)init
 {
 	if((self = [super initWithWindowNibName:@"PGDocument"])) {
 		(void)[self window]; // Just load the window so we don't have to worry about it.
 
+#if __has_feature(objc_arc)
+		_graphicPanel = [PGAlertView PG_bezelPanel];
+		_infoPanel = [PGInfoView PG_bezelPanel];
+#else
 		_graphicPanel = [[PGAlertView PG_bezelPanel] retain];
 		_infoPanel = [[PGInfoView PG_bezelPanel] retain];
+#endif
 		[self _updateInfoPanelText];
 
 		[[PGPreferenceWindowController sharedPrefController] PG_addObserver:self selector:@selector(prefControllerBackgroundPatternColorDidChange:) name:PGPreferenceWindowControllerBackgroundPatternColorDidChangeNotification];
@@ -1220,8 +1488,10 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	[self PG_cancelPreviousPerformRequests];
 	[self PG_removeObserver];
 	[self _setImageView:nil];
+#if !__has_feature(objc_arc)
 	[passwordView release];
 	[_activeNode release];
+	[_imageView release];	//	bugfix
 	[_graphicPanel release];
 	[_loadingGraphic release];
 	[_infoPanel release];
@@ -1229,12 +1499,15 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	[_findFieldEditor release];
 	[_thumbnailController release];
 	[_nextTimerFireDate release];
+#endif
 	[_timer invalidate];
+#if !__has_feature(objc_arc)
 	[_timer release];
 	[super dealloc];
+#endif
 }
 
-#pragma mark - NSObject(NSKeyValueObserving)
+//	MARK: - NSObject(NSKeyValueObserving)
 
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context
 {
@@ -1242,7 +1515,7 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	else [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
 }
 
-#pragma mark - NSObject(NSMenuValidation)
+//	MARK: - NSObject(NSMenuValidation)
 
 #define PGFuzzyEqualityToCellState(a, b) ({ double __a = (double)(a); double __b = (double)(b); (fabs(__a - __b) < 0.001f ? NSControlStateValueOn : (fabs(round(__a) - round(__b)) < 0.1f ? NSControlStateValueMixed : NSControlStateValueOff)); })
 - (BOOL)validateMenuItem:(NSMenuItem *)anItem
@@ -1396,18 +1669,22 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	return [super validateMenuItem:anItem];
 }
 
-#pragma mark - NSObject(NSServicesRequests)
+//	MARK: - NSObject(NSServicesRequests)
 
 - (BOOL)writeSelectionToPasteboard:(NSPasteboard *)pboard types:(NSArray *)types
 {
 	BOOL wrote = NO;
 	[pboard declareTypes:[NSArray array] owner:nil];
+#if __has_feature(objc_arc)
+	if([_clipView documentView] == _imageView && [_imageView writeToPasteboard:pboard types:types]) wrote = YES;
+#else
 	if([clipView documentView] == _imageView && [_imageView writeToPasteboard:pboard types:types]) wrote = YES;
+#endif
 	if([[self activeNode] writeToPasteboard:pboard types:types]) wrote = YES;
 	return wrote;
 }
 
-#pragma mark - <NSWindowDelegate>
+//	MARK: - <NSWindowDelegate>
 
 - (BOOL)window:(NSWindow *)window shouldPopUpDocumentPathMenu:(NSMenu *)menu
 {
@@ -1421,7 +1698,11 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 		[pboard declareTypes:[NSArray arrayWithObject:NSPasteboardTypeURL] owner:nil];
 		[[ident URL] writeToPasteboard:pboard];
 	}
+#if __has_feature(objc_arc)
+	NSImage *const image = [ident.icon copy];
+#else
 	NSImage *const image = [[[ident icon] copy] autorelease];
+#endif
 	NSPoint pt = PGOffsetPointByXY(dragImageLocation, 24 - [image size].width / 2,
 								   24 - [image size].height / 2);
 	//	OS X will start the drag image 16 pixels down and to the left of the button
@@ -1441,24 +1722,34 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	return _findFieldEditor;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)windowDidBecomeMain:(NSNotification *)aNotif
 {
 	NSParameterAssert(aNotif);
 	if([aNotif object] != [self window]) return;
 	[[PGDocumentController sharedDocumentController] setCurrentDocument:[self activeDocument]];
+
+	if(_thumbnailController)
+		[_thumbnailController selectionNeedsDisplay];	//	2023/11/12
 }
 - (void)windowDidResignMain:(NSNotification *)aNotif
 {
 	NSParameterAssert(aNotif);
 	if([aNotif object] != [self window]) return;
 	[[PGDocumentController sharedDocumentController] setCurrentDocument:nil];
+
+	if(_thumbnailController)
+		[_thumbnailController selectionNeedsDisplay];	//	2023/11/12
 }
 
 - (void)windowDidBecomeKey:(NSNotification *)aNotif
 {
+#if __has_feature(objc_arc)
+	if([aNotif object] == _findPanel) [_findPanel makeFirstResponder:_searchField];
+#else
 	if([aNotif object] == _findPanel) [_findPanel makeFirstResponder:searchField];
+#endif
 }
 - (void)windowDidResignKey:(NSNotification *)aNotif
 {
@@ -1484,7 +1775,7 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 	[self close];
 }
 
-#pragma mark - <PGClipViewDelegate>
+//	MARK: - <PGClipViewDelegate>
 
 - (BOOL)clipView:(PGClipView *)sender handleMouseEvent:(NSEvent *)anEvent first:(BOOL)flag
 {
@@ -1552,7 +1843,11 @@ static inline NSSize PGConstrainSize(NSSize min, NSSize size, NSSize max)
 }
 - (void)clipView:(PGClipView *)sender rotateByDegrees:(CGFloat)amount
 {
+#if __has_feature(objc_arc)
+	[_clipView scrollCenterTo:[_clipView convertPoint:[_imageView rotateByDegrees:amount adjustingPoint:[_imageView convertPoint:[_clipView center] fromView:_clipView]] fromView:_imageView] animation:PGNoAnimation];
+#else
 	[clipView scrollCenterTo:[clipView convertPoint:[_imageView rotateByDegrees:amount adjustingPoint:[_imageView convertPoint:[clipView center] fromView:clipView]] fromView:_imageView] animation:PGNoAnimation];
+#endif
 }
 - (void)clipViewGestureDidEnd:(PGClipView *)sender
 {
