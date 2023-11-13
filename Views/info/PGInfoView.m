@@ -53,10 +53,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (NSAttributedString *)attributedStringValue
 {
+#if __has_feature(objc_arc)
+	NSMutableParagraphStyle *const style = [[NSParagraphStyle defaultParagraphStyle] mutableCopy];
+#else
 	NSMutableParagraphStyle *const style = [[[NSParagraphStyle defaultParagraphStyle] mutableCopy] autorelease];
+#endif
 	[style setAlignment:NSTextAlignmentCenter];
 	[style setLineBreakMode:NSLineBreakByTruncatingMiddle];
-#if 1
+#if __has_feature(objc_arc)
+	return [[NSAttributedString alloc] initWithString:self.stringValue attributes:@{
+		NSFontAttributeName: [NSFont labelFontOfSize:0.0f],
+		NSForegroundColorAttributeName: NSColor.whiteColor,
+		NSParagraphStyleAttributeName: style}];
+#elif 1
 	return [[[NSAttributedString alloc] initWithString:self.stringValue attributes:@{
 		NSFontAttributeName: [NSFont labelFontOfSize:0.0f],
 		NSForegroundColorAttributeName: NSColor.whiteColor,
@@ -72,27 +81,34 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		nil]] autorelease];
 #endif
 }
+#if __has_feature(objc_arc)
+@synthesize stringValue = _stringValue;
+#endif
 - (NSString *)stringValue
 {
+#if __has_feature(objc_arc)
+	return _stringValue ? _stringValue : [NSString string];
+#else
 	return _stringValue ? [[_stringValue retain] autorelease] : @"";
+#endif
 }
 - (void)setStringValue:(NSString *)aString
 {
 	NSString *const string = aString ? aString : @"";
 	if(string == _stringValue) return;
+#if !__has_feature(objc_arc)
 	[_stringValue release];
+#endif
 	_stringValue = [string copy];
 	[self setNeedsDisplay:YES];
 	[self PG_postNotificationName:PGBezelPanelFrameShouldChangeNotification];
 }
-@synthesize index = _index;
 - (void)setIndex:(NSUInteger)anInt
 {
 	if(anInt == _index) return;
 	_index = anInt;
 	[self setNeedsDisplay:YES];
 }
-@synthesize count = _count;
 - (void)setCount:(NSUInteger)anInt
 {
 	if(anInt == _count) return;
@@ -102,14 +118,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	else [self setNeedsDisplay:YES];
 }
 
-@synthesize currentFolderIndex = _currentFolderIndex;	//	2023/10/01 added
 - (void)setCurrentFolderIndex:(NSUInteger)anInt
 {
 	if(anInt == _currentFolderIndex) return;
 	_currentFolderIndex = anInt;
 	[self setNeedsDisplay:YES];
 }
-@synthesize currentFolderCount = _currentFolderCount;	//	2023/10/01 added
 - (void)setCurrentFolderCount:(NSUInteger)anInt
 {
 	if(anInt == _currentFolderCount) return;
@@ -121,7 +135,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 {
 	return PGGraphicalProgressBarStyle && [self count] > 1;
 }
-@synthesize originCorner = _originCorner;
 
 #pragma mark - NSView
 
@@ -262,11 +275,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 #pragma mark - NSObject
 
+#if !__has_feature(objc_arc)
 - (void)dealloc
 {
 	[_stringValue release];
 	[super dealloc];
 }
+#endif
 
 #pragma mark - <PGBezelPanelContentView>
 
