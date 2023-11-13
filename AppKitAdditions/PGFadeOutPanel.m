@@ -27,6 +27,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #define PGFadeOutPanelFrameRate (1.0 / 30.0)
 #define PGFadeOutPanelDuration  0.20
 
+#if __has_feature(objc_arc)
+@interface PGFadeOutPanel ()
+
+@property (readonly) unsigned frameCount;
+@property (nonatomic, assign) float savedAlphaValue;
+@property (nonatomic, assign) BOOL savedIgnoresMouseEvents;
+
+@end
+
+#endif
+
 @implementation PGFadeOutPanel
 
 #pragma mark -PGFadeOutPanel
@@ -37,23 +48,26 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 }
 - (void)fadeOut
 {
+#if !__has_feature(objc_arc)
 	[[self retain] autorelease];
+#endif
 	[NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(fadeOut) object:nil];
 	if(![self isFadingOut]) {
-		_alphaValue = [self alphaValue];
-		_ignoresMouseEvents = [self ignoresMouseEvents];
+		_savedAlphaValue = [self alphaValue];
+		_savedIgnoresMouseEvents = [self ignoresMouseEvents];
 		[self setIgnoresMouseEvents:YES];
 	}
+
 	float const x = ++_frameCount / (PGFadeOutPanelDuration / PGFadeOutPanelFrameRate) - 1;
 	if(x >= 0) return [self close];
-	[self setAlphaValue:_alphaValue * powf(x, 2)];
+	[self setAlphaValue:_savedAlphaValue * powf(x, 2)];
 	[self performSelector:@selector(fadeOut) withObject:nil afterDelay:PGFadeOutPanelFrameRate inModes:[NSArray arrayWithObject:(NSString *)kCFRunLoopCommonModes]];
 }
 - (void)cancelFadeOut
 {
 	if(![self isFadingOut]) return;
-	[self setAlphaValue:_alphaValue];
-	[self setIgnoresMouseEvents:_ignoresMouseEvents];
+	[self setAlphaValue:_savedAlphaValue];
+	[self setIgnoresMouseEvents:_savedIgnoresMouseEvents];
 	[NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(fadeOut) object:nil];
 	_frameCount = 0;
 }
@@ -89,7 +103,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (void)dealloc
 {
 	[NSObject cancelPreviousPerformRequestsWithTarget:self];
+#if !__has_feature(objc_arc)
 	[super dealloc];
+#endif
 }
 
 @end
