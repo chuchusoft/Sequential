@@ -28,6 +28,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 // Views
 #import "PGClipView.h"
 
+// Controller
+#import "PGThumbnailController.h"
+
 // Other Sources
 #import "PGAppKitAdditions.h"
 #import "PGFoundationAdditions.h"
@@ -38,13 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 extern	void	Unpack_ByteSize_FolderImageCounts(uint64_t packed, uint64_t* byteSize,
 												  NSUInteger* folders, NSUInteger* images);
 
-#pragma mark -
-
-
-
-
-
-
+//	MARK: -
 
 extern	NSInteger	GetThumbnailSizeFormat(void);
 
@@ -73,12 +70,85 @@ GetThumbnailSizeFormat(void) {
 #define PGOuterTotalWidth (PGInnerTotalWidth + 2.0f)
 
 typedef enum {
+#if 1
+	PGBackground_NotSelected,
+
+	PGBackground_Selected_Active_MainWindow,
+	PGBackground_Selected_Active_NotMainWindow,
+	PGBackground_Selected_ParentOfActive_MainWindow,
+	PGBackground_Selected_ParentOfActive_NotMainWindow,
+	PGBackground_Selected_NotActive_MainWindow,
+	PGBackground_Selected_NotActive_NotMainWindow,
+#else
 	PGBackgroundDeselected,
 	PGBackgroundSelectedActive,
 	PGBackgroundSelectedInactive,
+#endif
 	PGBackgroundCount,
 } PGBackgroundType;
 static NSColor *PGBackgroundColors[PGBackgroundCount];
+
+#if __has_feature(objc_arc)
+
+//	There are several ways to implement a public @property(copy) NSSet*
+//	selection:
+//	[1] use a special NSMutableSet ivar, which is what the original code
+//		uses: it creates a special CFMutableSet but then disguises it as
+//		a NSMutableSet*. It's special because it does not specify a
+//		callbacks struct so retain, release, equal, hash, copy-description,
+//		etc. are all no-ops. Con: it's not obvious that the _selection ivar
+//		behaves in a non-standard manner (it has NULL callbacks).
+//	[2] use a standard NSSet ivar and create/use temporary working
+//		objects before assigning the final set to the ivar. Con:
+//		creates/uses more memory (temporary objects).
+//	[3] use a special CFMutableSetRef ivar which what the original code
+//		actually creates. It's special because it does not specify a
+//		callbacks struct so retain, release, equal, hash, copy-description,
+//		etc. are all no-ops. Con: need more support code to get/mutate the
+//		selection, but does not incur extra memory use.
+//	[4] same as [1] but the ivar is named the same as [3]
+//
+//	[1] requires an ivar to be specified explicitly, [2], [3] and [4] can
+//	use the ARC compiler to synthesize the ivar automatically. For [2], it
+//	must be a NSSet - the compiler will not accept a NSMutableSet @property
+//	declaration. For [3] and [4], a property with a name different from the
+//	public property is used (mutableSelection) and the public property's
+//	getter/setter are custom methods which use the _mutableSelection ivar.
+//
+//	To keep the code as identical to the original as possible, it was decided
+//	to use implementation [4].
+
+//	#define SELECTION_IVAR_ORIGINAL_NSMUTABLESET	//	impl [1]
+//	#define SELECTION_IVAR_NSSET					//	impl [2]
+//	#define SELECTION_IVAR_SPECIAL_CFMUTABLESET		//	impl [3]
+	#define SELECTION_IVAR_SPECIAL_NSMUTABLESET		//	impl [4]
+
+@interface PGThumbnailView ()
+	#if defined(SELECTION_IVAR_ORIGINAL_NSMUTABLESET)	//	[1]
+/*	The compiler will not accept this declaration:
+
+@property (nonatomic, copy) NSMutableSet *selection;
+
+	so the only way to make this work is to manually specify
+	the actual backing ivar; this is the only place in the
+	codebase which has such an ivar when compiling under ARC.
+ */
+{
+	NSMutableSet *_selection;
+}
+	#elif defined(SELECTION_IVAR_NSSET)	//	[2]
+//	nothing needed because the compiler will synthesize the ivar
+	#elif defined(SELECTION_IVAR_SPECIAL_CFMUTABLESET)	//	[3]
+@property (nonatomic, assign) CFMutableSetRef mutableSelection;
+	#elif defined(SELECTION_IVAR_SPECIAL_NSMUTABLESET)	//	[4]
+@property (nonatomic, strong) NSMutableSet *mutableSelection;
+	#endif
+@property (nonatomic, strong) NSArray *items;
+@property (nonatomic, weak) id selectionAnchor;
+
+@end
+
+#else
 
 @interface PGThumbnailView(Private)
 
@@ -88,6 +158,10 @@ static NSColor *PGBackgroundColors[PGBackgroundCount];
 - (void)_scrollToSelectionAnchor:(PGScrollToRectType)scrollToRect;
 
 @end
+
+#endif
+
+//	MARK: -
 
 static void PGGradientCallback(void *info, CGFloat const *inData, CGFloat *outData)
 {
@@ -269,7 +343,7 @@ DrawSingleTextLabelIn(BOOL const drawLabelAtMidY, NSString *const label,
 								pos, textStorage, layoutManager, textContainer);
 }
 
-#pragma mark -
+//	MARK: -
 
 static
 char*
@@ -575,7 +649,7 @@ StringForCountAndSize(BOOL const showCounts, NSUInteger const folderCount,
 	return s;
 }	*/
 
-#pragma mark -
+//	MARK: -
 
 //	2023/09/17 moved into separate function to enable code reuse and remove complexity
 //	from the -drawRect: method.
@@ -624,12 +698,20 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 			MeasureTextInBubbleUsing(test, enabled, attributes, textStorage, layoutManager,
 									 textContainer, frameWithMarginSize, &testMT);
 			if(testMT.textSize.height <= fontLineHeight) {
+#if __has_feature(objc_arc)
+				finalStr	=	test;
+#else
 				finalStr	=	[test retain];
+#endif
 				break;
 			}
 		}
 		if(finalStr)
+#if __has_feature(objc_arc)
+			s	=	finalStr;
+#else
 			s	=	[finalStr autorelease];
+#endif
 		else
 			//	if the text needs more than a single line, fall back to using
 			//	the default number of decimal digits, which is 0 digits if the
@@ -756,7 +838,96 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 	DrawTextInBubbleBy(labelColor, frame, dy + upperH + UPPER_LOWER_GAP, layoutManager, &lowerMT);
 }
 
-#pragma mark -
+//	MARK: -
+
+#if __has_feature(objc_arc) && defined(SELECTION_IVAR_SPECIAL_CFMUTABLESET) || \
+	__has_feature(objc_arc) && defined(SELECTION_IVAR_SPECIAL_NSMUTABLESET)	//	[3] or [4]
+
+typedef const void *id_type;
+
+typedef struct RemoveParametersBase {
+	id_type items;
+	id_type *next;
+} RemoveParametersBase;
+
+typedef struct RemoveParameters {
+	RemoveParametersBase base;
+	id_type firstValueToRemove;
+} RemoveParameters;
+
+static
+void
+RemoveAllNotIn_CFSetApplierFunction(id_type value, void *context) {
+	RemoveParameters *removeParameters = (RemoveParameters *)context;
+	if([(__bridge id)removeParameters->base.items isKindOfClass:NSSet.class]) {
+		NSSet *const items = (__bridge NSSet *)removeParameters->base.items;
+		if([items containsObject:(__bridge id _Nonnull)value])
+			return;
+	} else if([(__bridge id)removeParameters->base.items isKindOfClass:NSArray.class]) {
+		NSArray *const items = (__bridge NSArray *)removeParameters->base.items;
+		if([items containsObject:(__bridge id _Nonnull)value])
+			return;
+	} else
+		abort();
+
+	*removeParameters->base.next++ = value;
+}
+
+static
+void
+RemoveAllNotInArray(CFMutableSetRef mutableSet, NSArray *const items) {
+	NSCAssert(items, @"");
+	CFIndex n = CFSetGetCount(mutableSet);
+	size_t sz = sizeof(RemoveParametersBase) + sizeof(const void*) * n;
+	RemoveParameters *const removeParameters = alloca(sz);	//	no heap usage
+	memset(removeParameters, 0, sz);
+	removeParameters->base.items = (__bridge void *)items;
+	removeParameters->base.next = &removeParameters->firstValueToRemove;
+	CFSetApplyFunction(mutableSet, &RemoveAllNotIn_CFSetApplierFunction, removeParameters);
+	NSCAssert(removeParameters->base.next <= n + &removeParameters->firstValueToRemove, @"");
+	for(id_type *p = &removeParameters->firstValueToRemove;
+		p < removeParameters->base.next; ++p) {
+		CFSetRemoveValue(mutableSet, *p);
+	}
+}
+
+	#if defined(SELECTION_IVAR_SPECIAL_CFMUTABLESET)
+
+static
+void
+RemoveAllNotInSet(CFMutableSetRef mutableSet, NSSet *const items) {
+	NSCAssert(items, @"");
+	CFIndex n = CFSetGetCount(mutableSet);
+	size_t sz = sizeof(RemoveParametersBase) + sizeof(const void*) * n;
+	RemoveParameters *const removeParameters = alloca(sz);
+	memset(removeParameters, 0, sz);
+	removeParameters->base.items = (__bridge void *)items;
+	removeParameters->base.next = &removeParameters->firstValueToRemove;
+	CFSetApplyFunction(mutableSet, &RemoveAllNotIn_CFSetApplierFunction, removeParameters);
+	NSCAssert(removeParameters->base.next <= n + &removeParameters->firstValueToRemove, @"");
+	for(id_type *p = &removeParameters->firstValueToRemove;
+		p < removeParameters->base.next; ++p) {
+		CFSetRemoveValue(mutableSet, *p);
+	}
+}
+
+static
+BOOL
+SetPtrEqualsSet(CFSetRef cfSet, NSSet *const nsSet) {
+	if((NSUInteger)CFSetGetCount(cfSet) != nsSet.count)
+		return NO;
+
+	for(id item in nsSet)
+		if(!CFSetContainsValue(cfSet, (const void *)item))
+			return NO;
+
+	return YES;
+}
+
+	#endif
+#endif
+
+//	MARK: -
 
 @implementation PGThumbnailView
 
@@ -769,19 +940,142 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 	}
 }
 
+#if !__has_feature(objc_arc)
 @synthesize dataSource;
 @synthesize delegate;
 @synthesize representedObject;
-@synthesize thumbnailOrientation = _thumbnailOrientation;
+//@synthesize thumbnailOrientation = _thumbnailOrientation;
+//@synthesize items = _items;
+#endif
 - (void)setThumbnailOrientation:(PGOrientation)orientation
 {
 	if(orientation == _thumbnailOrientation) return;
 	_thumbnailOrientation = orientation;
 	[self setNeedsDisplay:YES];
 }
-@synthesize items = _items;
 
-#pragma mark - private selection methods
+//	MARK: - private selection methods
+
+- (NSUInteger)_selectionCount {
+#if __has_feature(objc_arc) && defined(SELECTION_IVAR_ORIGINAL_NSMUTABLESET)	//	[1]
+	return _selection.count;
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_NSSET)	//	[2]
+	return _selection.count;
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_SPECIAL_CFMUTABLESET)	//	[3]
+	return (NSUInteger) CFSetGetCount(_mutableSelection);
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_SPECIAL_NSMUTABLESET)	//	[4]
+	return _mutableSelection.count;
+#else
+	return _selection.count;
+#endif
+}
+
+- (NSSet *)_immutableSelection {
+#if __has_feature(objc_arc) && defined(SELECTION_IVAR_ORIGINAL_NSMUTABLESET)	//	[1]
+	return _selection;
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_NSSET)	//	[2]
+	return _selection;
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_SPECIAL_CFMUTABLESET)	//	[3]
+	return (__bridge NSSet * _Nonnull)_mutableSelection;
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_SPECIAL_NSMUTABLESET)	//	[4]
+	return _mutableSelection;
+#else
+	return _selection;
+#endif
+}
+
+- (NSSet *)_copyOfSelection {
+#if __has_feature(objc_arc) && defined(SELECTION_IVAR_ORIGINAL_NSMUTABLESET)	//	[1]
+	return [_selection copy];
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_NSSET)	//	[2]
+	return [_selection copy];
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_SPECIAL_CFMUTABLESET)	//	[3]
+	return [(__bridge NSSet *)_mutableSelection copy];
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_SPECIAL_NSMUTABLESET)	//	[4]
+	return [_mutableSelection copy];
+#else
+	return [[_selection copy] autorelease];
+#endif
+}
+
+- (NSMutableSet *)_mutableCopyOfSelection {
+#if __has_feature(objc_arc) && defined(SELECTION_IVAR_ORIGINAL_NSMUTABLESET)	//	[1]
+	return [_selection mutableCopy];
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_NSSET)	//	[2]
+	return [_selection mutableCopy];
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_SPECIAL_CFMUTABLESET)	//	[3]
+	return [(__bridge NSMutableSet *)_mutableSelection mutableCopy];
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_SPECIAL_NSMUTABLESET)	//	[4]
+	return [_mutableSelection mutableCopy];
+#else
+	return [_selection mutableCopy];
+#endif
+}
+
+- (BOOL)_isItemSelected:(id)item {
+#if __has_feature(objc_arc) && defined(SELECTION_IVAR_ORIGINAL_NSMUTABLESET)	//	[1]
+	return [_selection containsObject:item];
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_NSSET)	//	[2]
+	return [_selection containsObject:item];
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_SPECIAL_CFMUTABLESET)	//	[3]
+	return CFSetContainsValue(_mutableSelection, (const void *)item);
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_SPECIAL_NSMUTABLESET)	//	[4]
+	return [_mutableSelection containsObject:item];
+#else
+	return [_selection containsObject:item];
+#endif
+}
+
+- (void)_selectItem:(id)item {
+#if __has_feature(objc_arc) && defined(SELECTION_IVAR_ORIGINAL_NSMUTABLESET)	//	[1]
+	[_selection addObject:item];
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_NSSET)	//	[2]
+	NSMutableSet *s = [_selection mutableCopy];
+	[s addObject:item];
+	_selection = s;
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_SPECIAL_CFMUTABLESET)	//	[3]
+	CFSetAddValue(_mutableSelection, (__bridge const void *)item);
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_SPECIAL_NSMUTABLESET)	//	[4]
+	[_mutableSelection addObject:item];
+#else	//	non-ARC (MMR)
+	[_selection addObject:item];
+#endif
+}
+
+- (void)_deselectItem:(id)item {
+#if __has_feature(objc_arc) && defined(SELECTION_IVAR_ORIGINAL_NSMUTABLESET)	//	[1]
+	[_selection removeObject:item];
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_NSSET)	//	[2]
+	NSMutableSet *s = [_selection mutableCopy];
+	[s removeObject:item];
+	_selection = s;
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_SPECIAL_CFMUTABLESET)	//	[3]
+	CFSetRemoveValue(_mutableSelection, (__bridge const void *)item);
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_SPECIAL_NSMUTABLESET)	//	[4]
+	[_mutableSelection removeObject:item];
+#else	//	non-ARC (MMR)
+	[_selection removeObject:item];
+#endif
+}
+
+- (void)_selectItems:(NSSet *)items {
+#if __has_feature(objc_arc) && defined(SELECTION_IVAR_ORIGINAL_NSMUTABLESET)	//	[1]
+	[_selection setSet:items];
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_NSSET)	//	[2]
+	_selection = [items copy];
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_SPECIAL_CFMUTABLESET)	//	[3]
+	//	remove all objects from _mutableSelection which are not in items
+	if(items)	RemoveAllNotInSet(_mutableSelection, items);
+	else		CFSetRemoveAllValues(_mutableSelection);
+
+	for(id item in items)
+		CFSetSetValue(_mutableSelection, (__bridge const void *)item);
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_SPECIAL_NSMUTABLESET)	//	[4]
+	[_mutableSelection setSet:items];
+#else	//	non-ARC (MMR)
+	[_selection setSet:items];
+#endif
+}
 
 - (void)_selectItemsFrom:(NSUInteger)first to:(NSUInteger)last {
 	NSParameterAssert(NSNotFound != first);
@@ -794,7 +1088,7 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 	NSRect lastItemFrame = NSZeroRect;
 #endif
 	for(id const item in itemsEnumerator) {
-		if([_selection containsObject:item]) {
+		if([self _isItemSelected:item]) {
 			NSRect const itemFrame = [self frameOfItemAtIndex:[_items indexOfObjectIdenticalTo:item] withMargin:YES];
 		//	[self setNeedsDisplayInRect:itemFrame];
 			lastItemFrame = itemFrame;
@@ -807,7 +1101,7 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 		if([self.dataSource thumbnailView:self isContainerItem:item])
 			continue;
 
-		[_selection addObject:item];
+		[self _selectItem:item];
 		_selectionAnchor = item;
 		NSRect const itemFrame = [self frameOfItemAtIndex:[_items indexOfObjectIdenticalTo:item] withMargin:YES];
 	//	[self setNeedsDisplayInRect:itemFrame];
@@ -827,6 +1121,7 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 #else
 #endif
 }
+
 - (void)_selectAllDirectChildrenOf:(id)item {
 	//	first, perform default action of selecting the item
 	[self selectItem:item byExtendingSelection:NO];
@@ -851,29 +1146,66 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 	}
 }
 
-#pragma mark - public selection methods
+//	MARK: - public selection methods
 
-@synthesize selection = _selection;
+#if __has_feature(objc_arc) && defined(SELECTION_IVAR_ORIGINAL_NSMUTABLESET)	//	[1]
+//@synthesize selection = _selection;
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_NSSET)	//	[2]
+//@synthesize selection = _selection;
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_SPECIAL_CFMUTABLESET)	//	[3]
+- (NSSet *)selection {
+	return [self _copyOfSelection];
+}
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_SPECIAL_NSMUTABLESET)	//	[4]
+- (NSSet *)selection {
+	return [self _copyOfSelection];
+}
+#else
+//@synthesize selection = _selection;
+#endif
+
 - (void)setSelection:(NSSet *)items
 {
+#if __has_feature(objc_arc) && defined(SELECTION_IVAR_ORIGINAL_NSMUTABLESET)	//	[1]
 	if(items == _selection)
 		return;
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_NSSET)	//	[2]
+	if(items == _selection)
+		return;
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_SPECIAL_CFMUTABLESET)	//	[3]
+	NSAssert((__bridge void *)items != _mutableSelection, @"");
+//	if((__bridge void *)items == _mutableSelection)
+//		return;
+	if(SetPtrEqualsSet(_mutableSelection, items))
+		return;	//	contents are identical (all pointer match)
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_SPECIAL_NSMUTABLESET)	//	[4]
+	NSAssert(items != _mutableSelection, @"");
+	if([_mutableSelection isEqualToSet:items])
+		return;	//	contents are identical (all pointer match)
+#else
+	if(items == _selection)
+		return;
+#endif
 
 	{
-		NSMutableSet *const removedItems = [_selection mutableCopy];
+		NSMutableSet *const removedItems = [self _mutableCopyOfSelection];
 		[removedItems minusSet:items];
 		[self _invalidate:removedItems];
+#if !__has_feature(objc_arc)
 		[removedItems release];
+#endif
 	}
 	{
 		NSMutableSet *const addedItems = [items mutableCopy];
-		[addedItems minusSet:_selection];
+		[addedItems minusSet:[self _immutableSelection]];
 		[self _invalidate:addedItems];
+#if !__has_feature(objc_arc)
 		[addedItems release];
+#endif
 	}
 
 	PGScrollToRectType scrollToRect = PGScrollCenterToRect;	//	default is scroll to center
-	if(1 == _selection.count && 1 == items.count) {
+	if(1 == [self _selectionCount] && 1 == items.count) {
 		//	regardless of the selection direction, PGScrollMostToRect is the correct scrollTo value
 		scrollToRect	=	PGScrollMostToRect;
 	/*	NSUInteger const oldI = [_items indexOfObjectIdenticalTo:[_selection anyObject]];
@@ -884,12 +1216,11 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 		scrollToRect	=	newI > oldI ? PGScrollMostToRect : PGScrollMostToRect;	*/
 	}
 
-	[_selection setSet:items];
+	[self _selectItems:items];
 	[self _validateSelection];
 	[self _scrollToSelectionAnchor:scrollToRect];
 	[[self delegate] thumbnailViewSelectionDidChange:self];
 }
-@synthesize selectionAnchor = _selectionAnchor;
 - (void)selectItem:(id)item byExtendingSelection:(BOOL)flag
 {
 	if(!item) return;
@@ -898,11 +1229,40 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 		if(!flag) [self setSelection:[NSSet set]];
 		return;
 	}
+
+#if __has_feature(objc_arc) && defined(SELECTION_IVAR_ORIGINAL_NSMUTABLESET)	//	[1]
 	if(!flag) {
 		[_selection removeAllObjects];
 		[self setNeedsDisplay:YES];
 	}
-	[_selection addObject:item];
+	[self _selectItem:item];
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_NSSET)	//	[2]
+	if(!flag) {
+		[self _invalidate:_selection];
+		_selection = [NSSet setWithObject:item];
+	} else {
+		[self _selectItem:item];
+	}
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_SPECIAL_CFMUTABLESET)	//	[3]
+	if(!flag) {
+		CFSetRemoveAllValues(_mutableSelection);
+		[self setNeedsDisplay:YES];
+	}
+	[self _selectItem:item];
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_SPECIAL_NSMUTABLESET)	//	[4]
+	if(!flag) {
+		[_mutableSelection removeAllObjects];
+		[self setNeedsDisplay:YES];
+	}
+	[self _selectItem:item];
+#else	//	non-ARC (MMR)
+	if(!flag) {
+		[_selection removeAllObjects];
+		[self setNeedsDisplay:YES];
+	}
+	[self _selectItem:item];
+#endif
+
 	_selectionAnchor = item;
 	NSRect const itemFrame = [self frameOfItemAtIndex:[_items indexOfObjectIdenticalTo:item] withMargin:YES];
 	if(flag) [self setNeedsDisplayInRect:itemFrame];
@@ -911,15 +1271,15 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 }
 - (void)deselectItem:(id)item
 {
-	if(!item || ![_selection containsObject:item]) return;
-	[_selection removeObject:item];
+	if(!item || ![self _isItemSelected:item]) return;
+	[self _deselectItem:item];
 	if(item == _selectionAnchor) [self _validateSelection];
 	[self setNeedsDisplayInRect:[self frameOfItemAtIndex:[_items indexOfObjectIdenticalTo:item] withMargin:YES]];
 	[[self delegate] thumbnailViewSelectionDidChange:self];
 }
 - (void)toggleSelectionOfItem:(id)item
 {
-	if([_selection containsObject:item]) [self deselectItem:item];
+	if([self _isItemSelected:item]) [self deselectItem:item];
 	else [self selectItem:item byExtendingSelection:YES];
 }
 - (void)moveUp:(BOOL)up byExtendingSelection:(BOOL)ext
@@ -932,7 +1292,7 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 	NSArray *const items = [_items subarrayWithRange:up ? NSMakeRange(0, i) : NSMakeRange(i + 1, count - i - 1)];
 	for(id const item in up ? (id<NSFastEnumeration>)[items reverseObjectEnumerator] : (id<NSFastEnumeration>)items) {
 		if(![[self dataSource] thumbnailView:self canSelectItem:item]) continue;
-		if([_selection containsObject:item]) [self deselectItem:_selectionAnchor];
+		if([self _isItemSelected:item]) [self deselectItem:_selectionAnchor];
 		[self selectItem:item byExtendingSelection:ext];
 		break;
 	}
@@ -947,7 +1307,7 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 	[self _selectItemsFrom:count to:0];
 } */
 
-#pragma mark -
+//	MARK: -
 
 - (NSUInteger)indexOfItemAtPoint:(NSPoint)p
 {
@@ -959,12 +1319,14 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 	return flag ? NSInsetRect(frame, -PGThumbnailMarginWidth, -PGThumbnailMarginHeight) : frame;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)reloadData
 {
-	BOOL const hadSelection = !![_selection count];
+	BOOL const hadSelection = 0 != [self _selectionCount];
+#if !__has_feature(objc_arc)
 	[_items release];
+#endif
 	_items = [[[self dataSource] itemsForThumbnailView:self] copy];
 	[self _validateSelection];
 	[self sizeToFit];
@@ -989,7 +1351,11 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 	[self PG_scrollRectToVisible:[self frameOfItemAtIndex:i withMargin:YES] type:scrollToRect];
 }
 
-#pragma mark -
+- (void)selectionNeedsDisplay {	//	2023/11/23
+	[self _invalidate:[self _immutableSelection]];
+}
+
+//	MARK: -
 
 - (void)windowDidChangeKey:(NSNotification *)aNotif
 {
@@ -999,31 +1365,67 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 {
 	NSUInteger i = PGBackgroundCount;
 	while(i--) {
+#if !__has_feature(objc_arc)
 		[PGBackgroundColors[i] release];
+#endif
 		PGBackgroundColors[i] = nil;
 	}
 	[self setNeedsDisplay:YES];
 }
 
-#pragma mark -PGThumbnailView(Private)
+//	MARK: - PGThumbnailView(Private)
 
 - (void)_validateSelection
 {
-	for(id const selectedItem in [[_selection copy] autorelease]) if([_items indexOfObjectIdenticalTo:selectedItem] == NSNotFound) [_selection removeObject:selectedItem];
-	if([_selection containsObject:_selectionAnchor]) return;
+#if __has_feature(objc_arc) && defined(SELECTION_IVAR_ORIGINAL_NSMUTABLESET)	//	[1]
+	for(id const selectedItem in [_selection copy])
+		if([_items indexOfObjectIdenticalTo:selectedItem] == NSNotFound)
+			[_selection removeObject:selectedItem];
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_NSSET)	//	[2]
+	NSMutableSet *s = [_selection mutableCopy];
+	for(id const selectedItem in _selection)
+		if([_items indexOfObjectIdenticalTo:selectedItem] == NSNotFound)
+			[s removeObject:selectedItem];
+
+	if(s.count != _selection.count)
+		_selection = s;
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_SPECIAL_CFMUTABLESET)	//	[3]
+	RemoveAllNotInArray(_mutableSelection, _items);
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_SPECIAL_NSMUTABLESET)	//	[4]
+	RemoveAllNotInArray((__bridge CFMutableSetRef) _mutableSelection, _items);	//	no heap usage
+	//	this version creates a temporary object on the heap:
+//	for(id const selectedItem in [_mutableSelection copy])
+//		if([_items indexOfObjectIdenticalTo:selectedItem] == NSNotFound)
+//			[_mutableSelection removeObject:selectedItem];
+#else	//	non-ARC (MMR)
+	for(id const selectedItem in [[_selection copy] autorelease])
+		if([_items indexOfObjectIdenticalTo:selectedItem] == NSNotFound)
+			[_selection removeObject:selectedItem];
+#endif
+
+	if([self _isItemSelected:_selectionAnchor]) return;
 	_selectionAnchor = nil;
-	for(id const anchor in _items) if([_selection containsObject:anchor]) {
-		_selectionAnchor = anchor;
-		break;
-	}
+	for(id const anchor in _items)
+		if([self _isItemSelected:anchor]) {
+			_selectionAnchor = anchor;
+			break;
+		}
 }
 - (NSColor *)_backgroundColorWithType:(PGBackgroundType)type
 {
 	if(PGBackgroundColors[type]) return PGBackgroundColors[type];
+#if __has_feature(objc_arc)
+	NSImage *const background = [[NSImage alloc] initWithSize:NSMakeSize(PGOuterTotalWidth, PGBackgroundHeight)];
+#else
 	NSImage *const background = [[[NSImage alloc] initWithSize:NSMakeSize(PGOuterTotalWidth, PGBackgroundHeight)] autorelease];
+#endif
 	[background lockFocus];
 
+#if __has_feature(objc_arc)
+	NSShadow *const shadow = [NSShadow new];
+#else
 	NSShadow *const shadow = [[[NSShadow alloc] init] autorelease];
+#endif
 	[shadow setShadowOffset:NSMakeSize(0.0f, -2.0f)];
 	[shadow setShadowBlurRadius:4.0f];
 	[shadow set];
@@ -1031,14 +1433,44 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 	CGContextBeginTransparencyLayerWithRect(imageContext, CGRectMake(0, 0, PGOuterTotalWidth, PGBackgroundHeight), NULL);
 	NSRect const r = NSMakeRect(0.0f, 0.0f, PGInnerTotalWidth, PGBackgroundHeight);
 	PGDrawGradient();
+#if 1
+	if(PGBackground_NotSelected != type) {
+		NSColor* c = nil;
+		switch(type) {
+		case PGBackground_Selected_Active_MainWindow:
+		case PGBackground_Selected_ParentOfActive_MainWindow:
+		case PGBackground_Selected_NotActive_MainWindow:
+			c = [NSColor selectedContentBackgroundColor];
+			break;
+		case PGBackground_Selected_Active_NotMainWindow:
+		case PGBackground_Selected_ParentOfActive_NotMainWindow:
+		case PGBackground_Selected_NotActive_NotMainWindow:
+			c = [NSColor unemphasizedSelectedContentBackgroundColor];
+			break;
+		default:
+			break;
+		}
+
+		if(c) {
+			if(PGBackground_Selected_ParentOfActive_MainWindow == type ||
+				PGBackground_Selected_NotActive_MainWindow == type ||
+				PGBackground_Selected_ParentOfActive_NotMainWindow == type ||
+				PGBackground_Selected_NotActive_NotMainWindow == type)
+				c = [c highlightWithLevel:0.60f];
+
+			[[c colorWithAlphaComponent:0.5f] set];
+			NSRectFillUsingOperation(r, NSCompositingOperationSourceOver);
+		}
+	}
+#else
 	if(PGBackgroundDeselected != type) {
 		NSColor* c = PGBackgroundSelectedActive == type ?
-						[NSColor selectedContentBackgroundColor] :	//	modernized name
-						[NSColor controlAccentColor];	//	2023/08/12 this seems to be a sensible change
-					//	[NSColor unemphasizedSelectedContentBackgroundColor];	//	modernized name
+						[NSColor selectedContentBackgroundColor] :				//	PGBackgroundSelectedActive
+						[NSColor unemphasizedSelectedContentBackgroundColor];	//	PGBackgroundSelectedInactive
 		[[c colorWithAlphaComponent:0.5f] set];
 		NSRectFillUsingOperation(r, NSCompositingOperationSourceOver);
 	}
+#endif
 
 	NSRect const leftHoleRect = NSMakeRect(PGBackgroundHoleSpacingWidth, 0.0f, PGBackgroundHoleWidth, PGBackgroundHoleHeight);
 	NSRect const rightHoleRect = NSMakeRect(PGInnerTotalWidth - PGThumbnailMarginWidth + PGBackgroundHoleSpacingWidth, 0.0f, PGBackgroundHoleWidth, PGBackgroundHoleHeight);
@@ -1046,22 +1478,75 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 	[[NSBezierPath PG_bezierPathWithRoundRect:leftHoleRect cornerRadius:2.0f] fill];
 	[[NSBezierPath PG_bezierPathWithRoundRect:rightHoleRect cornerRadius:2.0f] fill];
 	[[NSColor clearColor] set];
+
+#if 1
+	[NSGraphicsContext saveGraphicsState];
+	[[NSGraphicsContext currentContext] setCompositingOperation:NSCompositingOperationCopy];
+	[[NSBezierPath PG_bezierPathWithRoundRect:NSOffsetRect(leftHoleRect, 0.0f, 1.0f) cornerRadius:2.0f] fill];
+	[[NSBezierPath PG_bezierPathWithRoundRect:NSOffsetRect(rightHoleRect, 0.0f, 1.0f) cornerRadius:2.0f] fill];
+	[NSGraphicsContext restoreGraphicsState];
+#else
 	[[NSBezierPath PG_bezierPathWithRoundRect:NSOffsetRect(leftHoleRect, 0.0f, 1.0f) cornerRadius:2.0f] PG_fillUsingOperation:NSCompositingOperationCopy];
 	[[NSBezierPath PG_bezierPathWithRoundRect:NSOffsetRect(rightHoleRect, 0.0f, 1.0f) cornerRadius:2.0f] PG_fillUsingOperation:NSCompositingOperationCopy];
+#endif
 
 	CGContextEndTransparencyLayer(imageContext);
 	[background unlockFocus];
 	NSColor *const color = [NSColor colorWithPatternImage:background];
+#if __has_feature(objc_arc)
+	PGBackgroundColors[type] = color;
+#else
 	PGBackgroundColors[type] = [color retain];
+#endif
 	return color;
 }
 
-#pragma mark -NSView
+- (BOOL)_isDisplayControllerTheMainWindow 
+{
+	NSWindow *const tvw = [self window];	//	tvw = thumbnail view window
+	//	2023/11/23 bugfix: the key window will be the display controller's window and
+	//	not the thumbnail view's window; the original code was testing the thumbnail
+	//	view's window instead of the display controller's window
+	id<NSWindowDelegate> wd = tvw.delegate;
+	NSWindow *dcw = nil;	//	dcw = display controller window
+	if([wd isKindOfClass:PGThumbnailController.class]) {
+		PGDisplayController *const dc = ((PGThumbnailController *)wd).displayController;
+		dcw = dc.window;
+	}
+/*
+NSLog(@"view %p [%@], has window: %p [%@] \"%@\", is key %c, is 1st responder %c, keyWindow %p [%@] \"%@\"",
+	  (__bridge const void*) self, self.className, (__bridge const void*) tvw, tvw.title, tvw.className,
+	  tvw.isKeyWindow ? 'Y' : 'N', tvw.firstResponder == self ? 'Y' : 'N',
+	  NSApplication.sharedApplication.keyWindow,
+	  NSApplication.sharedApplication.keyWindow.className,
+	  NSApplication.sharedApplication.keyWindow.title);
+ */
+	//	2023/11/12 replaced with is-main-window test
+//	return [tvw isKeyWindow] && [tvw firstResponder] == self;
+	return [dcw isMainWindow];
+}
+
+//	MARK: - NSView
 
 - (id)initWithFrame:(NSRect)aRect
 {
 	if((self = [super initWithFrame:aRect])) {
+#if __has_feature(objc_arc) && defined(SELECTION_IVAR_ORIGINAL_NSMUTABLESET)	//	[1]
+		// [NSMutableSet new] creates the wrong kind of mutable set
+		// because inserted objects are NOT to be retained; the code
+		// in this class requires that behavior so it must be created
+		// as a CF object which is then transferred to ARC to manage
+	//	_selection = [NSMutableSet new];  <=== wrong
+		_selection = (NSMutableSet *)CFBridgingRelease(CFSetCreateMutable(kCFAllocatorDefault, 0, NULL));
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_NSSET)	//	[2]
+		_selection = [NSSet set];
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_SPECIAL_CFMUTABLESET)	//	[3]
+		_mutableSelection = CFSetCreateMutable(kCFAllocatorDefault, 0, NULL);
+#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_SPECIAL_NSMUTABLESET)	//	[4]
+		_mutableSelection = (NSMutableSet *)CFBridgingRelease(CFSetCreateMutable(kCFAllocatorDefault, 0, NULL));
+#else
 		_selection = (NSMutableSet *)CFSetCreateMutable(kCFAllocatorDefault, 0, NULL);
+#endif
 		[NSNotificationCenter.defaultCenter addObserver:self
 											   selector:@selector(systemColorsDidChange:)
 												   name:NSSystemColorsDidChangeNotification
@@ -1079,7 +1564,7 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 	return self;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (BOOL)isFlipped
 {
@@ -1100,12 +1585,24 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 	NSRect const *rects = NULL;
 	[self getRectsBeingDrawn:&rects count:&count];
 
+#if 1
+	[[self _backgroundColorWithType:PGBackground_NotSelected] set];
+#else
 	[[self _backgroundColorWithType:PGBackgroundDeselected] set];
+#endif
 	NSRectFillList(rects, count);
 
+#if __has_feature(objc_arc)
+	NSShadow *const nilShadow = [NSShadow new];
+#else
 	NSShadow *const nilShadow = [[[NSShadow alloc] init] autorelease];
+#endif
 	[nilShadow setShadowColor:nil];
+#if __has_feature(objc_arc)
+	NSShadow *const shadow = [NSShadow new];
+#else
 	NSShadow *const shadow = [[[NSShadow alloc] init] autorelease];
+#endif
 	[shadow setShadowOffset:NSMakeSize(0.0f, -2.0f)];
 	[shadow setShadowBlurRadius:4.0f];
 	[shadow set];
@@ -1118,13 +1615,36 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 	BOOL const	showThumbnailContainerChildSizeTotal = [sud boolForKey:PGShowThumbnailContainerChildSizeTotalKey];
 	NSInteger const	thumbnailSizeFormat = GetThumbnailSizeFormat();
 	NSUInteger i = 0;
+#if 1
+	id activeNode = [self.dataSource activeNodeForThumbnailView:self];
+#endif
 	for(; i < [_items count]; i++) {
 		NSRect const frameWithMargin = [self frameOfItemAtIndex:i withMargin:YES];
 		if(!PGIntersectsRectList(frameWithMargin, rects, count)) continue;
 		id const item = [_items objectAtIndex:i];
-		if([_selection containsObject:item]) {
+		if([self _isItemSelected:item]) {
 			[nilShadow set];
+#if 1
+			PGBackgroundType bgType;
+			if ([self _isDisplayControllerTheMainWindow]) {
+				if(activeNode == item)
+					bgType = PGBackground_Selected_Active_MainWindow;
+				else if([self.dataSource thumbnailView:self isParentOfActiveNode:item])
+					bgType = PGBackground_Selected_ParentOfActive_MainWindow;
+				else
+					bgType = PGBackground_Selected_NotActive_MainWindow;
+			} else {
+				if(activeNode == item)
+					bgType = PGBackground_Selected_Active_NotMainWindow;
+				else if([self.dataSource thumbnailView:self isParentOfActiveNode:item])
+					bgType = PGBackground_Selected_ParentOfActive_NotMainWindow;
+				else
+					bgType = PGBackground_Selected_NotActive_NotMainWindow;
+			}
+			[[self _backgroundColorWithType:bgType] set];
+#else
 			[[self _backgroundColorWithType:[self PG_isActive] ? PGBackgroundSelectedActive : PGBackgroundSelectedInactive] set];
+#endif
 		//	[NSColor.yellowColor set];
 			NSRectFill(frameWithMargin);
 			[shadow set];
@@ -1179,10 +1699,18 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 			static NSMutableDictionary *attributes = nil;
 			static CGFloat fontLineHeight = 0;
 			if(!attributes) {
+#if __has_feature(objc_arc)
+				NSMutableParagraphStyle *const style = [[NSParagraphStyle defaultParagraphStyle] mutableCopy];
+#else
 				NSMutableParagraphStyle *const style = [[[NSParagraphStyle defaultParagraphStyle] mutableCopy] autorelease];
+#endif
 				[style setLineBreakMode:NSLineBreakByWordWrapping];
 				[style setAlignment:NSTextAlignmentCenter];
+#if __has_feature(objc_arc)
+				NSShadow *const textShadow = [NSShadow new];
+#else
 				NSShadow *const textShadow = [[[NSShadow alloc] init] autorelease];
+#endif
 				[textShadow setShadowBlurRadius:2.0f];
 				[textShadow setShadowOffset:NSMakeSize(0.0f, -1.0f)];
 				NSFont *font = [NSFont systemFontOfSize:11];
@@ -1211,8 +1739,13 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 				textStorage = [[NSTextStorage alloc] init];
 				layoutManager = [[NSLayoutManager alloc] init];
 				textContainer = [[NSTextContainer alloc] init];
+#if __has_feature(objc_arc)
+				[layoutManager addTextContainer:textContainer];
+				[textStorage addLayoutManager:layoutManager];
+#else
 				[layoutManager addTextContainer:[textContainer autorelease]];
 				[textStorage addLayoutManager:[layoutManager autorelease]];
+#endif
 				[textContainer setLineFragmentPadding:0];
 			}
 
@@ -1388,7 +1921,7 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 	[nilShadow set];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)setFrameSize:(NSSize)oldSize
 {
@@ -1402,14 +1935,14 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 	[aWindow PG_addObserver:self selector:@selector(windowDidChangeKey:) name:NSWindowDidResignKeyNotification];
 }
 
-#pragma mark -NSView(PGClipViewAdditions)
+//	MARK: - NSView(PGClipViewAdditions)
 
 - (BOOL)PG_acceptsClicksInClipView:(PGClipView *)sender
 {
 	return NO;
 }
 
-#pragma mark -NSResponder
+//	MARK: - NSResponder
 
 - (IBAction)moveUp:(id)sender
 {
@@ -1445,7 +1978,7 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 #endif
 }
 
-#pragma mark -
+//	MARK: -
 
 - (BOOL)acceptsFirstResponder
 {
@@ -1462,7 +1995,7 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 	return [super resignFirstResponder];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)mouseDown:(NSEvent *)anEvent
 {
@@ -1483,7 +2016,7 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 		NSArray *const items = [_items subarrayWithRange:i < si ? NSMakeRange(i, si-i) : NSMakeRange(si, 1+i-si)];
 		for(id const item in i < si ? (id<NSFastEnumeration>)items.reverseObjectEnumerator : (id<NSFastEnumeration>)items) {
 			if(![self.dataSource thumbnailView:self canSelectItem:item]) continue;
-			if([_selection containsObject:item]) continue;
+			if([self _isItemSelected:item]) continue;
 			[self selectItem:item byExtendingSelection:YES]; // NB: this call mutates _selectionAnchor
 		}
 #endif
@@ -1500,7 +2033,7 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 	if(![[NSApp mainMenu] performKeyEquivalent:anEvent]) [self interpretKeyEvents:[NSArray arrayWithObject:anEvent]];
 }
 
-#pragma mark -NSObject
+//	MARK: - NSObject
 
 - (void)dealloc
 {
@@ -1514,13 +2047,20 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 	[sud removeObserver:self forKeyPath:PGThumbnailSizeFormatKey];
 
 	[self PG_removeObserver];
+
+#if defined(SELECTION_IVAR_SPECIAL_CFMUTABLESET)
+	CFRelease(_mutableSelection);
+#endif
+
+#if !__has_feature(objc_arc)
 	[representedObject release];
 	[_items release];
 	[_selection release];
 	[super dealloc];
+#endif
 }
 
-#pragma mark -NSObject(NSKeyValueObserving)
+//	MARK: - NSObject(NSKeyValueObserving)
 
 //	2022/10/15
 - (void)observeValueForKeyPath:(NSString *)keyPath
@@ -1541,7 +2081,7 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 
 @end
 
-#pragma mark -
+//	MARK: -
 @implementation NSObject(PGThumbnailViewDataSource)
 
 - (NSArray *)itemsForThumbnailView:(PGThumbnailView *)sender
@@ -1580,7 +2120,7 @@ DrawUpperAndLower(BOOL const drawAtMidY, NSString* const label, NSColor* const l
 
 @end
 
-#pragma mark -
+//	MARK: -
 @implementation NSObject(PGThumbnailViewDelegate)
 
 - (void)thumbnailViewSelectionDidChange:(PGThumbnailView *)sender {}
