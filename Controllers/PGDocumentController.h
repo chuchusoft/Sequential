@@ -30,10 +30,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 // Controllers
 @class PGDisplayController;
+#if !__has_feature(objc_arc)
 @class PGFullscreenController;
 @class PGInspectorPanelController;
 @class PGTimerPanelController;
 @class PGActivityPanelController;
+#endif
 
 //	general prefs pane
 extern NSString *const PGBackgroundColorSourceKey;	//	2023/08/17
@@ -86,6 +88,7 @@ typedef NSUInteger PGImageScaleConstraint;
 
 @interface PGDocumentController :
 	NSResponder <NSApplicationDelegate, NSMenuDelegate>
+#if !__has_feature(objc_arc)
 {
 	@private
 	IBOutlet NSMenu *orientationMenu;
@@ -118,6 +121,7 @@ typedef NSUInteger PGImageScaleConstraint;
 
 //	NSMutableDictionary *_classesByExtension;	2023/10/29 not used; removed
 }
+#endif
 
 + (PGDocumentController *)sharedDocumentController;
 
@@ -145,6 +149,24 @@ typedef NSUInteger PGImageScaleConstraint;
 - (BOOL)performZoomOut;
 - (BOOL)performToggleFullscreen;
 
+#if __has_feature(objc_arc)
+
+@property (nonatomic, copy) NSArray<PGDisplayableIdentifier*> *recentDocumentIdentifiers;	//	2023/10/29 specified static type
+@property (readonly) NSUInteger maximumRecentDocumentCount;
+@property (readonly) PGDisplayController *displayControllerForNewDocument;
+@property (nonatomic, assign, getter = isFullscreen) BOOL fullscreen;
+@property (readonly) BOOL canToggleFullscreen;
+@property (nonatomic, assign) BOOL usesEntireScreenWhenInFullScreen;	//	2023/08/14 added
+@property (readonly) BOOL canToggleUsesEntireScreenWhenInFullScreen;	//	2023/08/14 added
+@property (readonly, copy) NSArray *documents;
+@property (readonly) NSMenu *scaleMenu;
+@property (nonatomic, weak) IBOutlet NSSlider *scaleSlider;
+@property (readonly, strong) IBOutlet NSMenu *defaultPageMenu;
+@property (nonatomic, weak) PGDocument *currentDocument;
+@property (readonly) BOOL pathFinderRunning;
+
+#else
+
 @property(copy, nonatomic) NSArray<PGDisplayableIdentifier*> *recentDocumentIdentifiers;	//	2023/10/29 specified static type
 @property(readonly) NSUInteger maximumRecentDocumentCount;
 @property(readonly) PGDisplayController *displayControllerForNewDocument;
@@ -158,6 +180,8 @@ typedef NSUInteger PGImageScaleConstraint;
 @property(readonly) NSMenu *defaultPageMenu;
 @property(assign, nonatomic) PGDocument *currentDocument;
 @property(readonly) BOOL pathFinderRunning;
+
+#endif
 
 - (void)addDocument:(PGDocument *)document;
 - (void)removeDocument:(PGDocument *)document;
