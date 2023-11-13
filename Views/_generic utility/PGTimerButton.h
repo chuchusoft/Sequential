@@ -33,6 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 @end
 
 @interface PGTimerButtonCell : NSButtonCell
+#if !__has_feature(objc_arc)
 {
 	@private
 	AEIconType _iconType;
@@ -41,5 +42,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @property(assign) AEIconType iconType;
 @property(assign) CGFloat progress;
+
+#else
+
+@property (nonatomic, assign) AEIconType iconType;
+@property (nonatomic, assign) CGFloat progress;
+
+#endif
 
 @end
