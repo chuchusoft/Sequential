@@ -37,11 +37,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 extern NSString *const PGThumbnailControllerContentInsetDidChangeNotification;
 
-@interface PGThumbnailController : NSObject <
-#ifdef MAC_OS_X_VERSION_10_6
-NSWindowDelegate,
-#endif
-PGThumbnailBrowserDataSource, PGThumbnailBrowserDelegate, PGThumbnailViewDataSource>
+@interface PGThumbnailController : NSObject <NSWindowDelegate,
+	PGThumbnailBrowserDataSource, PGThumbnailBrowserDelegate, PGThumbnailViewDataSource>
+#if !__has_feature(objc_arc)
 {
 	@private
 	PGBezelPanel *_window;			//	retains; owns the reference
@@ -55,17 +53,26 @@ PGThumbnailBrowserDataSource, PGThumbnailBrowserDelegate, PGThumbnailViewDataSou
 	PGBezelPanel *_infoWindow;		//	retains; owns the reference; 2023/10/02 added
 	NSView *_infoView;	//	references; does not own the reference; 2023/10/02 added [PGThumbnailInfoView]
 }
+#endif
 
 + (BOOL)canShowThumbnailsForDocument:(PGDocument *)aDoc;
 + (BOOL)shouldShowThumbnailsForDocument:(PGDocument *)aDoc;
 
+#if __has_feature(objc_arc)
+@property (nonatomic, weak) PGDisplayController *displayController;
+@property (nonatomic, weak) PGDocument *document;
+@property (readonly) PGInset contentInset;
+@property (nonatomic, copy) NSSet *selectedNodes;	//	2023/10/02 was readonly
+#else
 @property(assign, nonatomic) PGDisplayController *displayController;
 @property(assign, nonatomic) PGDocument *document;
 @property(readonly) PGInset contentInset;
 @property(copy, nonatomic) NSSet *selectedNodes;	//	2023/10/02 was readonly
+#endif
 
 - (void)selectAll;
 - (void)display;
+- (void)selectionNeedsDisplay;
 - (void)fadeOut;
 
 - (void)displayControllerActiveNodeDidChange:(NSNotification *)aNotif;
@@ -82,6 +89,7 @@ PGThumbnailBrowserDataSource, PGThumbnailBrowserDelegate, PGThumbnailViewDataSou
 
 @end
 
+//	MARK: -
 @interface PGDisplayController(PGThumbnailControllerCallbacks)
 
 - (void)thumbnailPanelDidBecomeKey:(NSNotification *)aNotif;
