@@ -31,34 +31,42 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 // Other Sources
 #import "PGGeometry.h"
 
-@implementation PGColumnView
+#if __has_feature(objc_arc)
 
-#pragma mark -PGColumnView
+@interface PGColumnView ()
+@property (nonatomic, strong) PGClipView *clipView;
+@property (nonatomic, strong) NSView *view;
+@property (nonatomic, strong) NSMutableArray<__kindof NSView *> *clipViews;
+@property (nonatomic, copy) NSMutableArray *views;
+@end
+
+#endif
+
+//	MARK: -
+@implementation PGColumnView
 
 - (NSUInteger)numberOfColumns
 {
 	return [_views count];
 }
-@synthesize views = _views;
 - (id)lastView
 {
 	return [_views lastObject];
 }
-@synthesize columnWidth = _columnWidth;
 - (void)setColumnWidth:(CGFloat)width
 {
 	_columnWidth = round(width);
 	[self layout];
 }
 
-#pragma mark-
+//	MARK: -
 
 - (id)viewAtIndex:(NSUInteger)index
 {
 	return [_views objectAtIndex:index];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)addColumnWithView:(NSView *)aView
 {
@@ -68,7 +76,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 {
 	NSParameterAssert(aView);
 	NSParameterAssert([_views indexOfObjectIdenticalTo:aView] == NSNotFound);
+#if __has_feature(objc_arc)
+	PGClipView *const clip = [PGClipView new];
+#else
 	PGClipView *const clip = [[[PGClipView alloc] init] autorelease];
+#endif
 	[_clipViews insertObject:clip atIndex:index];
 	[_views insertObject:aView atIndex:index];
 	[_view addSubview:clip];
@@ -97,7 +109,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	return;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)scrollToTopOfColumnWithView:(NSView *)aView
 {
@@ -108,7 +120,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[_clipView scrollToEdge:PGMaxXEdgeMask animation:flag ? PGPreferAnimation : PGNoAnimation];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)layout
 {
@@ -121,7 +133,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[self setNeedsDisplay:YES];
 }
 
-#pragma mark -NSView
+//	MARK: - NSView
 
 - (id)initWithFrame:(NSRect)aRect
 {
@@ -146,12 +158,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[self layout];
 }
 
-#pragma mark -NSObject
+//	MARK: - NSObject
 
 - (id)init
 {
 	return [self initWithFrame:NSZeroRect];
 }
+#if !__has_feature(objc_arc)
 - (void)dealloc
 {
 	[_clipView release];
@@ -160,8 +173,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[_views release];
 	[super dealloc];
 }
+#endif
 
-#pragma mark -<PGClipViewDelegate>
+//	MARK: - <PGClipViewDelegate>
 
 - (BOOL)clipView:(PGClipView *)sender handleMouseEvent:(NSEvent *)anEvent first:(BOOL)flag
 {
