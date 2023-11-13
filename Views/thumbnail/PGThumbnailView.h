@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 @protocol PGThumbnailViewDelegate;
 
 @interface PGThumbnailView : NSView
+#if !__has_feature(objc_arc)
 {
 	@private
 	IBOutlet NSObject<PGThumbnailViewDataSource> * dataSource;
@@ -39,7 +40,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	NSMutableSet *_selection;
 	id _selectionAnchor;
 }
+#endif
 
+#if __has_feature(objc_arc)
+@property (nonatomic, weak) IBOutlet NSObject<PGThumbnailViewDataSource> *dataSource;
+@property (nonatomic, weak) IBOutlet NSObject<PGThumbnailViewDelegate> *delegate;
+@property (nonatomic, strong) id representedObject;
+@property (nonatomic, assign) PGOrientation thumbnailOrientation;
+
+@property (readonly) NSArray *items;
+@property (nonatomic, copy) NSSet *selection;
+//@property (nonatomic, readonly) NSSet *selection;
+@property (readonly, weak) id selectionAnchor;
+#else
 @property(assign, nonatomic) NSObject<PGThumbnailViewDataSource> *dataSource;
 @property(assign, nonatomic) NSObject<PGThumbnailViewDelegate> *delegate;
 @property(retain, nonatomic) id representedObject;
@@ -48,6 +61,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 @property(readonly) NSArray *items;
 @property(copy, nonatomic) NSSet *selection;
 @property(readonly) id selectionAnchor;
+#endif
 - (void)selectItem:(id)item byExtendingSelection:(BOOL)extend;
 - (void)deselectItem:(id)item;
 - (void)toggleSelectionOfItem:(id)item;
@@ -60,6 +74,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (void)reloadData;
 - (void)sizeToFit;
 //- (void)scrollToSelectionAnchor;	2023/08/17 removed (method is now private)
+
+//	invalidates selected items (forces a screen update)
+- (void)selectionNeedsDisplay;	//	2023/11/23
 
 - (void)windowDidChangeKey:(NSNotification *)aNotif;
 - (void)systemColorsDidChange:(NSNotification *)aNotif;
@@ -88,6 +105,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (uint64_t)thumbnailView:(PGThumbnailView *)sender byteSizeAndFolderAndImageCountOfDirectChildrenForItem:(id)item;
 - (uint64_t)thumbnailView:(PGThumbnailView *)sender byteSizeOfAllChildrenForItem:(id)item;
 - (uint64_t)thumbnailView:(PGThumbnailView *)sender byteSizeOf:(id)item;
+
+- (id)activeNodeForThumbnailView:(PGThumbnailView *)sender;	//	2023/11/23
+- (BOOL)thumbnailView:(PGThumbnailView *)sender isParentOfActiveNode:(id)item;
+
 @end
 
 @protocol PGThumbnailViewDelegate <NSObject>
