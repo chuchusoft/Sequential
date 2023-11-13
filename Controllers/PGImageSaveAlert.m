@@ -33,6 +33,27 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 // Other Sources
 #import "PGFoundationAdditions.h"
 
+#if __has_feature(objc_arc)
+
+@interface PGImageSaveAlert ()
+
+@property (nonatomic, weak) IBOutlet NSView *accessoryView;
+@property (nonatomic, weak) IBOutlet NSOutlineView *nodesOutline;
+@property (nonatomic, weak) IBOutlet NSTableColumn *nameColumn;
+@property (nonatomic, weak) IBOutlet NSTableColumn *errorColumn;
+@property (nonatomic, strong) PGNode *rootNode;
+@property (nonatomic, strong) NSSet *initialSelection;
+@property (nonatomic, strong) NSOpenPanel *openPanel;
+@property (nonatomic, strong) NSString *destination;
+@property (nonatomic, strong) NSMutableDictionary *saveNamesByNodePointer;
+@property (nonatomic, assign) BOOL saveOnSheetClose;
+@property (nonatomic, assign) BOOL firstTime;
+
+@end
+
+#endif
+
+//	MARK: -
 @implementation PGImageSaveAlert
 
 - (BOOL)_saveNode:(id)node toDirectory:(NSURL *)dir {
@@ -63,7 +84,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (void)_setDestination:(NSURL *)directoryURL {
 	//	step 1: set _destination
+#if !__has_feature(objc_arc)
 	[_destination release];
+#endif
 	{
 		NSMutableData* utf8path = directoryURL ? [[NSMutableData alloc] initWithLength:8192] : nil;
 		//	2023/09/24 using modern delegate methods (URLs) but still need to use
@@ -72,18 +95,28 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 			_destination = [[NSString alloc] initWithUTF8String:utf8path.bytes];
 		else
 			_destination = nil;
+#if !__has_feature(objc_arc)
 		[utf8path release];
+#endif
 	}
 
 	if(!_destination)	//	outline view requires non-nil _destination
 		return;
 
 	//	step 2: reload node outline view
+#if __has_feature(objc_arc)
+	[_nodesOutline reloadData];
+#else
 	[nodesOutline reloadData];
+#endif
 
 	//	step 3: perform first-time setup
 	if(_firstTime) {
+#if __has_feature(objc_arc)
+		[_nodesOutline expandItem:_rootNode expandChildren:YES];
+#else
 		[nodesOutline expandItem:_rootNode expandChildren:YES];
+#endif
 		_firstTime = NO;
 	}
 
@@ -93,20 +126,36 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	NSMutableIndexSet *const indexes = [NSMutableIndexSet indexSet];
 	for(PGNode *const node in _initialSelection) {
 		if(![[node resourceAdapter] canSaveData]) continue;
+#if __has_feature(objc_arc)
+		NSInteger const rowIndex = [_nodesOutline rowForItem:node];
+#else
 		NSInteger const rowIndex = [nodesOutline rowForItem:node];
+#endif
 		if(-1 != rowIndex) [indexes addIndex:(NSUInteger)rowIndex];
 	}
+#if __has_feature(objc_arc)
+	[_nodesOutline selectRowIndexes:indexes byExtendingSelection:NO];
+#else
 	[nodesOutline selectRowIndexes:indexes byExtendingSelection:NO];
+#endif
 	NSUInteger const firstRow = [indexes firstIndex];
+#if __has_feature(objc_arc)
+	if(NSNotFound != firstRow) [_nodesOutline scrollRowToVisible:firstRow];
+#else
 	if(NSNotFound != firstRow) [nodesOutline scrollRowToVisible:firstRow];
 	[_initialSelection release];
+#endif
 	_initialSelection = nil;
 }
 
 - (id)initWithRoot:(PGNode *)root initialSelection:(NSSet *)aSet
 {
 	if(!(self = [super initWithWindowNibName:@"PGImageSave"])) return nil;
+#if __has_feature(objc_arc)
+	_rootNode = root;
+#else
 	_rootNode = [root retain];
+#endif
 	_initialSelection = [aSet copy];
 	_saveNamesByNodePointer = [[NSMutableDictionary alloc] init];
 	[[NSProcessInfo processInfo] PG_disableSuddenTermination];
@@ -116,7 +165,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 {
 	(void)[self window];
 	_firstTime = YES;
+#if !__has_feature(objc_arc)
 	[_openPanel release];
+#endif
 	_openPanel = [[NSOpenPanel alloc] init];
 	[_openPanel PG_addObserver:self selector:@selector(windowDidEndSheet:) name:NSWindowDidEndSheetNotification];
 	[_openPanel setCanChooseFiles:NO];
@@ -125,14 +176,22 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[_openPanel setAllowsMultipleSelection:NO];
 	[_openPanel setDelegate:self];
 
+#if __has_feature(objc_arc)
+	[_openPanel setAccessoryView:_accessoryView];
+	[_accessoryView setAutoresizingMask:NSViewWidthSizable | NSViewMaxYMargin];
+	[_accessoryView setFrame:[[_accessoryView superview] bounds]];
+#else
 	[_openPanel setAccessoryView:accessoryView];
 	[accessoryView setAutoresizingMask:NSViewWidthSizable | NSViewMaxYMargin];
 	[accessoryView setFrame:[[accessoryView superview] bounds]];
+#endif
 
 	NSSavePanel *const savePanel = [NSSavePanel savePanel];
 	[_openPanel setPrompt:[savePanel prompt]];
 	[_openPanel setTitle:[savePanel title]];
+#if !__has_feature(objc_arc)
 	[self retain];
+#endif
 
 	_openPanel.directoryURL		=	_rootNode.identifier.URL.URLByDeletingLastPathComponent;
 	_openPanel.allowedFileTypes	=	nil;
@@ -149,33 +208,45 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[panel orderOut:self];
 	[_openPanel PG_removeObserver:self name:NSWindowDidEndSheetNotification];
 	[_openPanel setDelegate:nil];
+#if !__has_feature(objc_arc)
 	[self release];
+#endif
 }
 
-#pragma mark -
+//	MARK: -
 
 - (NSString *)saveNameForNode:(PGNode *)node
 {
 	NSString *const modifiedName = [_saveNamesByNodePointer objectForKey:[NSValue valueWithNonretainedObject:node]];
+#if __has_feature(objc_arc)
+	return modifiedName ? modifiedName : [[node identifier] naturalDisplayName];
+#else
 	return modifiedName ? [[modifiedName retain] autorelease] : [[node identifier] naturalDisplayName];
+#endif
 }
 
-#pragma mark -NSObject
+//	MARK: - NSObject
 
 - (void)dealloc
 {
 	[[NSProcessInfo processInfo] PG_enableSuddenTermination];
+#if __has_feature(objc_arc)
+	[_nodesOutline setDataSource:nil];
+	[_nodesOutline setDelegate:nil];
+#else
 	[nodesOutline setDataSource:nil];
 	[nodesOutline setDelegate:nil];
+
 	[_rootNode release];
 	[_initialSelection release];
 	[_saveNamesByNodePointer release];
 	[_destination release];
 	[_openPanel release];
 	[super dealloc];
+#endif
 }
 
-#pragma mark -<NSOpenSavePanelDelegate>
+//	MARK: - <NSOpenSavePanelDelegate>
 
 - (BOOL)panel:(id)sender validateURL:(NSURL *)url error:(NSError **)outError {
 #if !defined(NS_BLOCK_ASSERTIONS)
@@ -187,7 +258,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	}
 #endif
 
-	//	using [nodesOutline selectedRowIndexes] requires initialization of nodesOutline's
+	//	using [_nodesOutline selectedRowIndexes] requires initialization of nodesOutline's
 	//	selection and data which might not have occurred yet so perform that init now
 	if(!_destination)
 		[self _setDestination:url];
@@ -197,10 +268,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	@autoreleasepool {
 		NSMutableData* utf8path = [NSMutableData dataWithLength:8192];
 
+#if __has_feature(objc_arc)
+		NSIndexSet *const rows = [_nodesOutline selectedRowIndexes];
+#else
 		NSIndexSet *const rows = [nodesOutline selectedRowIndexes];
+#endif
 		NSUInteger i = [rows firstIndex];
 		for(; NSNotFound != i; i = [rows indexGreaterThanIndex:i]) {
+#if __has_feature(objc_arc)
+			NSString *const name = [self saveNameForNode:[_nodesOutline itemAtRow:i]];
+#else
 			NSString *const name = [self saveNameForNode:[nodesOutline itemAtRow:i]];
+#endif
 
 			//	2023/09/24 modernized to using URLs but still need to use NSFileManager API so...
 			if(![url getFileSystemRepresentation:utf8path.mutableBytes maxLength:utf8path.length])
@@ -215,7 +294,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		}
 	}
 	if(existingFileCount && !_saveOnSheetClose) {
+#if __has_feature(objc_arc)
+		NSAlert *const alert = [NSAlert new];
+#else
 		NSAlert *const alert = [[[NSAlert alloc] init] autorelease];
+#endif
 		[alert setAlertStyle:NSAlertStyleCritical];
 		if(1 == existingFileCount) [alert setMessageText:[NSString stringWithFormat:NSLocalizedString(@"%@ already exists in %@. Do you want to replace it?", @"Replace file alert. The first %@ is replaced with the filename, the second is replaced with the destination name."), existingFilename, [_destination PG_displayName]]];
 		else [alert setMessageText:[NSString stringWithFormat:NSLocalizedString(@"%lu pages already exist in %@. Do you want to replace them?", @"Replace multiple files alert. %lu is replaced with a number greater than 1, %@ is replaced with the destination name."), (unsigned long)existingFileCount, [_destination PG_displayName]]];
@@ -236,10 +319,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	}
 	NSMutableArray *const unsavedNodes = [NSMutableArray array];
 	NSMutableIndexSet *const unsavedRows = [NSMutableIndexSet indexSet];
+#if __has_feature(objc_arc)
+	NSIndexSet *const rows = [[_nodesOutline selectedRowIndexes] copy];
+#else
 	NSIndexSet *const rows = [[[nodesOutline selectedRowIndexes] copy] autorelease];
+#endif
 	NSUInteger i = [rows firstIndex];
 	for(; NSNotFound != i; i = [rows indexGreaterThanIndex:i]) {
+#if __has_feature(objc_arc)
+		id const node = [_nodesOutline itemAtRow:i];
+#else
 		id const node = [nodesOutline itemAtRow:i];
+#endif
 		if([self _saveNode:node toDirectory:url])
 			continue;
 
@@ -250,11 +341,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		return YES;
 
 	if(_destination) {	//	cannot reset outline view if _destination is nil
+#if __has_feature(objc_arc)
+		[_nodesOutline reloadData];
+		[_nodesOutline selectRowIndexes:unsavedRows byExtendingSelection:NO];
+#else
 		[nodesOutline reloadData];
 		[nodesOutline selectRowIndexes:unsavedRows byExtendingSelection:NO];
+#endif
 	}
 
+#if __has_feature(objc_arc)
+	NSAlert *const alert = [NSAlert new];
+#else
 	NSAlert *const alert = [[[NSAlert alloc] init] autorelease];
+#endif
 	if(1 == [unsavedNodes count]) [alert setMessageText:[NSString stringWithFormat:NSLocalizedString(@"The image %@ could not be saved to %@.", @"Single image save failure alert. The first %@ is replaced with the filename, the second is replaced with the destination name."), [self saveNameForNode:[unsavedNodes objectAtIndex:0]], [_destination PG_displayName]]];
 	else [alert setMessageText:[NSString stringWithFormat:NSLocalizedString(@"%lu images could not be saved to %@.", @"Multiple image save failure alert. %lu is replaced with the number of files, %@ is replaced with the destination name."), (unsigned long)[unsavedNodes count], [_destination PG_displayName]]];
 	[alert setInformativeText:NSLocalizedString(@"Make sure the volume is writable and has enough free space.", @"Informative text for save failure alerts.")];
@@ -273,7 +373,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[self _setDestination:url];
 }
 
-#pragma mark -<NSOutlineViewDataSource>
+//	MARK: - <NSOutlineViewDataSource>
 
 - (id)outlineView:(NSOutlineView *)outlineView child:(NSInteger)index ofItem:(id)item
 {
@@ -290,28 +390,49 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (id)outlineView:(NSOutlineView *)outlineView objectValueForTableColumn:(NSTableColumn *)tableColumn byItem:(id)item
 {
 	NSString *const saveName = [self saveNameForNode:item];
+#if __has_feature(objc_arc)
+	if(tableColumn == _nameColumn) return saveName;
+	else if(tableColumn == _errorColumn)
+#else
 	if(tableColumn == nameColumn) return saveName;
-	else if(tableColumn == errorColumn) if([[NSFileManager defaultManager] fileExistsAtPath:[_destination stringByAppendingPathComponent:saveName]]) return NSLocalizedString(@"File already exists.", @"Appears in the image save alert beside each filename that conflicts with an existing file in the destination folder.");
+	else if(tableColumn == errorColumn)
+#endif
+		if([[NSFileManager defaultManager] fileExistsAtPath:[_destination stringByAppendingPathComponent:saveName]])
+			return NSLocalizedString(@"File already exists.",
+				@"Appears in the image save alert beside each filename that conflicts with an existing file in the destination folder.");
 	return nil;
 }
 - (void)outlineView:(NSOutlineView *)outlineView setObjectValue:(id)object forTableColumn:(NSTableColumn *)tableColumn byItem:(id)item
 {
+#if __has_feature(objc_arc)
+	NSParameterAssert(tableColumn == _nameColumn);
+#else
 	NSParameterAssert(tableColumn == nameColumn);
+#endif
 	if([(NSString *)object length]) [_saveNamesByNodePointer setObject:object forKey:[NSValue valueWithNonretainedObject:item]];
 }
 
-#pragma mark -<NSOutlineViewDelegate>
+//	MARK: - <NSOutlineViewDelegate>
 
 - (void)outlineView:(NSOutlineView *)outlineView willDisplayCell:(id)cell forTableColumn:(NSTableColumn *)tableColumn item:(id)item
 {
-	if(tableColumn == nameColumn) {
+#if __has_feature(objc_arc)
+	if(tableColumn == _nameColumn)
+#else
+	if(tableColumn == nameColumn)
+#endif
+	{
 		[cell setIcon:[[[(PGNode *)item resourceAdapter] dataProvider] icon]];
 		[cell setEnabled:[[item resourceAdapter] canSaveData]];
 	}
 }
 - (BOOL)outlineView:(NSOutlineView *)outlineView shouldEditTableColumn:(NSTableColumn *)tableColumn item:(id)item
 {
+#if __has_feature(objc_arc)
+	if(tableColumn != _nameColumn) return NO;
+#else
 	if(tableColumn != nameColumn) return NO;
+#endif
 	[outlineView editColumn:0 row:[outlineView rowForItem:item] withEvent:nil select:NO];
 	NSText *const fieldEditor = [[outlineView window] fieldEditor:NO forObject:outlineView];
 	if(!fieldEditor) return NO;
@@ -324,7 +445,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	return [[item resourceAdapter] canSaveData];
 }
 
-#pragma mark -<NSWindowDelegate>
+//	MARK: - <NSWindowDelegate>
 
 - (void)windowDidEndSheet:(NSNotification *)notification
 {
