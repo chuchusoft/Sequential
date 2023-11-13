@@ -49,7 +49,9 @@ typedef NSUInteger PGScrollToRectType;
 
 @protocol PGClipViewDelegate;
 
+//	MARK: -
 @interface PGClipView : NSView
+#if !__has_feature(objc_arc)
 {
 	@private
 	IBOutlet NSResponder<PGClipViewDelegate> * delegate;
@@ -91,6 +93,27 @@ typedef NSUInteger PGScrollToRectType;
 @property(readonly) NSPoint relativeCenter;
 @property(readonly) NSSize pinLocationOffset;
 
+#else
+
+@property (nonatomic, weak) IBOutlet NSResponder<PGClipViewDelegate> *delegate;
+@property (nonatomic, strong) IBOutlet NSView *documentView;
+@property (readonly) NSRect documentFrame;
+@property (nonatomic, assign) PGInset boundsInset;
+@property (readonly) NSRect insetBounds;
+@property (nonatomic, strong) NSColor *backgroundColor;
+@property (nonatomic, assign) BOOL showsBorder;
+@property (nonatomic, strong) NSCursor *cursor;
+@property (nonatomic, assign, getter = isScrolling) BOOL scrolling;
+@property (nonatomic, assign) BOOL allowsAnimation;
+@property (nonatomic, assign) BOOL acceptsFirstResponder;
+
+@property (readonly) NSPoint position;
+@property (readonly) NSPoint center;
+@property (readonly) NSPoint relativeCenter;
+@property (readonly) NSSize pinLocationOffset;
+
+#endif
+
 - (BOOL)scrollTo:(NSPoint)aPoint animation:(PGAnimationType)type;
 - (BOOL)scrollBy:(NSSize)aSize animation:(PGAnimationType)type;
 - (BOOL)scrollToEdge:(PGRectEdgeMask)mask animation:(PGAnimationType)type;
@@ -116,6 +139,7 @@ typedef NSUInteger PGScrollToRectType;
 
 @end
 
+//	MARK: -
 @protocol PGClipViewDelegate <NSObject>
 
 @optional
@@ -129,6 +153,7 @@ typedef NSUInteger PGScrollToRectType;
 
 @end
 
+//	MARK: -
 @interface NSView(PGClipViewAdditions)
 
 @property(readonly) PGClipView *PG_enclosingClipView;
