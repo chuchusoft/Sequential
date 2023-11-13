@@ -48,6 +48,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+//	MARK: -
+
+#if __has_feature(objc_arc)
+
+@interface PGWebAdapter ()
+
+@property (nonatomic, strong) PGURLLoad *mainLoad;
+@property (nonatomic, strong) PGURLLoad *faviconLoad;
+
+@end
+
+#endif
+
+//	MARK: -
+
 @implementation PGWebAdapter
 
 #pragma mark +PGDataProviderCustomizing
@@ -56,7 +71,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 {
 	if([ident isFileIdentifier]) return nil;
 	NSURL *const URL = [ident URL];
-	if([[NSArray arrayWithObjects:@"http", @"https", nil] containsObject:[URL scheme]]) return [[[PGWebDataProvider alloc] initWithResourceIdentifier:ident] autorelease];
+	if([[NSArray arrayWithObjects:@"http", @"https", nil] containsObject:[URL scheme]])
+#if __has_feature(objc_arc)
+		return [[PGWebDataProvider alloc] initWithResourceIdentifier:ident];
+#else
+		return [[[PGWebDataProvider alloc] initWithResourceIdentifier:ident] autorelease];
+#endif
 	return nil;
 }
 
@@ -67,10 +87,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	NSURL *const URL = [[(PGDataProvider *)[self dataProvider] identifier] URL];
 	if([URL isFileURL]) return [[self node] fallbackFromFailedAdapter:self];
 	[_faviconLoad cancelAndNotify:NO];
+#if !__has_feature(objc_arc)
 	[_faviconLoad release];
+#endif
 	_faviconLoad = [[PGURLLoad alloc] initWithRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:@"/favicon.ico" relativeToURL:URL] cachePolicy:NSURLRequestReturnCacheDataElseLoad timeoutInterval:15.0f] parent:self delegate:self];
 	[_mainLoad cancelAndNotify:NO];
+#if !__has_feature(objc_arc)
 	[_mainLoad release];
+#endif
 	_mainLoad = [[PGURLLoad alloc] initWithRequest:[NSURLRequest requestWithURL:URL cachePolicy:NSURLRequestReturnCacheDataElseLoad timeoutInterval:15.0f] parent:self delegate:self];
 }
 
@@ -79,10 +103,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (void)dealloc
 {
 	[_mainLoad cancelAndNotify:NO];
+#if !__has_feature(objc_arc)
 	[_mainLoad release];
+#endif
+
 	[_faviconLoad cancelAndNotify:NO];
+#if !__has_feature(objc_arc)
 	[_faviconLoad release];
+
 	[super dealloc];
+#endif
 }
 
 #pragma mark -<PGActivityOwner>
@@ -110,8 +140,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		return;
 	}
 	PGDataProvider *const potentialDataProvider = [PGDataProvider providerWithURLResponse:resp data:nil];
+#if __has_feature(objc_arc)
+	NSMutableArray *const potentialAdapterClasses = [[potentialDataProvider adapterClassesForNode:[self node]] mutableCopy];
+#else
 	NSMutableArray *const potentialAdapterClasses = [[[potentialDataProvider adapterClassesForNode:[self node]] mutableCopy] autorelease];
-	if(![self shouldRecursivelyCreateChildren]) for(Class const adapterClass in [[potentialAdapterClasses copy] autorelease]) if([adapterClass isKindOfClass:[PGContainerAdapter class]]) [potentialAdapterClasses removeObjectIdenticalTo:adapterClass]; // Instead of using -isKindOfClass:, add a class method or something.
+#endif
+	if(![self shouldRecursivelyCreateChildren])
+#if __has_feature(objc_arc)
+		for(Class const adapterClass in [potentialAdapterClasses copy])
+#else
+		for(Class const adapterClass in [[potentialAdapterClasses copy] autorelease])
+#endif
+			if([adapterClass isKindOfClass:[PGContainerAdapter class]])
+				[potentialAdapterClasses removeObjectIdenticalTo:adapterClass]; // Instead of using -isKindOfClass:, add a class method or something.
 	if([potentialAdapterClasses count]) return;
 	[_mainLoad cancelAndNotify:NO];
 	[_faviconLoad cancelAndNotify:NO];
@@ -123,7 +164,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		[_faviconLoad cancelAndNotify:NO];
 		[[self node] setDataProvider:[PGDataProvider providerWithURLResponse:[_mainLoad response] data:[_mainLoad data]]];
 	} else if(sender == _faviconLoad) {
+#if __has_feature(objc_arc)
+		NSImage *const favicon = [[NSImage alloc] initWithData:[_faviconLoad data]];
+#else
 		NSImage *const favicon = [[[NSImage alloc] initWithData:[_faviconLoad data]] autorelease];
+#endif
 		if(favicon) [[[self node] identifier] setIcon:favicon]; // Don't clear the favicon we already have if we can't load a new one.
 	}
 }
@@ -150,7 +195,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (id)initWithResourceIdentifier:(PGResourceIdentifier *)identifier
 {
 	if((self = [super init])) {
+#if __has_feature(objc_arc)
+		_identifier = identifier;
+#else
 		_identifier = [identifier retain];
+#endif
 	}
 	return self;
 }
@@ -165,10 +214,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 #pragma mark -NSObject
 
+#if !__has_feature(objc_arc)
 - (void)dealloc
 {
 	[_identifier release];
 	[super dealloc];
 }
+#endif
 
 @end
