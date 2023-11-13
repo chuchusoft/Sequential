@@ -44,6 +44,21 @@ StringForDisplay(NSUInteger imageCount, uint64_t byteSizeTotal) {
 										byteSizeTotal, DECIMAL_DIGITS)];
 }
 
+
+//	MARK: -
+
+#if __has_feature(objc_arc)
+
+@interface PGThumbnailInfoView ()
+
+@property (nonatomic, assign) NSUInteger imageCount;
+@property (nonatomic, assign) uint64_t byteSizeTotal;
+
+@end
+
+#endif
+
+//	MARK: -
 @implementation PGThumbnailInfoView
 
 - (id)initWithFrame:(NSRect)frameRect {
@@ -59,15 +74,28 @@ StringForDisplay(NSUInteger imageCount, uint64_t byteSizeTotal) {
 
 - (NSAttributedString *)attributedStringValue
 {
+#if __has_feature(objc_arc)
+	NSMutableParagraphStyle *const style = [[NSParagraphStyle defaultParagraphStyle] mutableCopy];
+#else
 	NSMutableParagraphStyle *const style = [[[NSParagraphStyle defaultParagraphStyle] mutableCopy] autorelease];
+#endif
 	[style setAlignment:NSTextAlignmentCenter];
 	[style setLineBreakMode:NSLineBreakByTruncatingMiddle];
+#if __has_feature(objc_arc)
+	return [[NSAttributedString alloc] initWithString:StringForDisplay(_imageCount, _byteSizeTotal)
+										   attributes:@{
+		NSFontAttributeName: [NSFont labelFontOfSize:0.0f],
+		NSForegroundColorAttributeName: NSColor.whiteColor,
+		NSParagraphStyleAttributeName: style,
+	}];
+#else
 	return [[[NSAttributedString alloc] initWithString:StringForDisplay(_imageCount, _byteSizeTotal)
 											attributes:@{
 		NSFontAttributeName: [NSFont labelFontOfSize:0.0f],
 		NSForegroundColorAttributeName: NSColor.whiteColor,
 		NSParagraphStyleAttributeName: style,
 	}] autorelease];
+#endif
 }
 - (void)setImageCount:(NSUInteger)imageCount byteSizeTotal:(uint64_t)byteSizeTotal {
 	_imageCount = imageCount;
@@ -76,7 +104,7 @@ StringForDisplay(NSUInteger imageCount, uint64_t byteSizeTotal) {
 	self.needsDisplay = YES;
 }
 
-#pragma mark - NSView
+//	MARK: - NSView
 
 - (BOOL)isFlipped
 {
@@ -105,17 +133,19 @@ StringForDisplay(NSUInteger imageCount, uint64_t byteSizeTotal) {
 														NSHeight(b) - PGTextTotalVertPadding)];
 }
 
-#pragma mark - NSObject
+//	MARK: - NSObject
 
 - (void)dealloc
 {
 	NSUserDefaults *sud = NSUserDefaults.standardUserDefaults;
 	[sud removeObserver:self forKeyPath:PGThumbnailSizeFormatKey];
 
+#if !__has_feature(objc_arc)
 	[super dealloc];
+#endif
 }
 
-#pragma mark - NSObject(NSKeyValueObserving)
+//	MARK: - NSObject(NSKeyValueObserving)
 
 - (void)observeValueForKeyPath:(NSString *)keyPath
 					  ofObject:(id)object
@@ -131,7 +161,7 @@ StringForDisplay(NSUInteger imageCount, uint64_t byteSizeTotal) {
 							  context:context];
 }
 
-#pragma mark - <PGBezelPanelContentView>
+//	MARK: - <PGBezelPanelContentView>
 
 - (NSRect)bezelPanel:(PGBezelPanel *)sender frameForContentRect:(NSRect)aRect scale:(CGFloat)scaleFactor
 {
