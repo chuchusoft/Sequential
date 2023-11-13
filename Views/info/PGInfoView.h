@@ -25,6 +25,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import "PGGeometryTypes.h"
 
 @interface PGInfoView : NSView
+#if !__has_feature(objc_arc)
 {
 	@private
 	NSString *_stringValue;
@@ -34,14 +35,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	NSUInteger _currentFolderCount;	//	2023/10/01 added
 	PGRectCorner _originCorner;
 }
+#endif
 
-@property(readonly) NSAttributedString *attributedStringValue;
-@property(copy, nonatomic) NSString *stringValue;
-@property(assign, nonatomic) NSUInteger index;
-@property(assign, nonatomic) NSUInteger count;
-@property(assign, nonatomic) NSUInteger currentFolderIndex;	//	2023/10/01 added
-@property(assign, nonatomic) NSUInteger currentFolderCount;	//	2023/10/01 added
-@property(readonly) BOOL showsProgressBar;
-@property(assign, nonatomic) PGRectCorner originCorner;
+@property (readonly) NSAttributedString *attributedStringValue;
+@property (nonatomic, copy) NSString *stringValue;
+@property (nonatomic, assign) NSUInteger index;
+@property (nonatomic, assign) NSUInteger count;
+@property (nonatomic, assign) NSUInteger currentFolderIndex;	//	2023/10/01 added
+@property (nonatomic, assign) NSUInteger currentFolderCount;	//	2023/10/01 added
+@property (readonly) BOOL showsProgressBar;
+@property (nonatomic, assign) PGRectCorner originCorner;
 
 @end
