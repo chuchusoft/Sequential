@@ -26,10 +26,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 @class PGBezelPanel;
 
 @interface PGDocumentWindow : NSWindow
+#if !__has_feature(objc_arc)
 {
 	@private
 	PGBezelPanel *_dragHighlightPanel;
 }
+#endif
 
 @end
 
