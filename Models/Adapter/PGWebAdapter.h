@@ -28,10 +28,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import "PGURLLoad.h"
 
 @interface PGWebAdapter : PGResourceAdapter <PGURLLoadDelegate>
+#if !__has_feature(objc_arc)
 {
 	@private
 	PGURLLoad *_mainLoad;
 	PGURLLoad *_faviconLoad;
 }
+#endif
 
 @end
