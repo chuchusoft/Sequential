@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 @protocol PGURLLoadDelegate;
 
 @interface PGURLLoad : NSObject <PGActivityOwner>
+#if !__has_feature(objc_arc)
 {
 	@private
 	NSObject<PGURLLoadDelegate> * _delegate;
@@ -38,16 +39,24 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	NSMutableData *_data;
 	PGActivity *_activity;
 }
+#endif
 
 + (NSString *)userAgent;
 + (void)setUserAgent:(NSString *)aString;
 
 - (id)initWithRequest:(NSURLRequest *)aRequest parent:(id<PGActivityOwner>)parent delegate:(NSObject<PGURLLoadDelegate> *)delegate;
 
+#if __has_feature(objc_arc)
+@property (readonly, weak) NSObject<PGURLLoadDelegate> *delegate;
+@property (readonly) NSURLRequest *request;
+@property (readonly) NSURLResponse *response;
+@property (readonly) NSMutableData *data;
+#else
 @property(readonly) NSObject<PGURLLoadDelegate> *delegate;
 @property(readonly) NSURLRequest *request;
 @property(readonly) NSURLResponse *response;
 @property(readonly) NSMutableData *data;
+#endif
 
 - (void)cancelAndNotify:(BOOL)notify;
 - (BOOL)loaded;
