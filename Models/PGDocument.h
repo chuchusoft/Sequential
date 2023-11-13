@@ -53,6 +53,7 @@ extern NSString *const PGDocumentRemovedChildrenKey;
 extern NSString *const PGDocumentUpdateRecursivelyKey;
 
 @interface PGDocument : PGPrefObject <PGActivityOwner, PGNodeParenting>
+#if !__has_feature(objc_arc)
 {
 	@private
 	PGDisplayableIdentifier *_rootIdentifier;
@@ -76,17 +77,27 @@ extern NSString *const PGDocumentUpdateRecursivelyKey;
 	NSUInteger _processingNodeCount;
 	BOOL _sortedChildrenChanged;
 }
+#endif
 
 - (id)initWithIdentifier:(PGDisplayableIdentifier *)ident;
 - (id)initWithURL:(NSURL *)aURL;
 - (id)initWithBookmark:(PGBookmark *)aBookmark;
 
+#if __has_feature(objc_arc)
+@property (readonly) PGDisplayableIdentifier *rootIdentifier;
+@property (readonly) PGNode *node;
+@property (nonatomic, strong) PGDisplayController *displayController;
+@property (readonly, getter = isOnline) BOOL online;
+@property (readonly) NSMenu *pageMenu;
+@property (nonatomic, getter = isProcessingNodes) BOOL processingNodes; // Batch changes for performance.
+#else
 @property(readonly) PGDisplayableIdentifier *rootIdentifier;
 @property(readonly) PGNode *node;
 @property(retain) PGDisplayController *displayController;
 @property(readonly, getter = isOnline) BOOL online;
 @property(readonly) NSMenu *pageMenu;
 @property(getter = isProcessingNodes) BOOL processingNodes; // Batch changes for performance.
+#endif
 
 - (void)getStoredNode:(out PGNode **)outNode imageView:(out PGImageView **)outImageView offset:(out NSSize *)outOffset query:(out NSString **)outQuery; // No arguments may be NULL.
 - (void)storeNode:(PGNode *)node imageView:(PGImageView *)imageView offset:(NSSize)offset query:(NSString *)query;
