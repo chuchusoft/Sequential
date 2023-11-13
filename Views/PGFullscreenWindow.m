@@ -62,9 +62,18 @@ GetSuitableFrameForScreenWithNotch(BOOL useEntireScreen, NSScreen* screen) {
 						screen.frame.size.height - GetNotchHeight(screen));
 }
 
+//	MARK: -
+
+#if __has_feature(objc_arc)
+@interface PGFullscreenWindow ()
+@property (nonatomic, strong) NSWindow* blackHideTheNotchWindow;	//	2023/08/14 added
+@end
+#endif
+
+//	MARK: -
 @implementation PGFullscreenWindow
 
-#pragma mark Instance Methods
+//	MARK: Instance Methods
 
 - (void)_allocateAndShowTheBlackHideTheNotchWindowOn:(NSScreen*)screen {
 	NSParameterAssert(nil == _blackHideTheNotchWindow);
@@ -89,7 +98,9 @@ GetSuitableFrameForScreenWithNotch(BOOL useEntireScreen, NSScreen* screen) {
 - (void)_deallocateTheBlackHideTheNotchWindow {
 	if(_blackHideTheNotchWindow) {
 		[_blackHideTheNotchWindow orderOut:self];
+#if !__has_feature(objc_arc)
 		[_blackHideTheNotchWindow release];
+#endif
 		_blackHideTheNotchWindow	=	nil;
 	}
 }
@@ -97,7 +108,9 @@ GetSuitableFrameForScreenWithNotch(BOOL useEntireScreen, NSScreen* screen) {
 - (void)dealloc {
 	[self _deallocateTheBlackHideTheNotchWindow];
 
+#if !__has_feature(objc_arc)
 	[super dealloc];
+#endif
 }
 
 - (id)initWithScreen:(NSScreen *)screen
@@ -154,7 +167,7 @@ GetSuitableFrameForScreenWithNotch(BOOL useEntireScreen, NSScreen* screen) {
 		   display:YES];
 }
 
-#pragma mark NSMenuValidation Protocol
+//	MARK: NSMenuValidation Protocol
 
 - (BOOL)validateMenuItem:(NSMenuItem *)anItem
 {
@@ -163,14 +176,14 @@ GetSuitableFrameForScreenWithNotch(BOOL useEntireScreen, NSScreen* screen) {
 			[super validateMenuItem:anItem];
 }
 
-#pragma mark NSWindow
+//	MARK: NSWindow
 
 - (IBAction)performClose:(id)sender
 {
 	[(NSObject<PGFullscreenWindowDelegate> *)[self delegate] closeWindowContent:self];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (BOOL)canBecomeKeyWindow
 {
@@ -184,6 +197,7 @@ GetSuitableFrameForScreenWithNotch(BOOL useEntireScreen, NSScreen* screen) {
 
 @end
 
+//	MARK: -
 @implementation NSObject(PGFullscreenWindowDelegate)
 
 - (void)closeWindowContent:(PGFullscreenWindow *)sender {
