@@ -26,6 +26,25 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 static PGActivity *PGApplicationActivity;
 
+#if __has_feature(objc_arc)
+
+@interface PGActivity()
+
+@property(atomic, weak) NSObject<PGActivityOwner> *owner;
+//@property(atomic, weak) PGActivity *parentActivity;
+@property(nonatomic, strong) NSMutableArray *childActivities;
+@property(nonatomic, strong) NSString *activityDescription;
+@property(nonatomic, assign) CGFloat progress;
+@property(nonatomic, assign) BOOL isActive;
+
+- (void)_addChildActivity:(PGActivity *)activity;
+- (void)_removeChildActivity:(PGActivity *)activity;
+- (void)_prioritizeChildActivity:(PGActivity *)activity;
+
+@end
+
+#else
+
 @interface PGActivity(Private)
 
 - (void)_addChildActivity:(PGActivity *)activity;
@@ -34,23 +53,25 @@ static PGActivity *PGApplicationActivity;
 
 @end
 
+#endif
+
 @implementation PGActivity
 
-#pragma mark +PGActivity
+//	MARK: +PGActivity
 
 + (id)applicationActivity
 {
 	return PGApplicationActivity;
 }
 
-#pragma mark +NSObject
+//	MARK: +NSObject
 
 + (void)initialize
 {
-	if(!PGApplicationActivity) PGApplicationActivity = [[self alloc] init];
+	if(!PGApplicationActivity) PGApplicationActivity = [self new];
 }
 
-#pragma mark -PGActivity
+//	MARK: - PGActivity
 
 - (id)initWithOwner:(NSObject<PGActivityOwner> *)owner
 {
@@ -59,6 +80,7 @@ static PGActivity *PGApplicationActivity;
 	}
 	return self;
 }
+#if !__has_feature(objc_arc)
 - (NSObject<PGActivityOwner> *)owner
 {
 	@synchronized(self) {
@@ -66,6 +88,12 @@ static PGActivity *PGApplicationActivity;
 	}
 	return nil;
 }
+#endif
+
+#if __has_feature(objc_arc)
+@synthesize parentActivity = _parentActivity;
+#endif
+
 - (PGActivity *)parentActivity
 {
 	@synchronized(self) {
@@ -107,25 +135,38 @@ static PGActivity *PGApplicationActivity;
 		if(activeOnly) {
 			activeChildren = [NSMutableArray arrayWithCapacity:[_childActivities count]];
 			for(PGActivity *const child in _childActivities) if([child isActive]) [activeChildren addObject:child];
-		} else activeChildren = [[_childActivities copy] autorelease];
+		} else
+#if __has_feature(objc_arc)
+			activeChildren = [_childActivities copy];
+#else
+			activeChildren = [[_childActivities copy] autorelease];
+#endif
 	}
 	return activeChildren;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (IBAction)cancel:(id)sender
 {
 	@synchronized(self) {
 		[self setParentActivity:nil];
+#if __has_feature(objc_arc)
+		[[_childActivities copy] makeObjectsPerformSelector:@selector(cancel:) withObject:sender];
+#else
 		[[[_childActivities copy] autorelease] makeObjectsPerformSelector:@selector(cancel:) withObject:sender];
+#endif
 	}
 	[[self owner] cancelActivity:self];
 }
 - (IBAction)prioritize:(id)sender
 {
 	@synchronized(self) {
+#if __has_feature(objc_arc)
+		[self.parentActivity _prioritizeChildActivity:self];
+#else
 		[_parentActivity _prioritizeChildActivity:self];
+#endif
 	}
 }
 - (void)invalidate
@@ -136,7 +177,7 @@ static PGActivity *PGApplicationActivity;
 	}
 }
 
-#pragma mark -PGActivity(Private)
+//	MARK: - PGActivity(Private)
 
 - (void)_addChildActivity:(PGActivity *)activity
 {
@@ -159,24 +200,32 @@ static PGActivity *PGApplicationActivity;
 		NSParameterAssert(NSNotFound != i);
 		[_childActivities removeObjectAtIndex:i];
 		[_childActivities insertObject:activity atIndex:0];
+#if __has_feature(objc_arc)
+		[self.parentActivity _prioritizeChildActivity:self];
+#else
 		[_parentActivity _prioritizeChildActivity:self];
+#endif
 	}
 }
 
-#pragma mark -NSObject
+//	MARK: - NSObject
 
 - (id)init
 {
 	if((self = [super init])) {
-		_childActivities = [[NSMutableArray alloc] init];
+		_childActivities = [NSMutableArray new];
 	}
 	return self;
 }
 - (void)dealloc
 {
+#if __has_feature(objc_arc)
+	[_childActivities makeObjectsPerformSelector:@selector(setParentActivity:) withObject:nil];
+#else
 	[[[_childActivities copy] autorelease] makeObjectsPerformSelector:@selector(setParentActivity:) withObject:nil];
 	[_childActivities release];
 	[super dealloc];
+#endif
 }
 
 @end
