@@ -32,13 +32,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #define PGIconSpacingRight 3.0f
 #define PGTextInset (PGIconSpacingLeft + PGIconSize + PGIconSpacingRight)
 
+//	MARK: -
 @implementation PGIconTextFieldCell
 
-#pragma mark -PGIconTextFieldCell
-
-@synthesize icon = _icon;
-
-#pragma mark -NSCell
+//	MARK: - NSCell
 
 - (NSRect)titleRectForBounds:(NSRect)aRect
 {
@@ -67,20 +64,26 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[super selectWithFrame:[self titleRectForBounds:aRect] inView:aView editor:textObj delegate:anObject start:selStart length:selLength];
 }
 
-#pragma mark -NSObject
+//	MARK: - NSObject
 
+#if !__has_feature(objc_arc)
 - (void)dealloc
 {
 	[_icon release];
 	[super dealloc];
 }
+#endif
 
-#pragma mark -<NSCopying>
+//	MARK: - <NSCopying>
 
 - (id)copyWithZone:(NSZone *)aZone
 {
 	PGIconTextFieldCell *const dupe = [super copyWithZone:aZone];
+#if __has_feature(objc_arc)
+	dupe->_icon = _icon;
+#else
 	dupe->_icon = [_icon retain];
+#endif
 	return dupe;
 }
 
