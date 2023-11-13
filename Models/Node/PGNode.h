@@ -50,6 +50,7 @@ enum {
 typedef NSUInteger PGNodeStatus;
 
 @interface PGNode : NSObject <PGResourceAdapting>
+#if !__has_feature(objc_arc)
 {
 	@private
 	id<PGNodeParenting> _parent;
@@ -57,20 +58,25 @@ typedef NSUInteger PGNodeStatus;
 
 	PGDataProvider *_dataProvider;
 	NSMutableArray *_potentialAdapters;
-	PGResourceAdapter *_adapter;
+	PGResourceAdapter *_resourceAdapter; // was: *_adapter;
 	PGNodeStatus _status;
 
 	BOOL _viewable;
 	NSMenuItem *_menuItem;
 	BOOL _allowMenuItemUpdates;
 }
+#endif
 
 + (NSArray *)pasteboardTypes;
 
 - (id)initWithParent:(id<PGNodeParenting>)parent identifier:(PGDisplayableIdentifier *)ident;
 @property(readonly) PGDisplayableIdentifier *identifier;
 
+#if __has_feature(objc_arc)
+@property(nonatomic, strong) PGDataProvider *dataProvider;
+#else
 @property(retain) PGDataProvider *dataProvider;
+#endif
 - (void)reload;
 @property(readonly) PGResourceAdapter *resourceAdapter;
 - (void)loadFinishedForAdapter:(PGResourceAdapter *)adapter;
