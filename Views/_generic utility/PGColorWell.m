@@ -63,7 +63,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (void)dealloc
 {
 	[self PG_removeObserver];
+#if !__has_feature(objc_arc)
 	[super dealloc];
+#endif
 }
 
 @end
