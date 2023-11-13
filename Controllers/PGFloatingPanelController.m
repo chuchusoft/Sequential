@@ -33,17 +33,31 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 // Other Sources
 #import "PGFoundationAdditions.h"
 
+#if __has_feature(objc_arc)
+
+@interface PGFloatingPanelController ()
+
+//@property (nonatomic, assign, getter = isShown) BOOL shown;
+@property (nonatomic, strong) PGDisplayController *displayController;
+
+- (void)_updateWithDisplayController:(PGDisplayController *)controller;
+
+@end
+
+#else
+
 @interface PGFloatingPanelController(Private)
 
 - (void)_updateWithDisplayController:(PGDisplayController *)controller;
 
 @end
 
+#endif
+
 @implementation PGFloatingPanelController
 
-#pragma mark -PGFloatingPanelController
+//	MARK: - PGFloatingPanelController
 
-@synthesize shown = _shown;
 - (void)setShown:(BOOL)flag
 {
 	if(flag == _shown) return;
@@ -56,16 +70,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		[[self window] performClose:self];
 	}
 }
+#if !__has_feature(objc_arc)
 - (PGDisplayController *)displayController
 {
 	return [[_displayController retain] autorelease];
 }
+#endif
 - (void)toggleShown
 {
 	[self setShown:![self isShown]];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (NSString *)nibName
 {
@@ -78,15 +94,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 }
 - (void)windowWillShow {}
 - (void)windowWillClose {}
-- (BOOL)setDisplayController:(PGDisplayController *)controller
+- (BOOL)setDisplayControllerReturningWasChanged:(PGDisplayController *)controller
 {
 	if(controller == _displayController) return NO;
+#if __has_feature(objc_arc)
+	_displayController = controller;
+#else
 	[_displayController release];
 	_displayController = [controller retain];
+#endif
 	return YES;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)windowDidBecomeMain:(NSNotification *)aNotif
 {
@@ -97,15 +117,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[self _updateWithDisplayController:nil];
 }
 
-#pragma mark -PGFloatingPanelController(Private)
+//	MARK: - PGFloatingPanelController(Private)
 
 - (void)_updateWithDisplayController:(PGDisplayController *)controller
 {
 	PGDisplayController *const c = controller ? controller : [[NSApp mainWindow] windowController];
-	[self setDisplayController:[c isKindOfClass:[PGDisplayController class]] ? c : nil];
+	[self setDisplayControllerReturningWasChanged:[c isKindOfClass:[PGDisplayController class]] ? c : nil];
 }
 
-#pragma mark -NSWindowController
+//	MARK: - NSWindowController
 
 - (id)initWithWindowNibName:(NSString *)name
 {
@@ -116,14 +136,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	return self;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (IBAction)showWindow:(id)sender
 {
 	[self setShown:YES];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (BOOL)shouldCascadeWindows
 {
@@ -149,7 +169,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #endif
 }
 
-#pragma mark -NSObject
+//	MARK: - NSObject
 
 - (id)init
 {
@@ -158,11 +178,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (void)dealloc
 {
 	[self PG_removeObserver];
+#if !__has_feature(objc_arc)
 	[_displayController release];
 	[super dealloc];
+#endif
 }
 
-#pragma mark -<NSWindowDelegate>
+//	MARK: - <NSWindowDelegate>
 
 - (void)windowDidResize:(NSNotification *)notification
 {
