@@ -32,11 +32,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 //#import "PGFoundationAdditions.h"
 
 @interface PGURLResponseDataProvider : PGDataProvider
+#if !__has_feature(objc_arc)
 {
 	@private
 	NSURLResponse *_response;
 	NSData *_data;
 }
+#endif
 
 - (id)initWithURLResponse:(NSURLResponse *)response data:(NSData *)data;
 
@@ -54,7 +56,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		PGDataProvider *const provider = [class customDataProviderWithResourceIdentifier:ident displayableName:name];
 		if(provider) return provider;
 	}
+#if __has_feature(objc_arc)
+	return [[PGResourceDataProvider alloc] initWithResourceIdentifier:ident displayableName:name];
+#else
 	return [[[PGResourceDataProvider alloc] initWithResourceIdentifier:ident displayableName:name] autorelease];
+#endif
 }
 + (id)providerWithResourceIdentifier:(PGResourceIdentifier *)ident
 {
@@ -68,10 +74,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		PGDataProvider *const provider = [class customDataProviderWithURLResponse:response data:data];
 		if(provider) return provider;
 	}
+#if __has_feature(objc_arc)
+	return [[PGURLResponseDataProvider alloc] initWithURLResponse:response data:data];
+#else
 	return [[[PGURLResponseDataProvider alloc] initWithURLResponse:response data:data] autorelease];
+#endif
 }
 
-#pragma mark -PGDataProvider
+//	MARK: - PGDataProvider
 
 - (PGResourceIdentifier *)identifier
 {
@@ -82,7 +92,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	return nil;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (NSData *)data
 {
@@ -106,7 +116,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	return nil;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (NSString *)UTIType
 {
@@ -125,7 +135,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	return nil;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (BOOL)hasData
 {
@@ -147,9 +157,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	NSData *fourCCData;
 	@autoreleasepool {
 		NSData *const fullData = [self data];
+#if __has_feature(objc_arc)
+		fourCCData = [fullData length] > 4 ? [fullData subdataWithRange:NSMakeRange(0, 4)] : nil;
+#else
 		fourCCData = [fullData length] > 4 ? [[fullData subdataWithRange:NSMakeRange(0, 4)] retain] : nil;
+#endif
 	}
+#if __has_feature(objc_arc)
+	return fourCCData;
+#else
 	return [fourCCData autorelease];
+#endif
 }
 - (NSImage *)icon
 {
@@ -160,12 +178,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 		if('fold' == typeCode)
 			typeCode = kGenericFolderIcon;
+#if __has_feature(objc_arc)
+		if(noErr == GetIconRefFromTypeInfo('????', typeCode, NULL, (__bridge CFStringRef)MIMEType,
+											kIconServicesNormalUsageFlag, &iconRef) && iconRef) {
+			NSImage *const icon = [[NSImage alloc] initWithIconRef:iconRef];
+			ReleaseIconRef(iconRef);
+			return icon;
+		}
+#else
 		if(noErr == GetIconRefFromTypeInfo('????', typeCode, NULL, (CFStringRef)MIMEType,
 											kIconServicesNormalUsageFlag, &iconRef) && iconRef) {
 			NSImage *const icon = [[[NSImage alloc] initWithIconRef:iconRef] autorelease];
 			ReleaseIconRef(iconRef);
 			return icon;
 		}
+#endif
 	}
 	NSString *const extension = [self extension];
 	if(extension) return [[NSWorkspace sharedWorkspace] iconForFileType:extension];
@@ -176,9 +203,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	NSString *kind = [[NSWorkspace sharedWorkspace] localizedDescriptionForType:[self UTIType]]; // Ugly ("Portable Network Graphics image"), but more accurate than file extensions.
 	if(kind) return kind;
 #if 1
+	#if __has_feature(objc_arc)
+	CFStringRef desc = UTTypeCopyDescription((__bridge CFStringRef) [self UTIType]);
+	#else
 	CFStringRef desc = UTTypeCopyDescription((CFStringRef) [self UTIType]);
+	#endif
 	if(desc)
+	#if __has_feature(objc_arc)
+		return (NSString*)CFBridgingRelease(desc);
+	#else
 		return [(NSString*)desc autorelease];
+	#endif
 #else
 	if(noErr == LSCopyKindStringForTypeInfo(kLSUnknownType, kLSUnknownCreator, (CFStringRef)[self extension], (CFStringRef *)&kind)) return [kind autorelease];
 	if(noErr == LSCopyKindStringForMIMEType((CFStringRef)[self MIMEType], (CFStringRef *)&kind)) return [kind autorelease]; // Extremely ugly ("TextEdit.app Document"), worst case.
@@ -186,17 +221,26 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	return nil;
 }
 
-#pragma mark -<NSCopying>
+//	MARK: - <NSCopying>
 
 - (id)copyWithZone:(NSZone *)zone
 {
+#if __has_feature(objc_arc)
+	return self;
+#else
 	return [self retain];
+#endif
 }
 
 @end
 
-#pragma mark -
+//	MARK: -
 @implementation PGURLResponseDataProvider
+
+#if __has_feature(objc_arc)
+@synthesize response = _response;
+@synthesize data = _data;
+#endif
 
 - (id)initWithURLResponse:(NSURLResponse *)response data:(NSData *)data
 {
@@ -207,29 +251,38 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	return self;
 }
 
-#pragma mark -PGDataProvider
+//	MARK: - PGDataProvider
 
 - (PGResourceIdentifier *)identifier
 {
 	return [[_response URL] PG_resourceIdentifier];
 }
+#if !__has_feature(objc_arc)
 - (NSURLResponse *)response
 {
 	return [[_response retain] autorelease];
 }
+#endif
 
-#pragma mark -
+//	MARK: -
 
+#if !__has_feature(objc_arc)
 - (NSData *)data
 {
 	return [[_data retain] autorelease];
 }
+#endif
 
-#pragma mark -
+//	MARK: -
 
 - (NSString *)UTIType
 {
+#if __has_feature(objc_arc)
+	return (NSString *)CFBridgingRelease(UTTypeCreatePreferredIdentifierForTag(kUTTagClassMIMEType,
+													   (__bridge CFStringRef)[self MIMEType], NULL));
+#else
 	return [(NSString *)UTTypeCreatePreferredIdentifierForTag(kUTTagClassMIMEType, (CFStringRef)[self MIMEType], NULL) autorelease];
+#endif
 }
 - (NSString *)MIMEType
 {
@@ -240,13 +293,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	return [[[_response suggestedFilename] pathExtension] lowercaseString];
 }
 
-#pragma mark -NSObject
+//	MARK: - NSObject
 
+#if !__has_feature(objc_arc)
 - (void)dealloc
 {
 	[_response release];
 	[_data release];
 	[super dealloc];
 }
+#endif
 
 @end
