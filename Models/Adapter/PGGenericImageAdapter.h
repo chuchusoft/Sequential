@@ -25,6 +25,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import "PGResourceAdapter.h"
 
 @interface PGGenericImageAdapter : PGResourceAdapter<PGResourceAdapterImageGeneration>
+#if !__has_feature(objc_arc)
 {
 	@private
 	BOOL _reading;
@@ -33,5 +34,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	PGOrientation _orientation;
 	NSImageRep *_cachedRep;
 }
+#endif
 
 @end
