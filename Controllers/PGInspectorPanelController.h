@@ -26,6 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @interface PGInspectorPanelController :
 	PGFloatingPanelController <NSTableViewDataSource, NSTableViewDelegate>
+#if !__has_feature(objc_arc)
 {
 	IBOutlet NSTableView *propertiesTable;
 	IBOutlet NSTableColumn *labelColumn;
@@ -35,6 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	NSDictionary *_matchingProperties;
 	NSArray *_matchingLabels;
 }
+#endif
 
 - (IBAction)changeSearch:(id)sender;
 - (IBAction)copy:(id)sender;
