@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 @class PGBookmark;
 
 @interface PGBookmarkController : NSObject
+#if !__has_feature(objc_arc)
 {
 	@public
 	IBOutlet NSMenuItem *bookmarkItem;
@@ -36,12 +37,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	BOOL _deletesBookmarks;
 	NSMutableArray<PGBookmark*> *_bookmarks;
 }
+#endif
 
 + (id)sharedBookmarkController;
 
 - (IBAction)open:(id)sender;
 
+#if __has_feature(objc_arc)
+@property (nonatomic, assign) BOOL deletesBookmarks; // If YES, the "Resume" menu becomes a "Delete" menu.
+#else
 @property(assign) BOOL deletesBookmarks; // If YES, the "Resume" menu becomes a "Delete" menu.
+#endif
 
 - (void)addBookmark:(PGBookmark *)aBookmark;
 - (void)removeBookmark:(PGBookmark *)aBookmark;
