@@ -25,12 +25,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import <Cocoa/Cocoa.h>
 
 @interface PGFadeOutPanel : NSPanel
+#if !__has_feature(objc_arc)
 {
 	@private
 	unsigned _frameCount;
-	float _alphaValue;
-	BOOL _ignoresMouseEvents;
+	float _savedAlphaValue; // was: _alphaValue;
+	BOOL _savedIgnoresMouseEvents; // was: _ignoresMouseEvents;
 }
+#endif
 
 - (BOOL)isFadingOut;
 - (void)fadeOut;
