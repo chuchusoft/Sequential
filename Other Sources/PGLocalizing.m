@@ -191,7 +191,11 @@ static BOOL (*PGNSBundleLoadNibFileExternalNameTableWithZone)(id, SEL, NSString 
 + (BOOL)loadNibFile:(NSString *)fileName externalNameTable:(NSDictionary *)context withZone:(NSZone *)zone
 {
 	if(![context objectForKey:NSNibTopLevelObjects]) {
+#if __has_feature(objc_arc)
+		NSMutableDictionary *const dict = [context mutableCopy];
+#else
 		NSMutableDictionary *const dict = [[context mutableCopy] autorelease];
+#endif
 		[dict setObject:[NSMutableArray array] forKey:NSNibTopLevelObjects];
 		context = dict;
 	}
