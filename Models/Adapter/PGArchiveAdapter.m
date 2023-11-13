@@ -75,13 +75,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
-@interface PGArchiveAdapter(Private)
-
-- (void)_threaded_setError:(NSError *)error forNode:(PGNode *)node;
-- (void)_updateThumbnailsOfChildren;
-
-@end
-
 static
 BOOL
 PG_entryIsInvisibleForName(NSString* name) {
@@ -104,6 +97,30 @@ StringAtDepth(NSInteger depth) {
 } */
 
 #pragma mark -
+
+#if __has_feature(objc_arc)
+
+@interface PGArchiveAdapter()
+
+@property (nonatomic, strong) XADArchive *archive;
+@property (nonatomic, assign) BOOL needsPassword;
+@property (nonatomic, strong) PGNode *currentSubnode;
+
+- (void)_threaded_setError:(NSError *)error forNode:(PGNode *)node;
+- (void)_updateThumbnailsOfChildren;
+
+@end
+
+#else
+
+@interface PGArchiveAdapter(Private)
+
+- (void)_threaded_setError:(NSError *)error forNode:(PGNode *)node;
+- (void)_updateThumbnailsOfChildren;
+
+@end
+
+#endif
 
 @implementation PGArchiveAdapter
 
@@ -200,11 +217,23 @@ StringAtDepth(NSInteger depth) {
 			PGDisplayableIdentifier *const identifier =
 				[[self.node.identifier subidentifierWithIndex:isEntrylessFolder ? NSNotFound : i] displayableIdentifier];
 			[identifier setNaturalDisplayName:[subpath lastPathComponent]];
+#if __has_feature(objc_arc)
+			PGNode *const node = [[PGNode alloc] initWithParent:parent identifier:identifier];
+#else
 			PGNode *const node = [[[PGNode alloc] initWithParent:parent identifier:identifier] autorelease];
+#endif
 			if(isFile)
+#if __has_feature(objc_arc)
+				[node setDataProvider:[[PGArchiveDataProvider alloc] initWithArchive:_archive entry:(int) i]];
+#else
 				[node setDataProvider:[[[PGArchiveDataProvider alloc] initWithArchive:_archive entry:(int) i] autorelease]];
+#endif
 			else {
+#if __has_feature(objc_arc)
+				[node setDataProvider:[PGArchiveFolderDataProvider new]];
+#else
 				[node setDataProvider:[[[PGArchiveFolderDataProvider alloc] init] autorelease]];
+#endif
 				if(isEntrylessFolder) {
 //NSLog(@"subpath '%@' entryPath '%@' isEntrylessFolder %u", subpath, entryPath, isEntrylessFolder);
 //NSLog(@"isEntrylessFolder so adding index %lu backinto indexes", i);
@@ -302,6 +331,7 @@ StringAtDepth(NSInteger depth) {
 
 #pragma mark -NSObject
 
+#if !__has_feature(objc_arc)
 - (void)dealloc
 {
 	@synchronized(_archive) {
@@ -310,6 +340,7 @@ StringAtDepth(NSInteger depth) {
 	}
 	[super dealloc];
 }
+#endif
 
 #pragma mark -NSObject(XADArchiveDelegate)
 
@@ -399,11 +430,19 @@ StringAtDepth(NSInteger depth) {
 {
 	if((self = [super init])) {
 		NSParameterAssert(nil != archive);
+#if __has_feature(objc_arc)
+		_archive = archive;
+#else
 		_archive = [archive retain];
+#endif
 		_entry = entry;
 
 		_typeCode = [archive PG_OSTypeForEntry:entry];
+#if __has_feature(objc_arc)
+		_extension = [[[archive nameOfEntry:entry] pathExtension] lowercaseString];
+#else
 		_extension = [[[[archive nameOfEntry:entry] pathExtension] lowercaseString] retain];
+#endif
 		{
 			off_t const value = [archive representativeSizeOfEntry:entry];
 			NSParameterAssert(value >= 0);	//	the following cast should be safe
@@ -517,12 +556,14 @@ StringAtDepth(NSInteger depth) {
 
 #pragma mark NSObject
 
+#if !__has_feature(objc_arc)
 - (void)dealloc
 {
 	[_extension release];
 	[_archive release];
 	[super dealloc];
 }
+#endif
 
 @end
 
