@@ -24,15 +24,14 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import "PGDisplayController.h"
 
-@interface PGFullscreenController : PGDisplayController
-#ifdef MAC_OS_X_VERSION_10_6
-<NSWindowDelegate>
-#endif
+@interface PGFullscreenController : PGDisplayController<NSWindowDelegate>
+#if !__has_feature(objc_arc)
 {
 	@private
 	BOOL _isExitingFullscreen;
 	NSMutableArray *_shieldWindows;
 }
+#endif
 
 - (void)prepareToExitFullscreen;
 
