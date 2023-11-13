@@ -36,11 +36,28 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #define PGAlertViewSize 100.0f
 #define PGMarginSize 4.0f
 
+#if __has_feature(objc_arc)
+
+@interface PGAlertView ()
+
+@property (nonatomic, strong) NSMutableArray *graphicStack;
+//	PGAlertGraphic *_currentGraphic;
+//	NSUInteger _frameCount;
+@property (nonatomic, weak) NSTimer *frameTimer;
+
+- (void)_updateCurrentGraphic;
+
+@end
+
+#else
+
 @interface PGAlertView(Private)
 
 - (void)_updateCurrentGraphic;
 
 @end
+
+#endif
 
 @interface PGCannotGoRightGraphic : PGAlertGraphic
 @end
@@ -51,14 +68,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 @interface PGLoopedRightGraphic : PGLoopedLeftGraphic
 @end
 
+//	MARK: -
 @implementation PGAlertView
-
-#pragma mark -PGAlertView
-
-@synthesize currentGraphic = _currentGraphic;
-@synthesize frameCount = _frameCount;
-
-#pragma mark -
 
 - (void)pushGraphic:(PGAlertGraphic *)aGraphic window:(NSWindow *)window
 {
@@ -92,11 +103,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 }
 - (void)popGraphicsOfType:(PGAlertGraphicType)type
 {
-	for(PGAlertGraphic *const graphic in [[_graphicStack copy] autorelease]) if([graphic graphicType] == type) [_graphicStack removeObjectIdenticalTo:graphic];
+#if __has_feature(objc_arc)
+	for(PGAlertGraphic *const graphic in [_graphicStack copy])
+#else
+	for(PGAlertGraphic *const graphic in [[_graphicStack copy] autorelease])
+#endif
+		if([graphic graphicType] == type)
+			[_graphicStack removeObjectIdenticalTo:graphic];
 	[self _updateCurrentGraphic];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)animateOneFrame:(PGAlertView *)anAlertView
 {
@@ -105,7 +122,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[_currentGraphic animateOneFrame:self];
 }
 
-#pragma mark -PGAlertView(Private)
+//	MARK: - PGAlertView(Private)
 
 - (void)_updateCurrentGraphic
 {
@@ -114,8 +131,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		else [[self window] close];
 		return;
 	}
+#if __has_feature(objc_arc)
+	_currentGraphic = [_graphicStack objectAtIndex:0];
+#else
 	[_currentGraphic release];
 	_currentGraphic = [[_graphicStack objectAtIndex:0] retain];
+#endif
 	[_frameTimer invalidate];
 	_frameCount = 0;
 	NSTimeInterval const frameDelay = _currentGraphic.frameDelay;
@@ -130,7 +151,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[_graphicStack removeAllObjects];
 }
 
-#pragma mark -NSView
+//	MARK: - NSView
 
 - (id)initWithFrame:(NSRect)aRect
 {
@@ -156,19 +177,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	else [self prepareForWindowClosing];	//	[self windowWillClose:nil];	2021/07/21
 }
 
-#pragma mark -NSObject
+//	MARK: - NSObject
 
 - (void)dealloc
 {
 	[self PG_cancelPreviousPerformRequests];
 	[self PG_removeObserver];
+#if !__has_feature(objc_arc)
 	[_graphicStack release];
 	[_currentGraphic release];
+#endif
 	[_frameTimer invalidate];
+#if !__has_feature(objc_arc)
 	[super dealloc];
+#endif
 }
 
-#pragma mark -<NSWindowDelegate>
+//	MARK: - <NSWindowDelegate>
 
 - (void)windowWillClose:(NSNotification *)aNotif
 {
@@ -178,7 +203,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 //	[_graphicStack removeAllObjects];	//	2021/07/21
 }
 
-#pragma mark -<PGBezelPanelContentView>
+//	MARK: - <PGBezelPanelContentView>
 
 - (NSRect)bezelPanel:(PGBezelPanel *)sender frameForContentRect:(NSRect)aRect scale:(CGFloat)scaleFactor
 {
@@ -199,22 +224,38 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 + (id)cannotGoRightGraphic
 {
+#if __has_feature(objc_arc)
+	return [PGCannotGoRightGraphic new];
+#else
 	return [[[PGCannotGoRightGraphic alloc] init] autorelease];
+#endif
 }
 + (id)cannotGoLeftGraphic
 {
+#if __has_feature(objc_arc)
+	return [PGCannotGoLeftGraphic new];
+#else
 	return [[[PGCannotGoLeftGraphic alloc] init] autorelease];
+#endif
 }
 + (id)loopedRightGraphic
 {
+#if __has_feature(objc_arc)
+	return [PGLoopedRightGraphic new];
+#else
 	return [[[PGLoopedRightGraphic alloc] init] autorelease];
+#endif
 }
 + (id)loopedLeftGraphic
 {
+#if __has_feature(objc_arc)
+	return [PGLoopedLeftGraphic new];
+#else
 	return [[[PGLoopedLeftGraphic alloc] init] autorelease];
+#endif
 }
 
-#pragma mark -PGAlertGraphic
+//	MARK: - PGAlertGraphic
 
 - (PGAlertGraphicType)graphicType
 {
@@ -233,7 +274,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	return 1;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)drawInView:(PGAlertView *)anAlertView
 {
@@ -272,7 +313,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		[path fill];
 	}
 
+#if __has_feature(objc_arc)
+	NSShadow *const shadow = [NSShadow new];
+#else
 	NSShadow *const shadow = [[[NSShadow alloc] init] autorelease];
+#endif
 	[shadow setShadowBlurRadius:4.0f];
 	[shadow setShadowOffset:NSMakeSize(0.0f, -1.0f)];
 	[shadow setShadowColor:[NSColor blackColor]];
@@ -280,17 +325,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 }
 - (void)flipHorizontally
 {
+#if __has_feature(objc_arc)
+	NSAffineTransform *const flip = [NSAffineTransform new];
+#else
 	NSAffineTransform *const flip = [[[NSAffineTransform alloc] init] autorelease];
+#endif
 	[flip translateXBy:PGAlertViewSize yBy:0.0f];
 	[flip scaleXBy:-1.0f yBy:1.0f];
 	[flip concat];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)animateOneFrame:(PGAlertView *)anAlertView {}
 
-#pragma mark -<NSObject>
+//	MARK: - <NSObject>
 
 - (NSUInteger)hash
 {
@@ -305,7 +354,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @implementation PGCannotGoRightGraphic
 
-#pragma mark -PGAlertGraphic
+//	MARK: - PGAlertGraphic
 
 - (void)drawInView:(PGAlertView *)anAlertView
 {
@@ -340,7 +389,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @implementation PGCannotGoLeftGraphic
 
-#pragma mark -PGAlertGraphic
+//	MARK: - PGAlertGraphic
 
 - (void)drawInView:(PGAlertView *)anAlertView
 {
@@ -352,7 +401,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @implementation PGLoopedLeftGraphic
 
-#pragma mark -PGAlertGraphic
+//	MARK: - PGAlertGraphic
 
 - (PGAlertGraphicType)graphicType
 {
@@ -363,7 +412,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	return 1.0f;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)drawInView:(PGAlertView *)anAlertView
 {
@@ -392,7 +441,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @implementation PGLoopedRightGraphic
 
-#pragma mark -PGAlertGraphic
+//	MARK: - PGAlertGraphic
 
 - (void)drawInView:(PGAlertView *)anAlertView
 {
@@ -408,18 +457,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 + (id)loadingGraphic
 {
+#if __has_feature(objc_arc)
+	return [PGLoadingGraphic new];
+#else
 	return [[[PGLoadingGraphic alloc] init] autorelease];
+#endif
 }
 
-#pragma mark -PGLoadingGraphic
+//	MARK: - PGLoadingGraphic
 
-@synthesize progress = _progress;
 - (void)setProgress:(CGFloat)progress
 {
 	_progress = MIN(MAX(progress, 0.0f), 1.0f);
 }
 
-#pragma mark -PGAlertGraphic
+//	MARK: - PGAlertGraphic
 
 - (NSTimeInterval)fadeOutDelay
 {
@@ -434,7 +486,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	return 12;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)drawInView:(PGAlertView *)anAlertView
 {
@@ -452,7 +504,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	}
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)animateOneFrame:(PGAlertView *)anAlertView
 {
@@ -462,7 +514,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[anAlertView setNeedsDisplayInRect:NSMakeRect(250.0f * f, 50.0f * f,  25.0f * f, 200.0f * f)];
 }
 
-#pragma mark -<NSObject>
+//	MARK: - <NSObject>
 
 - (NSUInteger)hash
 {
@@ -481,10 +533,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 + (id)graphicWithIconType:(AEIconType)type
 {
+#if __has_feature(objc_arc)
+	return [[self alloc] initWithIconType:type];
+#else
 	return [[[self alloc] initWithIconType:type] autorelease];
+#endif
 }
 
-#pragma mark -PGBezierPathIconGraphic
+//	MARK: - PGBezierPathIconGraphic
 
 - (id)initWithIconType:(AEIconType)type
 {
@@ -494,14 +550,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	return self;
 }
 
-#pragma mark -PGAlertGraphic
+//	MARK: - PGAlertGraphic
 
 - (NSTimeInterval)fadeOutDelay
 {
 	return 1.0f;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)drawInView:(PGAlertView *)anAlertView
 {
@@ -511,7 +567,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[NSBezierPath PG_drawIcon:_iconType inRect:PGCenteredSizeInRect(NSMakeSize(PGAlertViewSize / 2.0f, PGAlertViewSize / 2.0f), b)];
 }
 
-#pragma mark -<NSObject>
+//	MARK: - <NSObject>
 
 - (NSUInteger)hash
 {
