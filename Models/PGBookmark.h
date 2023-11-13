@@ -47,9 +47,15 @@ extern NSString *const PGBookmarkDidUpdateNotification;
 				  fileIdentifier:(PGDisplayableIdentifier *)fileIdent
 					 displayName:(NSString *)aString; // For backward compatibility.
 
+#if __has_feature(objc_arc)
+@property (readonly, strong) PGDisplayableIdentifier *documentIdentifier;
+@property (readonly, strong) PGDisplayableIdentifier *fileIdentifier;
+@property (readonly, assign) BOOL isValid;
+#else
 @property(readonly) PGDisplayableIdentifier *documentIdentifier;
 @property(readonly) PGDisplayableIdentifier *fileIdentifier;
 @property(readonly) BOOL isValid;
+#endif
 
 - (void)eventDidOccur:(NSNotification *)aNotif;
 - (void)identifierDidChange:(NSNotification *)aNotif;
