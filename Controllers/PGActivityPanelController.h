@@ -26,6 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @interface PGActivityPanelController :
 	PGFloatingPanelController <NSOutlineViewDataSource, NSOutlineViewDelegate>
+#if !__has_feature(objc_arc)
 {
 	@private
 	IBOutlet NSOutlineView *activityOutline;
@@ -34,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	IBOutlet NSButton      *cancelButton;
 	         NSTimer      *_updateTimer;
 }
+#endif
 
 - (IBAction)cancelLoad:(id)sender;
 
