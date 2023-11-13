@@ -30,32 +30,60 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 // Other Sources
 #import "PGFoundationAdditions.h"
 
+#if __has_feature(objc_arc)
+
+@interface PGXMLAdapter ()
+
+@property(nonatomic, strong) NSXMLDocument *XMLDocument;
+
+@end
+
+#endif
+
 @implementation PGXMLAdapter
 
-#pragma mark -PGXMLAdapter
+//	MARK: - PGXMLAdapter
 
 - (NSXMLDocument *)XMLDocument
 {
 	if(!_XMLDocument) _XMLDocument = [[NSXMLDocument alloc] initWithData:[self data] options:NSXMLNodeOptionsNone error:NULL];
+#if __has_feature(objc_arc)
+	return _XMLDocument;
+#else
 	return [[_XMLDocument retain] autorelease];
+#endif
 }
 
-#pragma mark -PGContainerAdapter
+//	MARK: - PGContainerAdapter
 
 - (PGRecursionPolicy)descendantRecursionPolicy
 {
 	return PGRecurseNoFurther;
 }
 
-#pragma mark -NSObject
+//	MARK: - NSObject
 
+#if !__has_feature(objc_arc)
 - (void)dealloc
 {
 	[_XMLDocument release];
 	[super dealloc];
 }
+#endif
 
 @end
+
+//	MARK: -
+
+#if __has_feature(objc_arc)
+
+@interface PGMediaRSSAdapter()
+
+- (BOOL)_createChildren;
+
+@end
+
+#else
 
 @interface PGMediaRSSAdapter(Private)
 
@@ -63,9 +91,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+#endif
+
 @implementation PGMediaRSSAdapter
 
-#pragma mark -PGMediaRSSAdapter(Private)
+//	MARK: - PGMediaRSSAdapter(Private)
 
 - (BOOL)_createChildren
 {
@@ -85,7 +115,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 		PGDisplayableIdentifier *const ident = [[NSURL URLWithString:URLString] PG_displayableIdentifier];
 		[ident setCustomDisplayName:title];
+#if __has_feature(objc_arc)
+		PGNode *const node = [[PGNode alloc] initWithParent:self identifier:ident];
+#else
 		PGNode *const node = [[[PGNode alloc] initWithParent:self identifier:ident] autorelease];
+#endif
 		if(!node) continue;
 		[node setDataProvider:[PGDataProvider providerWithResourceIdentifier:ident]];
 		[items addObject:node];
@@ -95,7 +129,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	return YES;
 }
 
-#pragma mark -PGResourceAdapter
+//	MARK: - PGResourceAdapter
 
 - (void)load
 {
