@@ -98,21 +98,21 @@ enum {
 
 @implementation PGNode
 
-#pragma mark +PGNode
+//	MARK: +PGNode
 
 + (NSArray *)pasteboardTypes
 {
 	return [NSArray arrayWithObjects:NSPasteboardTypeString, NSPasteboardTypeRTFD, NSFileContentsPboardType, nil];
 }
 
-#pragma mark +NSObject
+//	MARK: +NSObject
 
 + (void)initialize
 {
 	srandom((unsigned) time(NULL)); // Used by our shuffle sort.
 }
 
-#pragma mark -PGNode
+//	MARK: - PGNode
 
 - (id)initWithParent:(id<PGNodeParenting>)parent identifier:(PGDisplayableIdentifier *)ident
 {
@@ -147,7 +147,7 @@ enum {
 }
 #endif
 
-#pragma mark -
+//	MARK: -
 
 #if !__has_feature(objc_arc)
 - (PGDataProvider *)dataProvider
@@ -205,7 +205,7 @@ enum {
 	[_resourceAdapter loadIfNecessary];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (NSImage *)thumbnail
 {
@@ -238,7 +238,7 @@ enum {
 #endif
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)becomeViewed
 {
@@ -266,7 +266,7 @@ enum {
 	[self PG_postNotificationName:PGNodeReadyForViewingNotification userInfo:[NSDictionary dictionaryWithObjectsAndKeys:aRep, PGImageRepKey, nil]];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)removeFromDocument
 {
@@ -382,7 +382,7 @@ enum {
 	}
 }
 
-#pragma mark -
+//	MARK: -
 
 - (PGNode *)ancestorThatIsChildOfNode:(PGNode *)aNode
 {
@@ -394,7 +394,7 @@ enum {
 	return [self ancestorThatIsChildOfNode:aNode] != nil;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)identifierIconDidChange:(NSNotification *)aNotif
 {
@@ -407,7 +407,7 @@ enum {
 	[[self document] noteNodeDisplayNameDidChange:self];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)noteIsViewableDidChange
 {
@@ -418,7 +418,7 @@ enum {
 	[[self document] noteNodeIsViewableDidChange:self];
 }
 
-#pragma mark -PGNode(Private)
+//	MARK: - PGNode(Private)
 
 - (void)_setResourceAdapter:(PGResourceAdapter *)adapter
 {
@@ -446,7 +446,7 @@ enum {
 	[[self document] noteNodeThumbnailDidChange:self recursively:NO];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)_updateMenuItem
 {
@@ -491,7 +491,7 @@ enum {
 	[self _updateMenuItem];
 }
 
-#pragma mark -NSObject
+//	MARK: - NSObject
 
 - (void)dealloc
 {
@@ -512,7 +512,7 @@ enum {
 #endif
 }
 
-#pragma mark -NSObject(NSObject)
+//	MARK: - NSObject(NSObject)
 
 - (NSUInteger)hash
 {
@@ -523,7 +523,7 @@ enum {
 	return [anObject isMemberOfClass:[self class]] && PGEqualObjects([self identifier], [(PGNode *)anObject identifier]);
 }
 
-#pragma mark -
+//	MARK: -
 
 - (NSString *)description
 {
@@ -531,7 +531,7 @@ enum {
 		self.class, _resourceAdapter.class, self, self.identifier];
 }
 
-#pragma mark -<PGResourceAdapting>
+//	MARK: - <PGResourceAdapting>
 
 - (PGNode *)parentNode
 {
@@ -550,7 +550,7 @@ enum {
 	return [_parent document];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)noteFileEventDidOccurDirect:(BOOL)flag
 {

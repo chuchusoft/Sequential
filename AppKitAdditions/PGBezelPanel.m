@@ -54,9 +54,10 @@ NSString *const PGBezelPanelFrameDidChangeNotification    = @"PGBezelPanelFrameD
 
 #endif
 
+//	MARK: -
 @implementation PGBezelPanel
 
-#pragma mark NSObject
+//	MARK: NSObject
 
 + (BOOL)instancesRespondToSelector:(SEL)aSelector
 {
@@ -65,7 +66,7 @@ NSString *const PGBezelPanelFrameDidChangeNotification    = @"PGBezelPanelFrameD
 	return [super instancesRespondToSelector:aSelector];
 }
 
-#pragma mark Instance Methods
+//	MARK: Instance Methods
 
 - (id)initWithContentView:(NSView *)aView
 {
@@ -87,14 +88,14 @@ NSString *const PGBezelPanelFrameDidChangeNotification    = @"PGBezelPanelFrameD
 	[aWindow addChildWindow:self ordered:NSWindowAbove];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (id)content
 {
 	return [self contentView];
 }
 
-#pragma mark -
+//	MARK: -
 
 #if !__has_feature(objc_arc)
 - (BOOL)acceptsEvents
@@ -111,7 +112,7 @@ NSString *const PGBezelPanelFrameDidChangeNotification    = @"PGBezelPanelFrameD
 	_canBecomeKey = flag;
 }
 
-#pragma mark -
+//	MARK: -
 
 #if !__has_feature(objc_arc)
 - (PGInset)frameInset
@@ -124,14 +125,14 @@ NSString *const PGBezelPanelFrameDidChangeNotification    = @"PGBezelPanelFrameD
 }
 #endif
 
-#pragma mark -
+//	MARK: -
 
 - (void)updateFrameDisplay:(BOOL)flag
 {
 	[self _updateFrameWithWindow:[self parentWindow] display:flag];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)frameShouldChange:(NSNotification *)aNotif
 {
@@ -142,7 +143,7 @@ NSString *const PGBezelPanelFrameDidChangeNotification    = @"PGBezelPanelFrameD
 	[self updateFrameDisplay:YES];
 }
 
-#pragma mark Private Protocol
+//	MARK: Private Protocol
 
 - (void)_updateFrameWithWindow:(NSWindow *)aWindow display:(BOOL)flag
 {
@@ -167,14 +168,14 @@ NSString *const PGBezelPanelFrameDidChangeNotification    = @"PGBezelPanelFrameD
 	[self PG_postNotificationName:PGBezelPanelFrameDidChangeNotification];
 }
 
-#pragma mark NSStandardKeyBindingMethods Protocol
+//	MARK: NSStandardKeyBindingMethods Protocol
 
 - (void)cancelOperation:(id)sender
 {
 	[self doesNotRecognizeSelector:_cmd];
 }
 
-#pragma mark NSObject Protocol
+//	MARK: NSObject Protocol
 
 - (BOOL)respondsToSelector:(SEL)aSelector
 {
@@ -183,14 +184,14 @@ NSString *const PGBezelPanelFrameDidChangeNotification    = @"PGBezelPanelFrameD
 	return [super respondsToSelector:aSelector];
 }
 
-#pragma mark NSWindow
+//	MARK: NSWindow
 
 - (IBAction)performClose:(id)sender
 {
 	[self doesNotRecognizeSelector:_cmd];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (BOOL)canBecomeKeyWindow
 {
@@ -215,7 +216,7 @@ NSString *const PGBezelPanelFrameDidChangeNotification    = @"PGBezelPanelFrameD
 	[[self parentWindow] PG_addObserver:self selector:@selector(windowDidResize:) name:NSWindowDidResizeNotification];
 }
 
-#pragma mark NSObject
+//	MARK: NSObject
 
 - (void)dealloc
 {
