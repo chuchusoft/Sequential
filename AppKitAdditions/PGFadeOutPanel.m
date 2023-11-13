@@ -38,9 +38,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 #endif
 
+//	MARK: -
 @implementation PGFadeOutPanel
-
-#pragma mark -PGFadeOutPanel
 
 - (BOOL)isFadingOut
 {
@@ -72,7 +71,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	_frameCount = 0;
 }
 
-#pragma mark -NSWindow
+//	MARK: - NSWindow
 
 - (IBAction)makeKeyAndOrderFront:(id)sender
 {
@@ -98,7 +97,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[self cancelFadeOut];
 }
 
-#pragma mark -NSObject
+//	MARK: - NSObject
 
 - (void)dealloc
 {

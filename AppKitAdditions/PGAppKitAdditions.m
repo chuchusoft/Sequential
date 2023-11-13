@@ -31,7 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @implementation NSBezierPath(PGAppKitAdditions)
 
-#pragma mark Class Methods
+//	MARK: Class Methods
 
 + (NSBezierPath *)PG_bezierPathWithRoundRect:(NSRect)aRect cornerRadius:(CGFloat)radius
 {
@@ -87,7 +87,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[NSBezierPath setDefaultLineCapStyle:NSMiterLineJoinStyle];
 }
 
-#pragma mark Instance Methods
+//	MARK: Instance Methods
 
 /* - (void)PG_fillUsingOperation:(NSCompositingOperation)op
 {
@@ -99,9 +99,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+//	MARK: -
 @implementation NSColor(PGAppKitAdditions)
 
-#pragma mark +NSColor(PGAppKitAdditions)
+//	MARK: +NSColor(PGAppKitAdditions)
 
 + (NSColor *)PG_bezelBackgroundColor
 {
@@ -112,7 +113,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	return [NSColor colorWithDeviceWhite:0.95f alpha:0.9f];
 }
 
-#pragma mark -NSColor(PGAppKitAdditions)
+//	MARK: NSColor(PGAppKitAdditions)
 
 - (NSColor *)PG_checkerboardPatternColor
 {
@@ -153,6 +154,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end */
 
+//	MARK: -
 @implementation NSEvent(PGAppKitAdditions)
 
 - (NSPoint)PG_locationInView:(NSView *)view
@@ -218,6 +220,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end */
 
+//	MARK: -
 @interface NSMenu(AEUndocumented)
 - (id)_menuImpl;
 @end
@@ -255,11 +258,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+//	MARK: -
 @interface NSWorkspace(PGSnowLeopardOrLater)
 - (BOOL)setDesktopImageURL:(NSURL *)URL forScreen:(NSScreen *)screen options:(NSUInteger)options error:(out NSError **)outError;
 - (NSUInteger)desktopImageOptionsForScreen:(NSScreen *)screen;
 @end
 
+//	MARK: -
 @implementation NSScreen(PGAppKitAdditions)
 
 + (NSScreen *)PG_mainScreen
@@ -325,6 +330,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 //@end
 
+//	MARK: -
 @implementation NSWindow(PGAppKitAdditions)
 
 - (NSRect)PG_contentRect
