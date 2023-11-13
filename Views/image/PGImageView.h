@@ -26,6 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import "PGGeometryTypes.h"
 
 @interface PGImageView : NSView
+#if !__has_feature(objc_arc)
 {
 	@private
 	NSImageRep *_rep;
@@ -48,9 +49,26 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 //	CGLayerRef _cacheLayer;		2023/10/16 removed; -setUsesCaching: is now a no-op
 	BOOL _awaitingUpdate;
 }
+#endif
 
 + (NSArray *)pasteboardTypes;
 
+#if __has_feature(objc_arc)
+@property (readonly) NSImageRep *rep;
+@property (readonly) PGOrientation orientation;
+@property (readonly) NSSize size;
+@property (readonly) NSSize originalSize;
+@property (readonly) CGFloat averageScaleFactor;
+@property (nonatomic, assign) CGFloat rotationInDegrees;
+@property (nonatomic, assign) BOOL antialiasWhenUpscaling;
+@property (readonly) NSImageInterpolation interpolation;
+@property (nonatomic, assign) BOOL usesRoundedCorners;
+@property (nonatomic, assign) BOOL usesCaching;
+
+@property (readonly) BOOL canAnimateRep;
+@property (nonatomic, assign) BOOL animates;
+@property (nonatomic, assign, getter = isPaused) BOOL paused;
+#else
 @property(readonly) NSImageRep *rep;
 @property(readonly) PGOrientation orientation;
 @property(readonly) NSSize size;
@@ -65,6 +83,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 @property(readonly) BOOL canAnimateRep;
 @property(assign, nonatomic) BOOL animates;
 @property(assign, nonatomic, getter = isPaused) BOOL paused;
+#endif
 
 - (void)setImageRep:(NSImageRep *)rep orientation:(PGOrientation)orientation size:(NSSize)size;
 - (void)setSize:(NSSize)size allowAnimation:(BOOL)flag; // Use this function to control how big the image is displayed. PGImageView manages its own frame size.
