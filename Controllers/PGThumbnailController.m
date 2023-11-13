@@ -49,7 +49,25 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 
 #define PGMaxVisibleColumns (NSUInteger)3
 
-#pragma mark -
+//	MARK: -
+
+#if __has_feature(objc_arc)
+
+@interface PGThumbnailController ()
+
+@property (nonatomic, strong) PGBezelPanel *window;
+@property (nonatomic, weak) PGThumbnailBrowser *browser;
+
+@property (nonatomic, strong) PGBezelPanel *infoWindow;	//	2023/10/02 added
+@property (nonatomic, weak) NSView *infoView;	//	2023/10/02 added [PGThumbnailInfoView]
+
+- (void)_updateInfoWindowFrame:(BOOL)needsDisplay;	//	2023/10/02
+- (void)_updateWindowFrame;
+
+@end
+
+#else
+
 @interface PGThumbnailController(Private)
 
 - (void)_updateInfoWindowFrame:(BOOL)needsDisplay;	//	2023/10/02
@@ -57,7 +75,9 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 
 @end
 
-#pragma mark -
+#endif
+
+//	MARK: -
 @implementation PGThumbnailController
 
 + (BOOL)canShowThumbnailsForDocument:(PGDocument *)aDoc
@@ -69,9 +89,11 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 	return [aDoc showsThumbnails] && [self canShowThumbnailsForDocument:aDoc];
 }
 
-#pragma mark - PGThumbnailController
+//	MARK: - PGThumbnailController
 
+#if !__has_feature(objc_arc)
 @synthesize displayController = _displayController;
+#endif
 - (void)setDisplayController:(PGDisplayController *)aController
 {
 	if(aController == _displayController) return;
@@ -93,7 +115,9 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 	[self setDocument:[_displayController activeDocument]];
 	[self display];
 }
+#if !__has_feature(objc_arc)
 @synthesize document = _document;
+#endif
 - (void)setDocument:(PGDocument *)aDoc
 {
 	if(aDoc == _document) return;
@@ -124,15 +148,17 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 	_browser.selection = selectedNodes;
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)selectAll {
 	[_browser selectAll];
 }
 - (void)display
 {
+#if !__has_feature(objc_arc)
 	if(_selfRetained) [self autorelease];
 	_selfRetained = NO;
+#endif
 
 	[[[self displayController] window] addChildWindow:_window ordered:NSWindowAbove];
 	[self _updateWindowFrame];
@@ -142,14 +168,19 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 //NSLog(@"[_window addChildWindow:_infoWindow]");
 	[self _updateInfoWindowFrame:YES];	//	2023/10/02
 }
+- (void)selectionNeedsDisplay {	//	2023/11/12
+	[_browser selectionNeedsDisplay];
+}
 - (void)fadeOut
 {
+#if !__has_feature(objc_arc)
 	if(!_selfRetained) [self retain];
 	_selfRetained = YES;
+#endif
 	[_window fadeOut];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)displayControllerActiveNodeDidChange:(NSNotification *)aNotif
 {
@@ -189,7 +220,7 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 	[_window setIgnoresMouseEvents:NO];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)documentNodeThumbnailDidChange:(NSNotification *)aNotif
 {
@@ -208,7 +239,7 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 	[_browser redisplayItem:[[aNotif userInfo] objectForKey:PGDocumentNodeKey] recursively:NO];
 }
 
-#pragma mark - PGThumbnailController(Private)
+//	MARK: - PGThumbnailController(Private)
 
 - (void)_updateInfoWindowFrame:(BOOL)needsDisplay	//	2023/10/02
 {
@@ -263,12 +294,16 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 	[self PG_postNotificationName:PGThumbnailControllerContentInsetDidChangeNotification];
 }
 
-#pragma mark - NSObject
+//	MARK: - NSObject
 
 - (id)init
 {
 	if((self = [super init])) {
+#if __has_feature(objc_arc)
+		_window = [PGThumbnailBrowser PG_bezelPanel];
+#else
 		_window = [[PGThumbnailBrowser PG_bezelPanel] retain];
+#endif
 		[_window setAutorecalculatesKeyViewLoop:YES];
 		[_window setReleasedWhenClosed:NO];
 		[_window setDelegate:self];
@@ -279,7 +314,11 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 		[_browser setDelegate:self];
 		[_browser setDataSource:self];
 
+#if __has_feature(objc_arc)
+		_infoWindow = [PGThumbnailInfoView PG_bezelPanel];	//	2023/10/02 added
+#else
 		_infoWindow = [[PGThumbnailInfoView PG_bezelPanel] retain];	//	2023/10/02 added
+#endif
 		[_infoWindow setAutorecalculatesKeyViewLoop:NO];
 		[_infoWindow setReleasedWhenClosed:NO];
 		_infoView = [_infoWindow content];	//	2023/10/02 added
@@ -293,9 +332,9 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 //NSLog(@"PGThumbnailController -dealloc %p", self);
 	[self PG_removeObserver];
 
-//	_infoView = nil;
+#if !__has_feature(objc_arc)
 	[_infoWindow release];	//	2023/10/02 added
-//	_infoWindow = nil;
+#endif
 
 	//	2023/08/16 bugfix: stop thumbnail browser from accessing this
 	//	deallocated object
@@ -303,18 +342,18 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 	//	2023/08/16 bugfix: stop thumbnail browser and thumbnail views
 	//	from accessing this deallocated object
 	[_browser setDataSource:nil];
-//	_browser = nil;
 
 	//	2023/08/21 bugfix: stop displaying the thumbnail browser
 	[_window orderOut:self];
 	[_window setDelegate:nil];
+#if !__has_feature(objc_arc)
 	[_window release];
-//	_window = nil;
 
 	[super dealloc];
+#endif
 }
 
-#pragma mark - <NSWindowDelegate>
+//	MARK: - <NSWindowDelegate>
 
 - (void)windowDidBecomeKey:(NSNotification *)aNotif
 {
@@ -326,11 +365,13 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 }
 - (void)windowWillClose:(NSNotification *)aNotif
 {
+#if !__has_feature(objc_arc)
 	if(_selfRetained) [self autorelease];
 	_selfRetained = NO;
+#endif
 }
 
-#pragma mark - <PGThumbnailBrowserDataSource>
+//	MARK: - <PGThumbnailBrowserDataSource>
 
 - (id)thumbnailBrowser:(PGThumbnailBrowser *)sender parentOfItem:(id)item
 {
@@ -342,7 +383,7 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 	return [[item resourceAdapter] isContainer];
 }
 
-#pragma mark - <PGThumbnailBrowserDelegate>
+//	MARK: - <PGThumbnailBrowserDelegate>
 
 - (void)thumbnailBrowserSelectionDidChange:(PGThumbnailBrowser *)sender
 {
@@ -381,7 +422,7 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 		[self _updateWindowFrame];
 }
 
-#pragma mark - <PGThumbnailViewDataSource>
+//	MARK: - <PGThumbnailViewDataSource>
 
 - (NSArray *)itemsForThumbnailView:(PGThumbnailView *)sender
 {
@@ -477,9 +518,18 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 - (uint64_t)thumbnailView:(PGThumbnailView *)sender byteSizeOf:(id)item {
 	return [item resourceAdapter].dataByteSize;
 }
+
+- (id)activeNodeForThumbnailView:(PGThumbnailView *)sender {
+	return _displayController.activeNode;
+}
+
+- (BOOL)thumbnailView:(PGThumbnailView *)sender isParentOfActiveNode:(id)item {
+	return [_displayController.activeNode isDescendantOfNode:item];
+}
+
 @end
 
-#pragma mark -
+//	MARK: -
 @implementation PGDisplayController(PGThumbnailControllerCallbacks)
 
 - (void)thumbnailPanelDidBecomeKey:(NSNotification *)aNotif {}
