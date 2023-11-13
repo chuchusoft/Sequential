@@ -38,6 +38,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import "PGFoundationAdditions.h"
 #import "PGGeometry.h"
 
+#if __has_feature(objc_arc)
+
+@interface PGTimerPanelController ()
+
+@property (nonatomic, weak) IBOutlet PGTimerButton *timerButton;
+@property (nonatomic, weak) IBOutlet NSTextField *remainingField;
+@property (nonatomic, weak) IBOutlet NSTextField *totalField;
+@property (nonatomic, weak) IBOutlet NSSlider *intervalSlider;
+@property (nonatomic, strong) NSTimer *updateTimer;
+
+@end
+
+#else
+
 @interface PGTimerPanelController(Private)
 
 @property(readonly) PGPrefObject *_currentPrefObject;
@@ -46,9 +60,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+#endif
+
+//	MARK: -
 @implementation PGTimerPanelController
 
-#pragma mark -PGTimerPanelController
+//	MARK: - PGTimerPanelController
 
 - (IBAction)toggleTimer:(id)sender
 {
@@ -61,14 +78,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[self _updateOnTimer:nil];
 }
 
-#pragma mark -
+//	MARK: -
 
 - (void)displayControllerTimerDidChange:(NSNotification *)aNotif
 {
 	[self _update];
 }
 
-#pragma mark -PGTimerPanelController(Private)
+//	MARK: - PGTimerPanelController(Private)
 
 - (PGPrefObject *)_currentPrefObject
 {
@@ -81,13 +98,32 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	BOOL const run = d.timerRunning;
 	if(![self isShown] || !run) {
 		[_updateTimer invalidate];
+#if !__has_feature(objc_arc)
 		[_updateTimer release];
+#endif
 		_updateTimer = nil;
 	} else if(!_updateTimer) {
-		_updateTimer = [[NSTimer scheduledTimerWithTimeInterval:PGAnimationFramerate target:self selector:@selector(_updateOnTimer:) userInfo:nil repeats:YES] retain];
+#if __has_feature(objc_arc)
+		_updateTimer = [NSTimer scheduledTimerWithTimeInterval:PGAnimationFramerate
+														target:self
+													  selector:@selector(_updateOnTimer:)
+													  userInfo:nil
+													   repeats:YES];
+#else
+		_updateTimer = [[NSTimer scheduledTimerWithTimeInterval:PGAnimationFramerate
+														 target:self
+													   selector:@selector(_updateOnTimer:)
+													   userInfo:nil
+														repeats:YES] retain];
+#endif
 	}
+#if __has_feature(objc_arc)
+	[_timerButton setEnabled:!!d];
+	[_timerButton setIconType:run ? AEStopIcon : AEPlayIcon];
+#else
 	[timerButton setEnabled:!!d];
 	[timerButton setIconType:run ? AEStopIcon : AEPlayIcon];
+#endif
 	[self _updateOnTimer:nil];
 }
 - (void)_updateOnTimer:(NSTimer *)timer
@@ -99,6 +135,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		NSDate *const fireDate = [[self displayController] nextTimerFireDate];
 		timeRemaining = MAX(0.0f, fireDate ? [fireDate timeIntervalSinceNow] : 0.0f);
 	}
+#if __has_feature(objc_arc)
+	[_timerButton setProgress:running ? (CGFloat)((interval - timeRemaining) / interval) : 0.0f];
+	[_remainingField setStringValue:[NSString localizedStringWithFormat:NSLocalizedString(@"%.1f seconds", @"Display string for timer intervals. %.1f is replaced with the remaining seconds and tenths of seconds."), timeRemaining]];
+	if(!timer) {
+		[_totalField setStringValue:[NSString localizedStringWithFormat:NSLocalizedString(@"%.1f seconds", @"Display string for timer intervals. %.1f is replaced with the remaining seconds and tenths of seconds."), interval]];
+		[_intervalSlider setDoubleValue:interval];
+		[_intervalSlider setEnabled:!![self displayController]];
+	}
+#else
 	[timerButton setProgress:running ? (CGFloat)((interval - timeRemaining) / interval) : 0.0f];
 	[remainingField setStringValue:[NSString localizedStringWithFormat:NSLocalizedString(@"%.1f seconds", @"Display string for timer intervals. %.1f is replaced with the remaining seconds and tenths of seconds."), timeRemaining]];
 	if(!timer) {
@@ -106,9 +151,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		[intervalSlider setDoubleValue:interval];
 		[intervalSlider setEnabled:!![self displayController]];
 	}
+#endif
 }
 
-#pragma mark -PGFloatingPanelController
+//	MARK: - PGFloatingPanelController
 
 - (void)setShown:(BOOL)flag
 {
@@ -116,16 +162,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[self _update];
 }
 
-#pragma mark -
-
 - (NSString *)nibName
 {
 	return @"PGTimer";
 }
-- (BOOL)setDisplayController:(PGDisplayController *)controller
+- (BOOL)setDisplayControllerReturningWasChanged:(PGDisplayController *)controller
+//- (BOOL)setDisplayController:(PGDisplayController *)controller
 {
 	PGDisplayController *const oldController = [self displayController];
-	if(![super setDisplayController:controller]) return NO;
+	if(![super setDisplayControllerReturningWasChanged:controller]) return NO;
 	[oldController PG_removeObserver:self name:PGDisplayControllerTimerDidChangeNotification];
 	PGDisplayController *const newController = [self displayController];
 	[newController PG_addObserver:self selector:@selector(displayControllerTimerDidChange:) name:PGDisplayControllerTimerDidChangeNotification];
@@ -133,7 +178,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	return YES;
 }
 
-#pragma mark -NSWindowController
+//	MARK: - NSWindowController
 
 - (void)windowDidLoad
 {
@@ -141,7 +186,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[self _updateOnTimer:nil];
 }
 
-#pragma mark -NSObject
+//	MARK: - NSObject
 
 - (id)init
 {
@@ -151,8 +196,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 {
 	[self PG_removeObserver];
 	[_updateTimer invalidate];
+
+#if !__has_feature(objc_arc)
 	[_updateTimer release];
 	[super dealloc];
+#endif
 }
 
 @end
