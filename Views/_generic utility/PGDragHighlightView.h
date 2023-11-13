@@ -26,9 +26,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import "PGBezelPanel.h"
 
 @interface PGDragHighlightView : NSView <PGBezelPanelContentView>
+#if !__has_feature(objc_arc)
 {
 	@private
 	NSBezierPath *_highlightPath;
 }
+#endif
 
 @end
