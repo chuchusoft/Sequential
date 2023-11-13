@@ -69,6 +69,7 @@ enum {
 typedef NSInteger PGSortOrder;
 
 @interface PGPrefObject : NSObject
+#if !__has_feature(objc_arc)
 {
 	@private
 	BOOL _showsInfo;
@@ -81,21 +82,34 @@ typedef NSInteger PGSortOrder;
 	NSTimeInterval _timerInterval;
 	PGOrientation _baseOrientation;
 }
+#endif
 
 + (id)globalPrefObject;
 + (NSArray *)imageScaleModes;
 
+#if __has_feature(objc_arc)
+@property (nonatomic, assign) BOOL showsInfo;
+@property (nonatomic, assign) BOOL showsThumbnails;
+@property (nonatomic, assign) PGReadingDirection readingDirection;
+@property (nonatomic, assign) PGImageScaleMode imageScaleMode;
+@property (nonatomic, assign) CGFloat imageScaleFactor;
+@property (nonatomic, assign) BOOL animatesImages;
+@property (nonatomic, assign) PGSortOrder sortOrder;
+@property (nonatomic, assign) NSTimeInterval timerInterval;
+@property (nonatomic, assign) PGOrientation baseOrientation;
+#else
 @property(assign) BOOL showsInfo;
 @property(assign) BOOL showsThumbnails;
 @property(assign) PGReadingDirection readingDirection;
 @property(assign) PGImageScaleMode imageScaleMode;
 @property(assign) CGFloat imageScaleFactor;
-- (void)setImageScaleFactor:(CGFloat)factor animate:(BOOL)flag;
 @property(assign) BOOL animatesImages;
 @property(assign) PGSortOrder sortOrder;
 @property(assign) NSTimeInterval timerInterval;
 @property(assign) PGOrientation baseOrientation;
+#endif
 
+- (void)setImageScaleFactor:(CGFloat)factor animate:(BOOL)flag;
 - (BOOL)isCurrentSortOrder:(PGSortOrder)order; // Ignores sort options.
 
 @end
