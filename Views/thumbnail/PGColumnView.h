@@ -26,6 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import "PGClipView.h"
 
 @interface PGColumnView : NSView <PGClipViewDelegate>
+#if !__has_feature(objc_arc)
 {
 	@private
 	PGClipView *_clipView;
@@ -39,6 +40,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 @property(readonly, copy) NSArray *views;
 @property(readonly) id lastView;
 @property(assign, nonatomic) CGFloat columnWidth;
+
+#else
+
+@property (readonly) NSUInteger numberOfColumns;
+@property (readonly, copy) NSArray *views;
+@property (readonly) id lastView;
+@property (nonatomic, assign) CGFloat columnWidth;
+
+#endif
 
 - (id)viewAtIndex:(NSUInteger)index;
 
