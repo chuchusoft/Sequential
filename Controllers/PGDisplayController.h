@@ -41,6 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 // Controllers
 @class PGThumbnailController;
+@class PGFullSizeContentController;
 #endif
 
 // Other Sources
@@ -84,6 +85,8 @@ extern NSString *const PGDisplayControllerTimerDidChangeNotification;
 
 	NSDate *_nextTimerFireDate;
 	NSTimer *_timer;
+
+	PGFullSizeContentController *_fullSizeContentController;
 }
 #endif
 
@@ -100,7 +103,7 @@ extern NSString *const PGDisplayControllerTimerDidChangeNotification;
 - (IBAction)hideFindPanel:(id)sender;
 
 - (IBAction)toggleFullscreen:(id)sender;
-- (IBAction)toggleEntireScreenWhenInFullScreen:(id)sender;
+- (IBAction)toggleEntireWindowOrScreen:(id)sender;
 - (IBAction)toggleInfo:(id)sender;
 - (IBAction)toggleThumbnails:(id)sender;
 - (IBAction)changeReadingDirection:(id)sender;
