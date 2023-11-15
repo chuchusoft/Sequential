@@ -243,10 +243,10 @@ CA
                                     <action selector="toggleFullscreen:" target="-1" id="961"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Use Entire Screen When In Full Screen" keyEquivalent="f" id="Hfy-2e-EPN">
+                            <menuItem title="Use Entire Window/Screen" keyEquivalent="f" id="Hfy-2e-EPN">
                                 <modifierMask key="keyEquivalentModifierMask" option="YES"/>
                                 <connections>
-                                    <action selector="toggleEntireScreenWhenInFullScreen:" target="-1" id="NWl-HN-C5l"/>
+                                    <action selector="toggleEntireWindowOrScreen:" target="-1" id="3gU-XG-rGC"/>
                                 </connections>
                             </menuItem>
                             <menuItem title="Show Info" keyEquivalent="i" id="952">
