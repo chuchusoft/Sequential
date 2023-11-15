@@ -45,9 +45,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @end
 
+//	MARK: -
 @implementation PGThumbnailBrowser
-
-//	MARK: - PGThumbnailBrowser
 
 #if __has_feature(objc_arc)
 @synthesize dataSource;
