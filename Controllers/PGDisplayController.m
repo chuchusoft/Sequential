@@ -49,6 +49,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import "PGBookmarkController.h"
 #import "PGThumbnailController.h"
 #import "PGImageSaveAlert.h"
+#import "PGFullSizeContentController.h"
 
 // Other Sources
 #import "PGAppKitAdditions.h"
@@ -140,6 +141,8 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 
 @property (nonatomic, strong) NSDate *nextTimerFireDate;
 @property (nonatomic, strong) NSTimer *timer;
+
+@property (nonatomic, strong) PGFullSizeContentController *fullSizeContentController;
 
 - (void)_setClipViewBackground;
 - (void)_setImageView:(PGImageView *)aView;
@@ -347,10 +350,14 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 	[self _setClipViewBackground];
 }
 
-- (IBAction)toggleEntireScreenWhenInFullScreen:(id)sender	//	2023/08/14 added
+- (IBAction)toggleEntireWindowOrScreen:(id)sender	//	2023/08/14 added; 2023/11/16 renamed
 {
-	PGDocumentController *const dc = PGDocumentController.sharedDocumentController;
-	dc.usesEntireScreenWhenInFullScreen = !dc.usesEntireScreenWhenInFullScreen;
+	BOOL const isInFullscreen = PGDocumentController.sharedDocumentController.fullscreen;
+	if(isInFullscreen) {
+		PGDocumentController *const dc = PGDocumentController.sharedDocumentController;
+		dc.usesEntireScreenWhenInFullScreen = !dc.usesEntireScreenWhenInFullScreen;
+	} else
+		[_fullSizeContentController toggleFullSizeContent];
 }
 
 - (IBAction)toggleInfo:(id)sender
@@ -1422,6 +1429,15 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 	[_findPanel setCanBecomeKey:YES];
 
 	[self prefControllerBackgroundPatternColorDidChange:nil];
+
+	//	create the full-size-content controller only when not in
+	//	fullscreen mode (because the styleMask in that mode makes
+	//	the window disallow having titlebar accessory controllers)
+	NSWindowStyleMask const styleMask = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable |
+								NSWindowStyleMaskMiniaturizable | NSWindowStyleMaskResizable;
+	if(styleMask == (self.window.styleMask & styleMask))
+		_fullSizeContentController =
+			[[PGFullSizeContentController alloc] initWithWindow:self.window];
 }
 - (void)synchronizeWindowTitleWithDocumentName
 {
@@ -1552,11 +1568,27 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 
 	// View:
 	if(@selector(toggleFullscreen:) == action) [anItem setTitle:NSLocalizedString(([[PGDocumentController sharedDocumentController] isFullscreen] ? @"Exit Full Screen" : @"Enter Full Screen"), @"Enter/exit full screen. Two states of the same item.")];
-	if(@selector(toggleEntireScreenWhenInFullScreen:) == action) {	//	2023/08/14 added
+/*	if(@selector(toggleEntireScreenWhenInFullScreen:) == action) {	//	2023/08/14 added
 		[anItem setState:PGDocumentController.sharedDocumentController.usesEntireScreenWhenInFullScreen];
 		//	this menu item is only enabled when the window is in full screen mode
-		return PGDocumentController.sharedDocumentController.fullscreen;
+		BOOL const isInFullscreen = PGDocumentController.sharedDocumentController.fullscreen;
+		anItem.hidden = !isInFullscreen;
+		return isInFullscreen;
+	} */
+	if(@selector(toggleEntireWindowOrScreen:) == action) {	//	2023/08/14 added; 2023/11/16 renamed
+		//	this command is labelled (and behaves) differently depending on the fullscreen state:
+		//	* when in fullscreen, its label is "Use Entire Screen" and its state depends on a setting
+		//	* when not in fullscreen, its label is "Use Entire Window"
+		//		and its state depends on the window's state
+		BOOL const isInFullscreen = PGDocumentController.sharedDocumentController.fullscreen;
+		anItem.title = isInFullscreen ? @"Use Entire Screen" : @"Use Entire Window";
+		if(isInFullscreen)
+			anItem.state = PGDocumentController.sharedDocumentController.usesEntireScreenWhenInFullScreen;
+		else
+			anItem.state = 0 != (self.window.styleMask & NSWindowStyleMaskFullSizeContentView);
+		return YES;
 	}
+
 	if(@selector(toggleInfo:) == action) [anItem setTitle:NSLocalizedString(([[self activeDocument] showsInfo] ? @"Hide Info" : @"Show Info"), @"Lets the user toggle the on-screen display. Two states of the same item.")];
 	if(@selector(toggleThumbnails:) == action) [anItem setTitle:NSLocalizedString(([[self activeDocument] showsThumbnails] ? @"Hide Thumbnails" : @"Show Thumbnails"), @"Lets the user toggle whether thumbnails are shown. Two states of the same item.")];
 	if(@selector(changeReadingDirection:) == action) [anItem setState:[[self activeDocument] readingDirection] == tag];
