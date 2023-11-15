@@ -1295,7 +1295,12 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 			NSMutableArray<PGNode*> *const children = [NSMutableArray arrayWithArray:parent.sortedChildren];
 			NSMutableIndexSet *const indexes = [NSMutableIndexSet indexSet];
 			NSUInteger i = 0, containerCount = 0;
+	#define	COLOR_FILLED_BAR_IS_ENTIRE_PROGRESS	1
+
+	#if COLOR_FILLED_BAR_IS_ENTIRE_PROGRESS
+	#else
 			BOOL const parentIsRootNode = an.parentNode == an.rootNode;
+	#endif
 			for(PGNode *node in children) {
 				if(node.resourceAdapter.isContainer)
 					++containerCount;
@@ -1314,14 +1319,19 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 				[children removeObjectsAtIndexes:indexes];
 			NSAssert(NSNotFound != childIndex || 0 == [children count], @"");
 
+			NSUInteger const childCount = children.count;
+	#if COLOR_FILLED_BAR_IS_ENTIRE_PROGRESS
+			infoView.currentFolderCount = childCount;
+			infoView.currentFolderIndex = childIndex;
+	#else
 			//	if imageCount <= 1 or the root node's set of children has no containers
 			//	then do not draw the folder progress bar else do so
-			NSUInteger const childCount = children.count;
 			if(childCount > 1 && (!parentIsRootNode || 0 != containerCount)) {
 				infoView.currentFolderCount = childCount;
 				infoView.currentFolderIndex = childIndex;
 			} else
 				infoView.currentFolderCount = infoView.currentFolderIndex = 0;
+	#endif
 		}
 #else
 		NSArray<PGNode*> *const sortedChildren = parent.sortedChildren;
