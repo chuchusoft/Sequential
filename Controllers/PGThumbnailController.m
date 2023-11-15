@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 // Controllers
 #import "PGDisplayController.h"
+#import "PGDocumentController.h"
 
 // Other Sources
 #import "PGAppKitAdditions.h"
@@ -177,6 +178,7 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 	if(!_selfRetained) [self retain];
 	_selfRetained = YES;
 #endif
+	_infoView.hidden = YES;
 	[_window fadeOut];
 }
 
@@ -250,13 +252,9 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 	if(!p)
 		return;
 
-	NSRect const r = [p PG_contentRect];
-	NSRect const browserFrame = NSMakeRect(NSMinX(r), NSMinY(r),
-									   MIN(_browser.numberOfColumns, PGMaxVisibleColumns) * _browser.columnWidth,
-									   NSHeight(r));
-
+	NSRect const browserFrame = _window.frame;
 	NSRect const cf = [(PGThumbnailInfoView*)_infoView bezelPanel:_infoWindow
-											  frameForContentRect:r//PGInsetRect(r, _frameInset)
+											  frameForContentRect:browserFrame//PGInsetRect(r, _frameInset)
 															scale:(CGFloat)1.0f];
 	CGFloat const infoWindowHeight = NSHeight(cf);
 #if 1	//	2023/10/14 Info window is displayed at the top of thumbnail view
@@ -281,7 +279,15 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 {
 	NSWindow *const p = [_displayController window];
 	if(!p) return;
-	NSRect const r = [p PG_contentRect];
+	NSRect r = [p PG_contentRect];
+	//	when in full-size-content mode, make sure the thumbnail columns do
+	//	not obscure the window's standard close/miniaturize/zoom buttons
+	if(!PGDocumentController.sharedDocumentController.fullscreen &&
+		0 != (p.styleMask & NSWindowStyleMaskFullSizeContentView)) {
+		CGFloat const h =
+			[p standardWindowButton:NSWindowCloseButton].superview.frame.size.height;
+		r.size.height -= h;
+	}
 #if 1	//	2021/07/21 modernized
 	NSRect const newFrame = NSMakeRect(NSMinX(r), NSMinY(r),
 									   MIN(_browser.numberOfColumns, PGMaxVisibleColumns) * _browser.columnWidth,
