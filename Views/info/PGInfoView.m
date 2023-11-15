@@ -163,13 +163,24 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 		//	if possible, draw the outline in a backing store aligned rectangle;
 		//	doing so will look better on high pixel density display devices
-		NSBezierPath *const progressBarOutline = [NSBezierPath PG_bezierPathWithRoundRect:canAlignToBackingStore ?
-			[self backingAlignedRect:progressBarRect options:NSAlignAllEdgesNearest] : progressBarRect
-																			 cornerRadius:PGProgressBarRadius];
+		NSBezierPath *const progressBarOutline =
+			[NSBezierPath PG_bezierPathWithRoundRect:(canAlignToBackingStore ?
+				[self backingAlignedRect:progressBarRect options:NSAlignAllEdgesNearest] :
+				progressBarRect)
+										cornerRadius:PGProgressBarRadius];
 
-		//	[2] 2023/10/01 draw the progress within a single folder/container as a color-filled bar
-		if(0 != _currentFolderCount) {
-			CGFloat const w = PGProgressBarWidth * _currentFolderIndex / (_currentFolderCount - 1);
+#define	COLOR_FILLED_BAR_IS_ENTIRE_PROGRESS	1
+
+#if COLOR_FILLED_BAR_IS_ENTIRE_PROGRESS
+		//	[2] 2023/11/15 draw the entire progress as a color-filled bar
+		if(_count > 1) {
+			CGFloat const w = PGProgressBarWidth * _index / (_count - 1);
+#else
+		//	[2] [2023/10/01 draw the current folder progress as a color-filled bar
+		if(_currentFolderCount > 1) {
+			CGFloat const w = PGProgressBarWidth * _currentFolderIndex /
+								(_currentFolderCount - 1);
+#endif
 			if(w > 0) {
 				progressBarRect.size.width = w;
 				#define PGProgressBarDiameter	(2 * PGProgressBarRadius)
@@ -218,15 +229,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		[[NSColor PG_bezelForegroundColor] set];
 
 		//	[3] draw knob in progress bar
-		{
+	#if COLOR_FILLED_BAR_IS_ENTIRE_PROGRESS
+		if(_currentFolderCount > 1) {
+			NSUInteger const maxValue = _currentFolderCount - 1;
+			NSUInteger const curValue = _currentFolderIndex;
+	#else
+		if([self count] > 1) {
 			NSUInteger const maxValue = [self count] - 1;
+			NSUInteger const curValue = [self index];
+	#endif
+
 	#if 1
 			//	2023/10/26 draw anti-aliased rounded knob at fractional locations
-			CGFloat x = ((CGFloat)MIN([self index], maxValue) / maxValue) * (PGProgressBarWidth - PGProgressBarHeight) +
+			CGFloat x = ((CGFloat)MIN(curValue, maxValue) / maxValue) * (PGProgressBarWidth - PGProgressBarHeight) +
 						PGProgressBarHeight / 2.0f;
 	#else
 			//	original code: draws unaliased diamond at integral locations
-			CGFloat x = round(((CGFloat)MIN([self index], maxValue) / maxValue) * (PGProgressBarWidth - PGProgressBarHeight) +
+			CGFloat x = round(((CGFloat)MIN(curValue, maxValue) / maxValue) * (PGProgressBarWidth - PGProgressBarHeight) +
 								PGProgressBarHeight / 2.0f);
 	#endif
 			if([self originCorner] == PGMaxXMinYCorner) x = -x + origin;
