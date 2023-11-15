@@ -10,8 +10,28 @@
 - when you click on a thumbnail folder that is not a parent of the currently
   displayed image and then click back to the thumbnail folder that is the
   parent of the currently displayed image, the thumbnail of the currently
-  displayed image is now selected and the thumbnail is scrolled into view
-  (vertically centered).
+  displayed image is now selected and the thumbnail is scrolled into view.
+- the progress indicators shown in the Info window are now flipped: the current
+  folder progress is now shown by the white knob while the entire document's
+  progress is now shown by the background color bar.
+- in the Info window, both the progress bar and the progress knob are always
+  drawn even if the document has no inner containers (such as folders,
+  archives, or PDF files); this reverses the change made in version 2.4.0
+  which would only draw the progress bar and not the knob when the document
+  has no inner containers.
+- when not in fullscreen, it's now possible to hide the title bar of the window
+  to have the image be drawn in the title bar area. The View menu has a new
+  menu item named "Use Entire Window" which can toggle between hiding the
+  title bar and showing it. The keyboard shortcut for this command is option-F.
+  There is also a blue circle button widget on the right side of the title bar
+  that can also toggle the title bar (it performs the same operation as the
+  menu item).
+  The mouse pointer can be moved to the title bar area to temporarily show the
+  close/miniaturize/zoom buttons, the document name/title, and toggle button.
+  Important: the window can not be moved while the title bar is hidden.
+  The same menu item changes to "Use Entire Screen" when in fullscreen to have
+  the image drawn in the notch area on screens with a notch (it does nothing
+  if a notch is not present). The keyboard shortcut is the same: option-F.
 
 2.4.0 (2023-11-02)
 - PDF image drawing was being cached in a layer which resulted in a sub-optimal
