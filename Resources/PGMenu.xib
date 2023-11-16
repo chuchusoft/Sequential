@@ -238,9 +238,15 @@ CA
                 <menuItem title="View" id="890">
                     <menu key="submenu" title="View" id="891">
                         <items>
-                            <menuItem title="Enter Full Screen" keyEquivalent="f" id="892">
+                            <menuItem title="Enter Full Screen (Sequential)" keyEquivalent="f" id="892">
                                 <connections>
                                     <action selector="toggleFullscreen:" target="-1" id="961"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Enter Full Screen (macOS)" keyEquivalent="f" id="g9d-43-dBg">
+                                <modifierMask key="keyEquivalentModifierMask" control="YES" command="YES"/>
+                                <connections>
+                                    <action selector="toggleFullScreen:" target="-1" id="8Yx-tS-Crq"/>
                                 </connections>
                             </menuItem>
                             <menuItem title="Use Entire Window/Screen" keyEquivalent="f" id="Hfy-2e-EPN">
