@@ -63,26 +63,32 @@ NSString *const PGBookmarkDidUpdateNotification = @"PGBookmarkDidUpdate";
 #else
 		_documentIdentifier = [docIdent retain];
 #endif
+		//	TODO: check whether removeObserver: should be called in -dealloc
 		[_documentIdentifier PG_addObserver:self selector:@selector(identifierDidChange:) name:PGDisplayableIdentifierIconDidChangeNotification];
+		//	TODO: check whether removeObserver: should be called in -dealloc
 		[_documentIdentifier PG_addObserver:self selector:@selector(identifierDidChange:) name:PGDisplayableIdentifierDisplayNameDidChangeNotification];
 #if __has_feature(objc_arc)
 		_documentSubscription = [_documentIdentifier subscriptionWithDescendents:NO];
 #else
 		_documentSubscription = [[_documentIdentifier subscriptionWithDescendents:NO] retain];
 #endif
+		//	TODO: check whether removeObserver: should be called in -dealloc
 		[_documentSubscription PG_addObserver:self selector:@selector(eventDidOccur:) name:PGSubscriptionEventDidOccurNotification];
 #if __has_feature(objc_arc)
 		_fileIdentifier = fileIdent;
 #else
 		_fileIdentifier = [fileIdent retain];
 #endif
+		//	TODO: check whether removeObserver: should be called in -dealloc
 		[_fileIdentifier PG_addObserver:self selector:@selector(identifierDidChange:) name:PGDisplayableIdentifierIconDidChangeNotification];
+		//	TODO: check whether removeObserver: should be called in -dealloc
 		[_fileIdentifier PG_addObserver:self selector:@selector(identifierDidChange:) name:PGDisplayableIdentifierDisplayNameDidChangeNotification];
 #if __has_feature(objc_arc)
 		_fileSubscription = [_fileIdentifier subscriptionWithDescendents:NO];
 #else
 		_fileSubscription = [[_fileIdentifier subscriptionWithDescendents:NO] retain];
 #endif
+		//	TODO: check whether removeObserver: should be called in -dealloc
 		[_fileSubscription PG_addObserver:self selector:@selector(eventDidOccur:) name:PGSubscriptionEventDidOccurNotification];
 		if(aString) [_fileIdentifier setNaturalDisplayName:aString];
 	}
