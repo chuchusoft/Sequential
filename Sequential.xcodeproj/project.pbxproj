@@ -144,11 +144,9 @@
 		0EF9B2550FA348F700B7E16A /* PGIconTextFieldCell.m in Sources */ = {isa = PBXBuildFile; fileRef = 0EF9B2540FA348F700B7E16A /* PGIconTextFieldCell.m */; };
 		4B2462E02ADAC51700BA81EF /* PGThumbnailInfoView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4B2462DE2ADAC51700BA81EF /* PGThumbnailInfoView.m */; };
 		4B86CC832B01E93000268688 /* History.txt in Resources */ = {isa = PBXBuildFile; fileRef = 0E3378E8100C82B700373E83 /* History.txt */; };
-		4B8739312B04DF3A00E85B91 /* PGFullSizeContentTitlebarAccessoryViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 4B87392C2B04DF3A00E85B91 /* PGFullSizeContentTitlebarAccessoryViewController.m */; };
-		4B8739322B04DF3A00E85B91 /* PGFullSizeContentController.m in Sources */ = {isa = PBXBuildFile; fileRef = 4B87392E2B04DF3A00E85B91 /* PGFullSizeContentController.m */; };
-		4B8739332B04DF3A00E85B91 /* PGFullSizeContentTitlebarAccessoryViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B8739302B04DF3A00E85B91 /* PGFullSizeContentTitlebarAccessoryViewController.xib */; };
 		4BD905F82AE4D36F001FECBD /* PGResourceDataProvider.m in Sources */ = {isa = PBXBuildFile; fileRef = 4BD905F72AE4D36F001FECBD /* PGResourceDataProvider.m */; };
 		4BEC932729152136009B5F59 /* libUniversalDetector.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F1601B8926D2C8380012FD2B /* libUniversalDetector.a */; };
+		4BF35D0D2B062D1A008FC486 /* PGFullSizeContentController.m in Sources */ = {isa = PBXBuildFile; fileRef = 4BF35D0C2B062D1A008FC486 /* PGFullSizeContentController.m */; };
 		8D15AC310486D014006FF6A4 /* PGDocument.m in Sources */ = {isa = PBXBuildFile; fileRef = 2A37F4ACFDCFA73011CA2CEA /* PGDocument.m */; settings = {ATTRIBUTES = (); }; };
 		8D15AC320486D014006FF6A4 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 2A37F4B0FDCFA73011CA2CEA /* main.m */; settings = {ATTRIBUTES = (); }; };
 		B581795C121490A60041F0F4 /* PGXMLAdapter.m in Sources */ = {isa = PBXBuildFile; fileRef = B581795B121490A60041F0F4 /* PGXMLAdapter.m */; };
@@ -179,7 +177,7 @@
 			remoteGlobalIDString = 1B23E0861190F29400620319;
 			remoteInfo = libUniversalDetector.a;
 		};
-		4B36EB222AFA4C00007CA113 /* PBXContainerItemProxy */ = {
+		4BF35D012B055473008FC486 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 0E20FCC6109652CE007EE24A /* XADMaster.xcodeproj */;
 			proxyType = 1;
@@ -578,17 +576,14 @@
 		4B2462DA2ADAC15C00BA81EF /* PGColorWell.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PGColorWell.h; sourceTree = "<group>"; };
 		4B2462DE2ADAC51700BA81EF /* PGThumbnailInfoView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PGThumbnailInfoView.m; sourceTree = "<group>"; };
 		4B2462DF2ADAC51700BA81EF /* PGThumbnailInfoView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PGThumbnailInfoView.h; sourceTree = "<group>"; };
-		4B87392C2B04DF3A00E85B91 /* PGFullSizeContentTitlebarAccessoryViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PGFullSizeContentTitlebarAccessoryViewController.m; sourceTree = "<group>"; };
-		4B87392D2B04DF3A00E85B91 /* PGFullSizeContentController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PGFullSizeContentController.h; sourceTree = "<group>"; };
-		4B87392E2B04DF3A00E85B91 /* PGFullSizeContentController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PGFullSizeContentController.m; sourceTree = "<group>"; };
-		4B87392F2B04DF3A00E85B91 /* PGFullSizeContentTitlebarAccessoryViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PGFullSizeContentTitlebarAccessoryViewController.h; sourceTree = "<group>"; };
-		4B8739302B04DF3A00E85B91 /* PGFullSizeContentTitlebarAccessoryViewController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = PGFullSizeContentTitlebarAccessoryViewController.xib; sourceTree = "<group>"; };
 		4B88FD0C2ADCC5610052CE66 /* Sequential_Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Sequential_Prefix.pch; sourceTree = "<group>"; };
 		4BC63F6D291628360099C1FF /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		4BC9AEBA2AF28AC1001F9CBC /* HOWTO remove the Sequential application from quarantine.rtfd */ = {isa = PBXFileReference; lastKnownFileType = wrapper.rtfd; path = "HOWTO remove the Sequential application from quarantine.rtfd"; sourceTree = "<group>"; };
 		4BC9AEBB2AF28AC1001F9CBC /* Remove quarantine attribute.applescript */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.applescript; path = "Remove quarantine attribute.applescript"; sourceTree = "<group>"; };
 		4BD905F72AE4D36F001FECBD /* PGResourceDataProvider.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = PGResourceDataProvider.m; sourceTree = "<group>"; };
 		4BD906062AE4D3E6001FECBD /* PGResourceDataProvider.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PGResourceDataProvider.h; sourceTree = "<group>"; };
+		4BF35D0B2B062D1A008FC486 /* PGFullSizeContentController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PGFullSizeContentController.h; sourceTree = "<group>"; };
+		4BF35D0C2B062D1A008FC486 /* PGFullSizeContentController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = PGFullSizeContentController.m; sourceTree = "<group>"; };
 		8D15AC360486D014006FF6A4 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		8D15AC370486D014006FF6A4 /* Sequential.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Sequential.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B573CFF3122AC22200F4B7CA /* PGNodeParenting.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PGNodeParenting.h; sourceTree = "<group>"; };
@@ -985,11 +980,8 @@
 		4B87392B2B04DF2900E85B91 /* FullSizeContentController */ = {
 			isa = PBXGroup;
 			children = (
-				4B87392D2B04DF3A00E85B91 /* PGFullSizeContentController.h */,
-				4B87392E2B04DF3A00E85B91 /* PGFullSizeContentController.m */,
-				4B87392F2B04DF3A00E85B91 /* PGFullSizeContentTitlebarAccessoryViewController.h */,
-				4B87392C2B04DF3A00E85B91 /* PGFullSizeContentTitlebarAccessoryViewController.m */,
-				4B8739302B04DF3A00E85B91 /* PGFullSizeContentTitlebarAccessoryViewController.xib */,
+				4BF35D0B2B062D1A008FC486 /* PGFullSizeContentController.h */,
+				4BF35D0C2B062D1A008FC486 /* PGFullSizeContentController.m */,
 			);
 			path = FullSizeContentController;
 			sourceTree = "<group>";
@@ -1058,8 +1050,8 @@
 			buildRules = (
 			);
 			dependencies = (
+				4BF35D022B055473008FC486 /* PBXTargetDependency */,
 				4B36EB212AFA4C00007CA113 /* PBXTargetDependency */,
-				4B36EB232AFA4C00007CA113 /* PBXTargetDependency */,
 			);
 			name = Sequential;
 			productInstallPath = "$(HOME)/Applications";
@@ -1280,7 +1272,6 @@
 				0EBB329710F12B5F00989071 /* PGPreference.xib in Resources */,
 				0EBB329810F12B5F00989071 /* PGTimer.xib in Resources */,
 				0EBB329910F12B5F00989071 /* PGURL.xib in Resources */,
-				4B8739332B04DF3A00E85B91 /* PGFullSizeContentTitlebarAccessoryViewController.xib in Resources */,
 				0EBB32DB10F12C1900989071 /* InfoPlist.strings in Resources */,
 				0EBB32DC10F12C1900989071 /* Localizable.strings in Resources */,
 				0EBB32DD10F12C1900989071 /* PGAbout.strings in Resources */,
@@ -1351,6 +1342,7 @@
 				0ED4A44D0DCC628F007C5A77 /* PGPDFAdapter.m in Sources */,
 				4BD905F82AE4D36F001FECBD /* PGResourceDataProvider.m in Sources */,
 				0ED4A8DD0DD00E18007C5A77 /* PGURLLoad.m in Sources */,
+				4BF35D0D2B062D1A008FC486 /* PGFullSizeContentController.m in Sources */,
 				0ED4AAF80DD18538007C5A77 /* PGFloatingPanelController.m in Sources */,
 				0ED4AB170DD18730007C5A77 /* PGInspectorPanelController.m in Sources */,
 				0E2D08790DD2B4F800EC128A /* PGRoundedBackgroundView.m in Sources */,
@@ -1384,8 +1376,6 @@
 				B581795C121490A60041F0F4 /* PGXMLAdapter.m in Sources */,
 				F1CA6DDB26BA587100ECE823 /* only_for_linking_cpp_dylib.cpp in Sources */,
 				4B2462E02ADAC51700BA81EF /* PGThumbnailInfoView.m in Sources */,
-				4B8739312B04DF3A00E85B91 /* PGFullSizeContentTitlebarAccessoryViewController.m in Sources */,
-				4B8739322B04DF3A00E85B91 /* PGFullSizeContentController.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1402,10 +1392,10 @@
 			name = libUniversalDetector.a;
 			targetProxy = 4B36EB202AFA4C00007CA113 /* PBXContainerItemProxy */;
 		};
-		4B36EB232AFA4C00007CA113 /* PBXTargetDependency */ = {
+		4BF35D022B055473008FC486 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = libXADMaster.a;
-			targetProxy = 4B36EB222AFA4C00007CA113 /* PBXContainerItemProxy */;
+			targetProxy = 4BF35D012B055473008FC486 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
