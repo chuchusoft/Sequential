@@ -25,13 +25,18 @@
   title bar and showing it. The keyboard shortcut for this command is option-F.
   There is also a blue circle button widget on the right side of the title bar
   that can also toggle the title bar (it performs the same operation as the
-  menu item).
+  menu item). It is disabled when the window is in macOS fullscreen mode.
   The mouse pointer can be moved to the title bar area to temporarily show the
   close/miniaturize/zoom buttons, the document name/title, and toggle button.
   Important: the window can not be moved while the title bar is hidden.
   The same menu item changes to "Use Entire Screen" when in fullscreen to have
   the image drawn in the notch area on screens with a notch (it does nothing
   if a notch is not present). The keyboard shortcut is the same: option-F.
+- added a standard macOS Full Screen menu item (shortcut: ctrl-command-F or
+  fn-F). The Sequential Full Screen menu item is now labelled
+  "Enter Full Screen (Sequential)" to make it clear which is which.
+- updated XADMaster library to v1.10.8 (used to navigate and decompress
+  archives)
 
 2.4.0 (2023-11-02)
 - PDF image drawing was being cached in a layer which resulted in a sub-optimal
