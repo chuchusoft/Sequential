@@ -155,11 +155,7 @@ static NSString *const PGBaseOrientationKey = @"PGBaseOrientation";
 - (void)setImageScaleMode:(PGImageScaleMode)aMode
 {
 	_imageScaleMode = aMode;
-#if __has_feature(objc_arc)
-	self.imageScaleFactor = 1;
-#else
 	_imageScaleFactor = 1;
-#endif
 	[[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithInteger:aMode] forKey:PGImageScaleModeKey];
 	[[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithDouble:1] forKey:PGImageScaleFactorKey];
 	[self PG_postNotificationName:PGPrefObjectImageScaleDidChangeNotification userInfo:[NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:YES], PGPrefObjectAnimateKey, nil]];
