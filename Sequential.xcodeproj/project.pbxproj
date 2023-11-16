@@ -147,6 +147,8 @@
 		4BD905F82AE4D36F001FECBD /* PGResourceDataProvider.m in Sources */ = {isa = PBXBuildFile; fileRef = 4BD905F72AE4D36F001FECBD /* PGResourceDataProvider.m */; };
 		4BEC932729152136009B5F59 /* libUniversalDetector.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F1601B8926D2C8380012FD2B /* libUniversalDetector.a */; };
 		4BF35D0D2B062D1A008FC486 /* PGFullSizeContentController.m in Sources */ = {isa = PBXBuildFile; fileRef = 4BF35D0C2B062D1A008FC486 /* PGFullSizeContentController.m */; };
+		4BF35D192B062F1D008FC486 /* PGFullSizeContentTitlebarAccessoryViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 4BF35D182B062F1D008FC486 /* PGFullSizeContentTitlebarAccessoryViewController.m */; };
+		4BF35D1B2B062F6A008FC486 /* PGFullSizeContentTitlebarAccessoryViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4BF35D1A2B062F6A008FC486 /* PGFullSizeContentTitlebarAccessoryViewController.xib */; };
 		8D15AC310486D014006FF6A4 /* PGDocument.m in Sources */ = {isa = PBXBuildFile; fileRef = 2A37F4ACFDCFA73011CA2CEA /* PGDocument.m */; settings = {ATTRIBUTES = (); }; };
 		8D15AC320486D014006FF6A4 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 2A37F4B0FDCFA73011CA2CEA /* main.m */; settings = {ATTRIBUTES = (); }; };
 		B581795C121490A60041F0F4 /* PGXMLAdapter.m in Sources */ = {isa = PBXBuildFile; fileRef = B581795B121490A60041F0F4 /* PGXMLAdapter.m */; };
@@ -584,6 +586,9 @@
 		4BD906062AE4D3E6001FECBD /* PGResourceDataProvider.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PGResourceDataProvider.h; sourceTree = "<group>"; };
 		4BF35D0B2B062D1A008FC486 /* PGFullSizeContentController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PGFullSizeContentController.h; sourceTree = "<group>"; };
 		4BF35D0C2B062D1A008FC486 /* PGFullSizeContentController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = PGFullSizeContentController.m; sourceTree = "<group>"; };
+		4BF35D172B062F1D008FC486 /* PGFullSizeContentTitlebarAccessoryViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PGFullSizeContentTitlebarAccessoryViewController.h; sourceTree = "<group>"; };
+		4BF35D182B062F1D008FC486 /* PGFullSizeContentTitlebarAccessoryViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = PGFullSizeContentTitlebarAccessoryViewController.m; sourceTree = "<group>"; };
+		4BF35D1A2B062F6A008FC486 /* PGFullSizeContentTitlebarAccessoryViewController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = PGFullSizeContentTitlebarAccessoryViewController.xib; sourceTree = "<group>"; };
 		8D15AC360486D014006FF6A4 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		8D15AC370486D014006FF6A4 /* Sequential.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Sequential.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B573CFF3122AC22200F4B7CA /* PGNodeParenting.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PGNodeParenting.h; sourceTree = "<group>"; };
@@ -982,6 +987,9 @@
 			children = (
 				4BF35D0B2B062D1A008FC486 /* PGFullSizeContentController.h */,
 				4BF35D0C2B062D1A008FC486 /* PGFullSizeContentController.m */,
+				4BF35D172B062F1D008FC486 /* PGFullSizeContentTitlebarAccessoryViewController.h */,
+				4BF35D182B062F1D008FC486 /* PGFullSizeContentTitlebarAccessoryViewController.m */,
+				4BF35D1A2B062F6A008FC486 /* PGFullSizeContentTitlebarAccessoryViewController.xib */,
 			);
 			path = FullSizeContentController;
 			sourceTree = "<group>";
@@ -1274,6 +1282,7 @@
 				0EBB329910F12B5F00989071 /* PGURL.xib in Resources */,
 				0EBB32DB10F12C1900989071 /* InfoPlist.strings in Resources */,
 				0EBB32DC10F12C1900989071 /* Localizable.strings in Resources */,
+				4BF35D1B2B062F6A008FC486 /* PGFullSizeContentTitlebarAccessoryViewController.xib in Resources */,
 				0EBB32DD10F12C1900989071 /* PGAbout.strings in Resources */,
 				0EBB32DE10F12C1900989071 /* PGActivity.strings in Resources */,
 				0EBB32DF10F12C1900989071 /* PGDocument.strings in Resources */,
@@ -1352,6 +1361,7 @@
 				0E9016AB0DF44A7E004B6F69 /* PGColorWell.m in Sources */,
 				0E90195C0DF55F50004B6F69 /* PGDocumentWindow.m in Sources */,
 				0E56B8DD0E24918C00987F57 /* PGActivityPanelController.m in Sources */,
+				4BF35D192B062F1D008FC486 /* PGFullSizeContentTitlebarAccessoryViewController.m in Sources */,
 				0EC33E3F0E29B0A700450CF8 /* PGProgressIndicatorCell.m in Sources */,
 				0E92E1360E2CA88400276801 /* PGGeometry.m in Sources */,
 				0E255B9B0E3A9A1E00EDF04C /* PGTimerPanelController.m in Sources */,
