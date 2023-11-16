@@ -405,6 +405,7 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 
 - (IBAction)changeImageScaleMode:(id)sender
 {
+	//	see -documentImageScaleDidChange:
 	[[self activeDocument] setImageScaleMode:[sender tag]];
 }
 - (IBAction)zoomIn:(id)sender
@@ -1282,7 +1283,18 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 	_displayImageIndex = [anra viewableNodeIndex];
 
 	[infoView setIndex:_displayImageIndex];
-	[self synchronizeWindowTitleWithDocumentName];
+
+	//	update the title bar accessory instead of the title
+	{
+	//	[self synchronizeWindowTitleWithDocumentName];
+		NSTextField *const accessoryTextField = _fullSizeContentController.accessoryTextField;
+
+		NSUInteger const nodeCount = [[[[self activeDocument] node] resourceAdapter] viewableNodeCount];
+		if(nodeCount <= 1)
+			accessoryTextField.stringValue = [NSString string];
+		else
+			accessoryTextField.stringValue = [NSString stringWithFormat:@"%lu/%lu", (unsigned long)_displayImageIndex + 1, (unsigned long)nodeCount];
+	}
 
 	//	2023/10/01 the Info window now shows the display progress
 	//	within a single folder/container
@@ -1445,8 +1457,9 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 	PGDisplayableIdentifier *const identifier = [[[self activeDocument] node] identifier];
 	NSURL *const URL = [identifier URL];
 	if([identifier isFileIdentifier]) {
-		NSString *const path = [identifier isFileIdentifier] ? [URL path] : nil;
-		[[self window] setRepresentedFilename:path ? path : blank];
+	//	NSString *const path = [identifier isFileIdentifier] ? [URL path] : nil;
+	//	[[self window] setRepresentedFilename:path ? path : blank];
+		[[self window] setRepresentedURL:URL];
 	} else {
 		[[self window] setRepresentedURL:URL];
 		NSButton *const docButton = [[self window] standardWindowButton:NSWindowDocumentIconButton];
@@ -1459,13 +1472,16 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 		[image recache];
 		[docButton setImage:image];
 	}
+
 	NSUInteger const nodeCount = [[[[self activeDocument] node] resourceAdapter] viewableNodeCount];
-	NSString *const title = [identifier displayName];
 	NSString *const titleDetails = nodeCount > 1 ?
 		[NSString stringWithFormat:@" (%lu/%lu)", (unsigned long)_displayImageIndex + 1, (unsigned long)nodeCount] :
 		blank;
 
-	[[self window] setTitle:title ? [title stringByAppendingString:titleDetails] : blank];
+	NSString *const title = [identifier displayName];
+//	[[self window] setTitle:title ? [title stringByAppendingString:titleDetails] : blank];
+	[[self window] setTitle:title ? title : blank];
+
 #if __has_feature(objc_arc)
 	NSMutableAttributedString *const menuLabel = [[identifier attributedStringWithAncestory:NO] mutableCopy];
 #else
@@ -1567,26 +1583,26 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 	}
 
 	// View:
-	if(@selector(toggleFullscreen:) == action) [anItem setTitle:NSLocalizedString(([[PGDocumentController sharedDocumentController] isFullscreen] ? @"Exit Full Screen" : @"Enter Full Screen"), @"Enter/exit full screen. Two states of the same item.")];
-/*	if(@selector(toggleEntireScreenWhenInFullScreen:) == action) {	//	2023/08/14 added
-		[anItem setState:PGDocumentController.sharedDocumentController.usesEntireScreenWhenInFullScreen];
-		//	this menu item is only enabled when the window is in full screen mode
-		BOOL const isInFullscreen = PGDocumentController.sharedDocumentController.fullscreen;
-		anItem.hidden = !isInFullscreen;
-		return isInFullscreen;
-	} */
+	if(@selector(toggleFullscreen:) == action)
+		[anItem setTitle:NSLocalizedString((PGDocumentController.sharedDocumentController.isFullscreen ?
+							@"Exit Full Screen (Sequential)" : @"Enter Full Screen (Sequential)"),
+							@"Enter/exit full screen. Two states of the same item.")];
+
 	if(@selector(toggleEntireWindowOrScreen:) == action) {	//	2023/08/14 added; 2023/11/16 renamed
 		//	this command is labelled (and behaves) differently depending on the fullscreen state:
-		//	* when in fullscreen, its label is "Use Entire Screen" and its state depends on a setting
+		//	* when in Sequential's fullscreen, its label is "Use Entire Screen" and its state depends
+		//		on PGDocumentController.sharedDocumentController.usesEntireScreenWhenInFullScreen
 		//	* when not in fullscreen, its label is "Use Entire Window"
 		//		and its state depends on the window's state
-		BOOL const isInFullscreen = PGDocumentController.sharedDocumentController.fullscreen;
-		anItem.title = isInFullscreen ? @"Use Entire Screen" : @"Use Entire Window";
-		if(isInFullscreen)
+		BOOL const isInSequentialFullscreen = PGDocumentController.sharedDocumentController.fullscreen;
+		anItem.title = isInSequentialFullscreen ? @"Use Entire Screen" : @"Use Entire Window";
+		if(isInSequentialFullscreen)
 			anItem.state = PGDocumentController.sharedDocumentController.usesEntireScreenWhenInFullScreen;
 		else
 			anItem.state = 0 != (self.window.styleMask & NSWindowStyleMaskFullSizeContentView);
-		return YES;
+
+		//	this command is disabled when the window is in macOS' fullscreen mode (ie, not Sequential's)
+		return 0 == (self.window.styleMask & NSWindowStyleMaskFullScreen);
 	}
 
 	if(@selector(toggleInfo:) == action) [anItem setTitle:NSLocalizedString(([[self activeDocument] showsInfo] ? @"Hide Info" : @"Show Info"), @"Lets the user toggle the on-screen display. Two states of the same item.")];
@@ -1766,55 +1782,62 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 
 //	MARK: -
 
-- (void)windowDidBecomeMain:(NSNotification *)aNotif
+- (void)windowDidBecomeKey:(NSNotification *)notification
 {
-	NSParameterAssert(aNotif);
-	if([aNotif object] != [self window]) return;
+#if __has_feature(objc_arc)
+	if([notification object] == _findPanel) [_findPanel makeFirstResponder:_searchField];
+#else
+	if([notification object] == _findPanel) [_findPanel makeFirstResponder:searchField];
+#endif
+}
+- (void)windowDidResignKey:(NSNotification *)notification
+{
+	if([notification object] == _findPanel) [_findPanel makeFirstResponder:nil];
+}
+
+- (void)windowDidBecomeMain:(NSNotification *)notification
+{
+	NSParameterAssert(notification);
+	if([notification object] != [self window]) return;
 	[[PGDocumentController sharedDocumentController] setCurrentDocument:[self activeDocument]];
 
 	if(_thumbnailController)
 		[_thumbnailController selectionNeedsDisplay];	//	2023/11/12
 }
-- (void)windowDidResignMain:(NSNotification *)aNotif
+- (void)windowDidResignMain:(NSNotification *)notification
 {
-	NSParameterAssert(aNotif);
-	if([aNotif object] != [self window]) return;
+	NSParameterAssert(notification);
+	if([notification object] != [self window]) return;
 	[[PGDocumentController sharedDocumentController] setCurrentDocument:nil];
 
 	if(_thumbnailController)
 		[_thumbnailController selectionNeedsDisplay];	//	2023/11/12
 }
 
-- (void)windowDidBecomeKey:(NSNotification *)aNotif
+- (void)windowWillClose:(NSNotification *)notification
 {
-#if __has_feature(objc_arc)
-	if([aNotif object] == _findPanel) [_findPanel makeFirstResponder:_searchField];
-#else
-	if([aNotif object] == _findPanel) [_findPanel makeFirstResponder:searchField];
-#endif
-}
-- (void)windowDidResignKey:(NSNotification *)aNotif
-{
-	if([aNotif object] == _findPanel) [_findPanel makeFirstResponder:nil];
-}
-
-- (void)windowWillBeginSheet:(NSNotification *)aNotif
-{
-	[_findPanel setIgnoresMouseEvents:YES];
-}
-- (void)windowDidEndSheet:(NSNotification *)aNotif
-{
-	[_findPanel setIgnoresMouseEvents:NO];
-}
-
-- (void)windowWillClose:(NSNotification *)aNotif
-{
-	NSParameterAssert(aNotif);
-	if([aNotif object] != [self window])
+	NSParameterAssert(notification);
+	if([notification object] != [self window])
 		return;
 	if([_findPanel parentWindow])
 		[_findPanel close];
 	[self close];
+}
+
+- (void)windowWillBeginSheet:(NSNotification *)notification
+{
+	[_findPanel setIgnoresMouseEvents:YES];
+}
+- (void)windowDidEndSheet:(NSNotification *)notification
+{
+	[_findPanel setIgnoresMouseEvents:NO];
+}
+
+- (void)windowWillEnterFullScreen:(NSNotification *)notification {
+	//	about to enter macOS' fullscreen mode: if the window is in full-size
+	//	content mode (titlebar hidden) then switch it back to normal mode
+	if(self.window.styleMask & NSWindowStyleMaskFullSizeContentView)
+		[_fullSizeContentController toggleFullSizeContent];
 }
 
 //	MARK: - <PGClipViewDelegate>
