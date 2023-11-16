@@ -748,11 +748,73 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 
 //	MARK: -
 
+static
+BOOL
+PerformMenuItemCommandWithKeyEquivalentWith(NSResponder *firstResponder,
+	NSEvent *event, NSMenu *menu) {
+	NSEventModifierFlags const modifierFlags =
+		NSEventModifierFlagDeviceIndependentFlagsMask & event.modifierFlags;
+//	NSString *const characters = event.characters;
+	NSString *const charactersIgnoringModifiers = event.charactersIgnoringModifiers;
+
+	for(NSMenuItem *mi in menu.itemArray) {
+		NSString *const keyEquivalent = mi.keyEquivalent;
+		NSEventModifierFlags const kemm = mi.keyEquivalentModifierMask;
+		SEL action = mi.action;
+		if(action && nil != keyEquivalent && 0 != keyEquivalent.length) {
+			if(modifierFlags == (NSEventModifierFlagDeviceIndependentFlagsMask & kemm) &&
+				[charactersIgnoringModifiers isEqual:keyEquivalent]) {
+//NSLog(@"\tke '%@' kemm 0x%02lx action %@",
+//keyEquivalent, kemm >> 16, NSStringFromSelector(action));
+				NSResponder *responder = mi.target;
+				if(nil == responder)
+					responder = firstResponder;
+				for(; nil != responder; responder = responder.nextResponder) {
+					if([responder respondsToSelector:action]) {
+						IMP imp = [responder methodForSelector:action];
+						void (*func)(id, SEL, id) = (void *)imp;
+						func(responder, action, mi);
+						return YES;
+					}
+				}
+				return NO;
+			}
+		}
+
+		NSMenu *const submenu = mi.submenu;
+		if(mi.hasSubmenu) {
+			BOOL performed = PerformMenuItemCommandWithKeyEquivalentWith(
+								firstResponder, event, submenu);
+			if(performed)
+				return performed;
+		}
+	}
+	return NO;
+}
+
+static
+BOOL
+PerformMenuItemCommandWithKeyEquivalent(NSWindow *firstResponder, NSEvent *event) {
+//	NSEventModifierFlags const modifierFlags = event.modifierFlags;
+//	NSString *const characters = event.characters;
+//	NSString *const charactersIgnoringModifiers = event.charactersIgnoringModifiers;
+//	unsigned short const keyCode = event.keyCode;
+//NSLog(@"evt characters '%@' cim '%@' modifierFlags 0x%02lx keyCode 0x%04X",
+//characters, charactersIgnoringModifiers, modifierFlags >> 16, keyCode);
+
+	BOOL performed = PerformMenuItemCommandWithKeyEquivalentWith(firstResponder,
+						event, NSApplication.sharedApplication.mainMenu);
+//NSLog(@"performed %c", performed ? 'Y' : 'N');
+	return performed;
+}
+
 - (void)keyDown:(NSEvent *)anEvent
 {
 	[NSCursor setHiddenUntilMouseMoves:YES];
-	if([[self delegate] clipView:self handleKeyDown:anEvent]) return;
-	if([anEvent modifierFlags] & NSEventModifierFlagCommand) return [super keyDown:anEvent];
+	if([[self delegate] clipView:self handleKeyDown:anEvent])
+		return;
+	if([anEvent modifierFlags] & NSEventModifierFlagCommand)
+		return [super keyDown:anEvent];
 	NSUInteger const modifiers = [anEvent modifierFlags];
 	BOOL const forward = !(NSEventModifierFlagShift & modifiers);
 	switch([anEvent keyCode]) {
@@ -786,7 +848,17 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 		case PGKeyQ:
 			return [super keyDown:anEvent]; // Pass these keys on.
 	}
-	if(![[NSApp mainMenu] performKeyEquivalent:anEvent]) [self interpretKeyEvents:[NSArray arrayWithObject:anEvent]];
+
+	//	2023/11/16 using -[NSMenu performKeyEquivalent:] causes 'F' to
+	//	perform a fn-F which makes the window enter macOS fullscreen
+	//	instead of executing the Scale menu --> Automatic Fit command;
+	//	it appears to be problem with the way macOS does key+modifier
+	//	matching; the simplest way to work-around this problem is to
+	//	do our own key+modifier matching which is implemented in
+	//	PerformMenuItemCommandWithKeyEquivalent()
+//	if(![[NSApp mainMenu] performKeyEquivalent:anEvent]) <=== problematic
+	if(!PerformMenuItemCommandWithKeyEquivalent(self.window, anEvent))
+		[self interpretKeyEvents:[NSArray arrayWithObject:anEvent]];
 }
 - (BOOL)performKeyEquivalent:(NSEvent *)anEvent
 {
