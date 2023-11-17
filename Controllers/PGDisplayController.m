@@ -1140,17 +1140,24 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 
 - (void)prefControllerBackgroundColorUsedInFullScreenDidChange:(NSNotification *)aNotif;
 {
-	if(PGDocumentController.sharedDocumentController.fullscreen)
+	if(self._isInAnyFullScreenMode)
 		[self _setClipViewBackground];	//	updates only when in fullscreen mode
 }
 
 //	MARK: - PGDisplayController(Private)
 
+//	ensures that whether in macOS-fullscreen or Sequential-fullscreen,
+//	the app behaves the same
+- (BOOL)_isInAnyFullScreenMode {
+	return PGDocumentController.sharedDocumentController.fullscreen ||
+			0 != (self.window.styleMask & NSWindowStyleMaskFullScreen);
+}
+
 - (void)_setClipViewBackground {
 	//	2023/08/14 added this method to enable the background color to depend on
 	//	whether the view's window is in fullscreen mode and whether user wants it
 	//	used in fullscreen mode.
-	if(PGDocumentController.sharedDocumentController.fullscreen &&
+	if(self._isInAnyFullScreenMode &&
 		![NSUserDefaults.standardUserDefaults boolForKey:PGBackgroundColorUsedInFullScreenKey])
 #if __has_feature(objc_arc)
 		[_clipView setBackgroundColor:NSColor.blackColor];
@@ -1778,6 +1785,14 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 		[_findFieldEditor setFieldEditor:YES];
 	}
 	return _findFieldEditor;
+}
+
+- (void)windowDidEnterFullScreen:(NSNotification *)notification {
+	[self _setClipViewBackground];
+}
+
+- (void)windowDidExitFullScreen:(NSNotification *)notification {
+	[self _setClipViewBackground];
 }
 
 //	MARK: -
