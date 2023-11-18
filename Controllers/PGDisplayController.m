@@ -1793,6 +1793,17 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 
 - (void)windowDidExitFullScreen:(NSNotification *)notification {
 	[self _setClipViewBackground];
+
+	//	When macOS-fullscreen mode is exited, the Use Entire Window command
+	//	is not executed when option-F is typed because the menu items in the
+	//	View menu are in an incorrect state, so find the View menu and update
+	//	its items.
+	NSMenu *const mainMenu = NSApplication.sharedApplication.mainMenu;
+	NSInteger const viewMenuIndex = [mainMenu indexOfItemWithTitle:@"View"];
+	NSAssert(NSNotFound != viewMenuIndex, @"");
+	NSMenuItem *const viewMenuItem = [mainMenu itemAtIndex:viewMenuIndex];
+	NSAssert(nil != viewMenuItem, @"");
+	[viewMenuItem.submenu update];
 }
 
 //	MARK: -
