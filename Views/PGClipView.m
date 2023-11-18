@@ -750,70 +750,50 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 
 static
 BOOL
-PerformMenuItemCommandWithKeyEquivalentWith(NSResponder *firstResponder,
-	NSEvent *event, NSMenu *menu) {
+PerformMenuItemActionWithMatchingKeyEquivalent(NSEvent *event, NSMenu *menu) {
 	NSEventModifierFlags const modifierFlags =
 		NSEventModifierFlagDeviceIndependentFlagsMask & event.modifierFlags;
-//	NSString *const characters = event.characters;
 	NSString *const charactersIgnoringModifiers = event.charactersIgnoringModifiers;
 
 	NSArray<NSMenuItem *> *itemArray = menu.itemArray;
 	for(NSMenuItem *mi in itemArray) {
-		NSString *const keyEquivalent = mi.keyEquivalent;
-		NSEventModifierFlags const kemm = mi.keyEquivalentModifierMask;
 		SEL action = mi.action;
+		NSString *const keyEquivalent = mi.keyEquivalent;
 		if(action && nil != keyEquivalent && 0 != keyEquivalent.length) {
-			if(modifierFlags == (NSEventModifierFlagDeviceIndependentFlagsMask & kemm) &&
-				[charactersIgnoringModifiers isEqual:keyEquivalent]) {
-//NSLog(@"\tke '%@' kemm 0x%02lx action %@",
-//keyEquivalent, kemm >> 16, NSStringFromSelector(action));
-				NSResponder *responder = mi.target;
-				if(nil == responder)
-					responder = firstResponder;
-				for(; nil != responder; responder = responder.nextResponder) {
-					if([responder respondsToSelector:action]) {
-					#if 1
-						NSInteger index = [itemArray indexOfObject:mi];
-						NSCAssert(NSNotFound != index, @"");
-						[menu performActionForItemAtIndex:index];
-					#else
-						//	this does not flash the menu bar (nor trigger accessibility notifications)
-						IMP imp = [responder methodForSelector:action];
-						void (*func)(id, SEL, id) = (void *)imp;
-						func(responder, action, mi);
-					#endif
-						return YES;
-					}
+			NSEventModifierFlags const kemm =
+				NSEventModifierFlagDeviceIndependentFlagsMask & mi.keyEquivalentModifierMask;
+			if(modifierFlags == kemm && [charactersIgnoringModifiers isEqual:keyEquivalent]) {
+//NSLog(@"  matched '%@' ke '%@' kemm 0x%02lx action %@",
+//mi.title, keyEquivalent, kemm >> 16, NSStringFromSelector(action));
+
+				NSInteger index = [itemArray indexOfObject:mi];
+				NSCAssert(NSNotFound != index, @"");
+				{	//	the menu item must be validated otherwise it might not execute
+				//	[menu update]; <== validates every item in the menu
+					//	validate just the menu item
+					id validator = [NSApp targetForAction:action to:mi.target from:menu];
+					if(validator && [validator respondsToSelector:@selector(validateMenuItem:)])
+						[mi setEnabled:[validator validateMenuItem:mi]];
+					else
+						abort();
 				}
-				return NO;
+//NSLog(@"  executing menu item @ index %lu in menu %@", index, menu.title);
+				[menu performActionForItemAtIndex:index];
+				return YES;
 			}
+//			else if([[charactersIgnoringModifiers lowercaseString] isEqual:[keyEquivalent lowercaseString]]) {
+//				NSLog(@"  possible: '%@' ke '%@' kemm 0x%02lx action %@",
+//					mi.title, keyEquivalent, kemm >> 16, NSStringFromSelector(action));
+//			}
 		}
 
-		NSMenu *const submenu = mi.submenu;
 		if(mi.hasSubmenu) {
-			BOOL performed = PerformMenuItemCommandWithKeyEquivalentWith(
-								firstResponder, event, submenu);
+			BOOL const performed = PerformMenuItemActionWithMatchingKeyEquivalent(event, mi.submenu);
 			if(performed)
 				return performed;
 		}
 	}
 	return NO;
-}
-
-static
-BOOL
-PerformMenuItemCommandWithKeyEquivalent(NSWindow *firstResponder, NSEvent *event) {
-//	NSEventModifierFlags const modifierFlags = event.modifierFlags;
-//	NSString *const characters = event.characters;
-//	NSString *const charactersIgnoringModifiers = event.charactersIgnoringModifiers;
-//	unsigned short const keyCode = event.keyCode;
-//NSLog(@"evt characters '%@' cim '%@' modifierFlags 0x%02lx keyCode 0x%04X",
-//characters, charactersIgnoringModifiers, modifierFlags >> 16, keyCode);
-
-	BOOL performed = PerformMenuItemCommandWithKeyEquivalentWith(firstResponder,
-						event, NSApplication.sharedApplication.mainMenu);
-//NSLog(@"performed %c", performed ? 'Y' : 'N');
-	return performed;
 }
 
 - (void)keyDown:(NSEvent *)anEvent
@@ -865,7 +845,19 @@ PerformMenuItemCommandWithKeyEquivalent(NSWindow *firstResponder, NSEvent *event
 	//	do our own key+modifier matching which is implemented in
 	//	PerformMenuItemCommandWithKeyEquivalent()
 //	if(![[NSApp mainMenu] performKeyEquivalent:anEvent]) <=== problematic
-	if(!PerformMenuItemCommandWithKeyEquivalent(self.window, anEvent))
+//		[self interpretKeyEvents:[NSArray arrayWithObject:anEvent]];
+{
+//	NSEventModifierFlags const modifierFlags = event.modifierFlags;
+//	NSString *const characters = event.characters;
+//	NSString *const charactersIgnoringModifiers = event.charactersIgnoringModifiers;
+//	unsigned short const keyCode = event.keyCode;
+//	NSLog(@"evt characters '%@' cim '%@' modifierFlags 0x%02lx keyCode 0x%04X",
+//		characters, charactersIgnoringModifiers, modifierFlags >> 16, keyCode);
+}
+	BOOL performed = PerformMenuItemActionWithMatchingKeyEquivalent(
+						anEvent, NSApplication.sharedApplication.mainMenu);
+//NSLog(@"performed %c", performed ? 'Y' : 'N');
+	if(!performed)
 		[self interpretKeyEvents:[NSArray arrayWithObject:anEvent]];
 }
 - (BOOL)performKeyEquivalent:(NSEvent *)anEvent
