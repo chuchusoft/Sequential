@@ -50,6 +50,8 @@ FindTitleTextFieldInTitleBar(NSWindow *const window) {
 	return (NSTextField *)titleView;
 }
 
+//	MARK: -
+
 static
 void
 SetAlpha(NSView *const view, BOOL visible) {
@@ -66,12 +68,12 @@ static
 void
 SetTextFieldAlphaAndBackground(NSTextField *const tf, BOOL visible, BOOL drawsBackground) {
 	SetAlpha(tf, visible);
+	SetTextFieldBackground(tf, drawsBackground);
 
 	//	the titlebar textfield is normally configured with backgroundColor = nil
 	//	so a NSColor.textBackgroundColor instance must be assigned to it when
 	//	in full-size content mode, and when not in full-size content mode, the
 	//	backgroundColor must be reset back to nil
-	SetTextFieldBackground(tf, drawsBackground);
 	tf.backgroundColor = drawsBackground ? NSColor.textBackgroundColor : nil;
 }
 
@@ -86,30 +88,51 @@ SetAlphaAndBackgroundIfTextField(NSView *const view, BOOL visible, BOOL drawsBac
 
 //	MARK: -
 
-typedef struct TrackingRectTags {
-	//	Tracking rect tags are created to track mouse hovering over the views
-	//	in the title bar when full-size content is enabled for the window.
-	//
-	//	3 distinct areas are tracked:
-	//		0 = left-side controls: the close/miniaturize/zoom buttons
-	//		1 = right-side controls: progress label, toggle-full-size button
-	//		2 = middle control: title text-field
-	NSTrackingRectTag	tags[3];
-} TrackingRectTags;
+static
+NSTrackingArea * _Nullable
+DeleteTrackingArea(NSTrackingArea *trackingArea, NSView *trackingView) {
+	NSCAssert(nil != trackingArea, @"");
+	[trackingView removeTrackingArea:trackingArea];
+	#if !__has_feature(objc_arc)
+	[trackingArea release];
+	#endif
+//	trackingArea = nil;
+	return nil;
+}
+
+static const NSString *const TrackingViewKey = @"TrackingView";
+
+static
+NSTrackingArea *
+CreateAndRegisterTrackingArea(NSRect rect, PGFullSizeContentController *owner,
+	NSView *view, NSView *viewForUserInfo) {
+	NSTrackingArea *const trackingArea = [[NSTrackingArea alloc] initWithRect:rect
+		options:(NSTrackingMouseEnteredAndExited | NSTrackingActiveAlways)
+		  owner:owner
+	   userInfo:viewForUserInfo ? @{ TrackingViewKey:viewForUserInfo } : nil];
+	[view addTrackingArea:trackingArea];
+	return trackingArea;
+}
+
+//	MARK: -
 
 @interface PGFullSizeContentController () <PGFullSizeContentTitlebarAccessoryViewDelegate>
 
 #if !__has_feature(objc_arc)
 {
 	NSWindow *_window;
-	TrackingRectTags _trackingRectTags;
+	NSTrackingArea *_lhsTrackingArea;
+	NSTrackingArea *_midTrackingArea;
+	NSTrackingArea *_rhsTrackingArea;
 	PGFullSizeContentTitlebarAccessoryViewController
 		*_fullSizeContentTitlebarAccessoryViewController;
 }
 #endif
 
 @property (nonatomic, weak) NSWindow *window;
-@property (nonatomic, assign) TrackingRectTags trackingRectTags;
+@property (nonatomic, strong, nullable) NSTrackingArea *lhsTrackingArea;
+@property (nonatomic, strong, nullable) NSTrackingArea *midTrackingArea;
+@property (nonatomic, strong, nullable) NSTrackingArea *rhsTrackingArea;
 @property (nonatomic, weak) PGFullSizeContentTitlebarAccessoryViewController
 							*fullSizeContentTitlebarAccessoryViewController;
 
@@ -219,7 +242,6 @@ titleTextField.superview.subviews.count);
 		NSLog(@"\tchild %@", v);
 	}
 } */
-	TrackingRectTags tags = {0};
 
 	if(isFullSizeContentView) {
 		NSRect r = NSZeroRect;
@@ -236,10 +258,8 @@ titleTextField.superview.subviews.count);
 			NSRect br = [button convertRect:button.bounds toView:superView];
 			r = NSEqualRects(r, NSZeroRect) ? br : NSUnionRect(r, br);
 		}
-		tags.tags[0] = [superView addTrackingRect:r
-											owner:self
-										 userData:nil
-									 assumeInside:NO];
+		NSAssert(nil == _lhsTrackingArea, @"");
+		_lhsTrackingArea = CreateAndRegisterTrackingArea(r, self, superView, nil);
 
 		r = NSZeroRect;
 		for(NSView *view in rhs.subviews) {
@@ -248,10 +268,8 @@ titleTextField.superview.subviews.count);
 			NSRect br = [view convertRect:view.bounds toView:rhs];
 			r = NSEqualRects(r, NSZeroRect) ? br : NSUnionRect(r, br);
 		}
-		tags.tags[1] = [rhs addTrackingRect:r
-									  owner:self
-								   userData:nil
-							   assumeInside:NO];
+		NSAssert(nil == _rhsTrackingArea, @"");
+		_rhsTrackingArea = CreateAndRegisterTrackingArea(r, self, rhs, nil);
 
 		if(titleTextField) {
 			SetTextFieldAlphaAndBackground(titleTextField, NO, NO);
@@ -261,51 +279,43 @@ titleTextField.superview.subviews.count);
 												  toView:titleTextField.superview];
 				NSRect dir = [documentIconButton convertRect:documentIconButton.bounds
 													  toView:documentIconButton.superview];
-				tags.tags[2] = [titleTextField.superview addTrackingRect:NSUnionRect(tfr, dir)
-																   owner:self
-																userData:nil
-															assumeInside:NO];
+				NSAssert(nil == _midTrackingArea, @"");
+				_midTrackingArea = CreateAndRegisterTrackingArea(NSUnionRect(tfr, dir), self,
+									titleTextField.superview, titleTextField.superview);
 			} else {
-				tags.tags[2] = [titleTextField addTrackingRect:titleTextField.bounds
-														 owner:self
-													  userData:nil
-												  assumeInside:NO];
+				NSAssert(nil == _midTrackingArea, @"");
+				_midTrackingArea = CreateAndRegisterTrackingArea(titleTextField.bounds, self,
+									titleTextField, titleTextField);
 			}
 		}
 	} else {
 		for(NSUInteger i = NSWindowCloseButton; i <= NSWindowZoomButton; ++i)
 			SetAlpha([w standardWindowButton:i], YES);
-		[[w standardWindowButton:NSWindowCloseButton].superview
-			removeTrackingRect:self.trackingRectTags.tags[0]];
+		_lhsTrackingArea = DeleteTrackingArea(_lhsTrackingArea,
+			[w standardWindowButton:NSWindowCloseButton].superview);
 
 		for(NSView *view in rhs.subviews)
 			SetAlphaAndBackgroundIfTextField(view, YES, NO);
-		[rhs removeTrackingRect:self.trackingRectTags.tags[1]];
+		_rhsTrackingArea = DeleteTrackingArea(_rhsTrackingArea, rhs);
 
-		if(titleTextField) {
+		if(titleTextField)
 			SetTextFieldAlphaAndBackground(titleTextField, YES, NO);
-			if(documentIconButton) {
-				SetAlpha(documentIconButton, YES);
-				[titleTextField.superview removeTrackingRect:self.trackingRectTags.tags[2]];
-			} else {
-				[titleTextField removeTrackingRect:self.trackingRectTags.tags[2]];
-			}
-		}
+		if(_midTrackingArea)
+			_midTrackingArea = DeleteTrackingArea(_midTrackingArea,
+				[_midTrackingArea.userInfo objectForKey:TrackingViewKey]);
 	}
-
-	self.trackingRectTags = tags;	//	must mutate struct in a single step
 }
 
-- (void)_setVisibilityOfTitleBarButtonsForTag:(NSTrackingRectTag)tag
-									  visible:(BOOL)visible {
-	if(self.trackingRectTags.tags[0] == tag) {
+- (void)_setVisibilityOfTitleBarButtonsForTrackingArea:(NSTrackingArea *)trackingArea
+											   visible:(BOOL)visible {
+	if(_lhsTrackingArea == trackingArea) {
 		for(NSUInteger i = NSWindowCloseButton; i <= NSWindowZoomButton; ++i)
 			SetAlpha([self.window standardWindowButton:i], visible);
-	} else if(self.trackingRectTags.tags[1] == tag) {
+	} else if(_rhsTrackingArea == trackingArea) {
 		NSView *rhs = self.fullSizeContentTitlebarAccessoryViewController.view;
 		for(NSView *view in rhs.subviews)
 			SetAlphaAndBackgroundIfTextField(view, visible, visible);
-	} else if(self.trackingRectTags.tags[2] == tag) {
+	} else if(_midTrackingArea == trackingArea) {
 		NSTextField *titleTextField = FindTitleTextFieldInTitleBar(self.window);
 		NSAssert(titleTextField, @"");
 		SetTextFieldAlphaAndBackground(titleTextField, visible, visible);
@@ -318,15 +328,17 @@ titleTextField.superview.subviews.count);
 
 //	MARK: <MouseTrackingDelegate>
 - (void)mouseEntered:(NSEvent *)theEvent {
-	[self _setVisibilityOfTitleBarButtonsForTag:theEvent.trackingNumber visible:YES];
+	[self _setVisibilityOfTitleBarButtonsForTrackingArea:theEvent.trackingArea
+												 visible:YES];
 }
 
 - (void)mouseExited:(NSEvent *)theEvent {
-	[self _setVisibilityOfTitleBarButtonsForTag:theEvent.trackingNumber visible:NO];
+	[self _setVisibilityOfTitleBarButtonsForTrackingArea:theEvent.trackingArea
+												 visible:NO];
 }
 
 //	MARK: <FullSizeContentTitlebarAccessoryViewDelegate>
-- (void)fullSizeContentTitlebarAccessoryViewWasToggled:(BOOL)setting {
+- (void)fullSizeContentTitlebarAccessoryViewWasToggled:(BOOL)setting_IGNORED {
 	NSWindow *const w = self.window;
 	NSRect const frame = w.frame;
 	NSWindowStyleMask styleMask = w.styleMask;
@@ -337,20 +349,46 @@ titleTextField.superview.subviews.count);
 //	w.titleVisibility = isFullSizeContentView ? NSWindowTitleVisible :
 //						NSWindowTitleHidden;
 
-	if(isFullSizeContentView)
+	if(isFullSizeContentView) {
+		//	When the styleMask is altered, AppKit tries to animate the window
+		//	to a larger size which is then reduced back to the final size
+		//	specified by the frame variable in the -[NSWindow setFrame:display:]
+		//	call below. That larger size causes problems with the title bar's
+		//	title text field getting messed up. The simplest way to work-around
+		//	this problem is to reduce the frame height by 1 point before altering
+		//	the styleMask. However, because this frame height change causes a
+		//	weird stuttering during the frame's animation, this height change is
+		//	only done when the window's height is close to the height of the
+		//	screen's visible area.
+		if(w.screen.visibleFrame.size.height - frame.size.height < 4.0f) {
+			//	do NOT animate this call, ie, don't use [w.animator setFrame:...]
+			[w setFrame:NSMakeRect(frame.origin.x, frame.origin.y,
+									frame.size.width, frame.size.height - 1.0f)
+				display:NO];
+//NSLog(@"*** window frame's height was reduced by 1 point ***");
+		}
 		styleMask &= ~NSWindowStyleMaskFullSizeContentView;
-	else
+	} else
 		styleMask |= NSWindowStyleMaskFullSizeContentView;
-	w.styleMask = styleMask;
+	w.animator.styleMask = styleMask;
 
 	[self _updateTrackingAreas:!isFullSizeContentView];
 
-	//	When the window's styleMask is changed, the frame's size is
-	//	altered by NSWindow. Since the point of all of this is to
-	//	*just* make the titlebar disappear but not change the window's
-	//	size or location, reverse the changes to the frame by
-	//	restoring its value:
-	[w setFrame:frame display:NO];
+	//	When the window's styleMask is changed, the frame's size is altered
+	//	by NSWindow. Since the point of all of this is to *just* make the
+	//	titlebar disappear but not change the window's size or location,
+	//	reverse the changes to the frame by restoring its value.
+	//	However, when the title bar is close to the top of the screen (just
+	//	under the menu bar), the animation during -setFrame: looks odd so
+	//	detect that situation and if so, perform a non-animated -setFrame:.
+	CGFloat const titleBarHeight = [w standardWindowButton:NSWindowCloseButton].superview.frame.size.height;
+	if(isFullSizeContentView &&
+		NSMaxY(w.screen.visibleFrame) - NSMaxY(frame) < titleBarHeight) {
+		[w setFrame:frame display:NO];	//	the animation looks odd
+//NSLog(@"-setFrame: is NOT animated (titleBarHeight %5.2f", titleBarHeight);
+	} else {
+		[w.animator setFrame:frame display:NO];	//	the animation looks OK
+	}
 }
 
 //	MARK: public API
