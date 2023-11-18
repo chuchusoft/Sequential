@@ -41,18 +41,27 @@
 	#define HALF_STROKE_WIDTH (STROKE_WIDTH * 0.5f)
 	NSBezierPath *const path = [NSBezierPath bezierPathWithOvalInRect:NSInsetRect(
 								cellFrame, HALF_STROKE_WIDTH, HALF_STROKE_WIDTH)];
+	path.lineWidth = STROKE_WIDTH;
+
 	BOOL const isEnabled = self.isEnabled;
-	if(isEnabled)
-		[[NSColor.systemBlueColor highlightWithLevel:0.15f] set];
-	else
-		[[NSColor.systemGrayColor highlightWithLevel:0.70f] set];
+	NSColor *color = nil;
+	if(isEnabled) {
+		if(self.isHighlighted)
+			color = [NSColor colorWithSRGBRed:0.141f green:0.54f blue:1.0f alpha:1.0f];
+		else
+			color = [NSColor colorWithSRGBRed:0.07f green:0.45f blue:1.0f alpha:1.0f];
+	} else
+		color = [NSColor.systemGrayColor highlightWithLevel:0.70f];
+	[color setFill];
 	[path fill];
 
-	if(isEnabled)
-		[[NSColor.systemBlueColor highlightWithLevel:0.00f] set];
-	else
-		[[NSColor.systemGrayColor highlightWithLevel:0.35f] set];
-	path.lineWidth = STROKE_WIDTH;
+	if([controlView.effectiveAppearance.name isEqual:NSAppearanceNameVibrantLight]) {
+		if(isEnabled)
+			color = [NSColor colorWithSRGBRed:0.f green:0.33f blue:0.66f alpha:1.0f];
+		else
+			color = [NSColor.systemGrayColor highlightWithLevel:0.35f];
+	}
+	[color setStroke];
 	[path stroke];
 
 	//	only draw chevron (as text) when the mouse is hovering over the view/cell
