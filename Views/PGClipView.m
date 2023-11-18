@@ -757,7 +757,8 @@ PerformMenuItemCommandWithKeyEquivalentWith(NSResponder *firstResponder,
 //	NSString *const characters = event.characters;
 	NSString *const charactersIgnoringModifiers = event.charactersIgnoringModifiers;
 
-	for(NSMenuItem *mi in menu.itemArray) {
+	NSArray<NSMenuItem *> *itemArray = menu.itemArray;
+	for(NSMenuItem *mi in itemArray) {
 		NSString *const keyEquivalent = mi.keyEquivalent;
 		NSEventModifierFlags const kemm = mi.keyEquivalentModifierMask;
 		SEL action = mi.action;
@@ -771,9 +772,16 @@ PerformMenuItemCommandWithKeyEquivalentWith(NSResponder *firstResponder,
 					responder = firstResponder;
 				for(; nil != responder; responder = responder.nextResponder) {
 					if([responder respondsToSelector:action]) {
+					#if 1
+						NSInteger index = [itemArray indexOfObject:mi];
+						NSCAssert(NSNotFound != index, @"");
+						[menu performActionForItemAtIndex:index];
+					#else
+						//	this does not flash the menu bar (nor trigger accessibility notifications)
 						IMP imp = [responder methodForSelector:action];
 						void (*func)(id, SEL, id) = (void *)imp;
 						func(responder, action, mi);
+					#endif
 						return YES;
 					}
 				}
