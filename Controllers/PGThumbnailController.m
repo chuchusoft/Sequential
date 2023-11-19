@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 // Controllers
 #import "PGDisplayController.h"
 #import "PGDocumentController.h"
+#import "PGFullSizeContentController.h"
 
 // Other Sources
 #import "PGAppKitAdditions.h"
@@ -54,13 +55,15 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 
 #if __has_feature(objc_arc)
 
-@interface PGThumbnailController ()
+@interface PGThumbnailController () <PGFullSizeContentProtocol>
 
 @property (nonatomic, strong) PGBezelPanel *window;
 @property (nonatomic, weak) PGThumbnailBrowser *browser;
 
 @property (nonatomic, strong) PGBezelPanel *infoWindow;	//	2023/10/02 added
 @property (nonatomic, weak) NSView *infoView;	//	2023/10/02 added [PGThumbnailInfoView]
+
+@property (nonatomic, assign) BOOL parentWindowIsAnimating;
 
 - (void)_updateInfoWindowFrame:(BOOL)needsDisplay;	//	2023/10/02
 - (void)_updateWindowFrame;
@@ -69,7 +72,7 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 
 #else
 
-@interface PGThumbnailController(Private)
+@interface PGThumbnailController(Private) <PGFullSizeContentProtocol>
 
 - (void)_updateInfoWindowFrame:(BOOL)needsDisplay;	//	2023/10/02
 - (void)_updateWindowFrame;
@@ -207,11 +210,13 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 {
 	[_browser redisplayItem:[[self displayController] activeNode] recursively:NO];
 
-	[self _updateInfoWindowFrame:YES];	//	2023/10/14
+//	[self _updateInfoWindowFrame:YES];	//	2023/10/14
 }
 - (void)parentWindowDidResize:(NSNotification *)aNotif
 {
+//NSLog(@"-[PGThumbnailController parentWindowDidResize:] %@", [NSAnimationContext currentContext]);
 	[self _updateWindowFrame];
+	[self _updateInfoWindowFrame:YES];	//	2023/10/14
 }
 - (void)parentWindowWillBeginSheet:(NSNotification *)aNotif
 {
@@ -277,6 +282,7 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 
 - (void)_updateWindowFrame
 {
+	if(_parentWindowIsAnimating) return;
 	NSWindow *const p = [_displayController window];
 	if(!p) return;
 	NSRect r = [p PG_contentRect];
@@ -375,6 +381,19 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 	if(_selfRetained) [self autorelease];
 	_selfRetained = NO;
 #endif
+}
+
+//	MARK: - <PGFullSizeContentProtocol>
+
+- (void)fullSizeContentController:(PGFullSizeContentController *)controller
+			   willStartAnimating:(NSWindow *)window {
+//NSLog(@"-[PGThumbnailController fullSizeContentController:willStartAnimating:]");
+	_parentWindowIsAnimating = YES;	//	disable browser window resizing
+}
+- (void)fullSizeContentController:(PGFullSizeContentController *)controller
+			   didFinishAnimating:(NSWindow *)window {
+//NSLog(@"-[PGThumbnailController fullSizeContentController:didFinishAnimating:]");
+	_parentWindowIsAnimating = NO;	//	enable browser window resizing
 }
 
 //	MARK: - <PGThumbnailBrowserDataSource>
