@@ -9,6 +9,7 @@
 NS_ASSUME_NONNULL_BEGIN
 
 @class NSWindow;
+@class NSTextField;
 
 @interface PGFullSizeContentController : NSObject
 
@@ -18,6 +19,22 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)toggleFullSizeContent;
 
 @property (readonly, nullable) NSTextField *accessoryTextField;
+
+@end
+
+//	MARK: -
+
+//	With the window passed to -[PGFullSizeContentController initWithWindow:],
+//	its child windows are checked whether any conform to this protocol. If
+//	so, the child window is invoked when the animation begins and ends when
+//	the parent window is being transitioned to/from fullsize-content mode.
+@protocol PGFullSizeContentProtocol <NSObject>
+
+@required
+- (void)fullSizeContentController:(PGFullSizeContentController *)controller
+			   willStartAnimating:(NSWindow *)window;
+- (void)fullSizeContentController:(PGFullSizeContentController *)controller
+			   didFinishAnimating:(NSWindow *)window;
 
 @end
 
