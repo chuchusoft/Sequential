@@ -116,6 +116,36 @@ CreateAndRegisterTrackingArea(NSRect rect, PGFullSizeContentController *owner,
 
 //	MARK: -
 
+static
+void
+InformPossiblePGFullSizeContentProtocolAdopter(id object,
+	PGFullSizeContentController *sender, NSWindow *parent) {
+	if(![object conformsToProtocol:@protocol(PGFullSizeContentProtocol)])
+		return;
+
+	NSObject<PGFullSizeContentProtocol> *adopter = (NSObject<PGFullSizeContentProtocol> *)object;
+
+	//	start message:
+	[adopter fullSizeContentController:sender willStartAnimating:parent];
+
+	//	finish message:
+	SEL selector = @selector(fullSizeContentController:didFinishAnimating:);
+	NSMethodSignature *sig = [adopter methodSignatureForSelector:selector];
+	NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:sig];
+	invocation.selector = selector;
+
+	__unsafe_unretained PGFullSizeContentController *uu_sender = sender;
+	[invocation setArgument:&uu_sender atIndex:2];
+	__unsafe_unretained NSWindow *uu_parent = parent;
+	[invocation setArgument:&uu_parent atIndex:3];
+
+	[invocation performSelector:@selector(invokeWithTarget:)
+					 withObject:adopter	//	the arg passed to -[NSInvocation invokeWithTarget:]
+					 afterDelay:NSAnimationContext.currentContext.duration];
+}
+
+//	MARK: -
+
 @interface PGFullSizeContentController () <PGFullSizeContentTitlebarAccessoryViewDelegate>
 
 #if !__has_feature(objc_arc)
@@ -345,7 +375,12 @@ titleTextField.superview.subviews.count);
 	NSWindowStyleMask const isFullSizeContentView =
 		NSWindowStyleMaskFullSizeContentView & styleMask;
 
-	w.titlebarAppearsTransparent = !isFullSizeContentView;
+	for(NSWindow *child in w.childWindows) {
+		InformPossiblePGFullSizeContentProtocolAdopter(child, self, w);
+		InformPossiblePGFullSizeContentProtocolAdopter(child.delegate, self, w);
+	}
+
+	w.animator.titlebarAppearsTransparent = !isFullSizeContentView;
 //	w.titleVisibility = isFullSizeContentView ? NSWindowTitleVisible :
 //						NSWindowTitleHidden;
 
@@ -370,6 +405,7 @@ titleTextField.superview.subviews.count);
 		styleMask &= ~NSWindowStyleMaskFullSizeContentView;
 	} else
 		styleMask |= NSWindowStyleMaskFullSizeContentView;
+//NSLog(@"-fullSizeContentTitlebarAccessoryViewWasToggled: w.animator.styleMask");
 	w.animator.styleMask = styleMask;
 
 	[self _updateTrackingAreas:!isFullSizeContentView];
@@ -381,7 +417,9 @@ titleTextField.superview.subviews.count);
 	//	However, when the title bar is close to the top of the screen (just
 	//	under the menu bar), the animation during -setFrame: looks odd so
 	//	detect that situation and if so, perform a non-animated -setFrame:.
-	CGFloat const titleBarHeight = [w standardWindowButton:NSWindowCloseButton].superview.frame.size.height;
+//NSLog(@"-fullSizeContentTitlebarAccessoryViewWasToggled: -setFrame:display:");
+	CGFloat const titleBarHeight = [w standardWindowButton:NSWindowCloseButton]
+									.superview.frame.size.height;
 	if(isFullSizeContentView &&
 		NSMaxY(w.screen.visibleFrame) - NSMaxY(frame) < titleBarHeight) {
 		[w setFrame:frame display:NO];	//	the animation looks odd
@@ -389,6 +427,8 @@ titleTextField.superview.subviews.count);
 	} else {
 		[w.animator setFrame:frame display:NO];	//	the animation looks OK
 	}
+
+//NSLog(@"-fullSizeContentTitlebarAccessoryViewWasToggled: exiting");
 }
 
 //	MARK: public API
