@@ -1787,6 +1787,21 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 	return _findFieldEditor;
 }
 
+//	MARK : -
+/* - (NSSize)windowWillResize:(NSWindow *)sender toSize:(NSSize)frameSize {
+NSLog(@"-[PGDisplayController windowWillResize:toSize:(%5.2f, %5.2f)]",
+frameSize.width, frameSize.height);
+	return frameSize;
+} */
+
+//	MARK: -
+- (void)windowWillEnterFullScreen:(NSNotification *)notification {
+	//	about to enter macOS' fullscreen mode: if the window is in full-size
+	//	content mode (titlebar hidden) then switch it back to normal mode
+	if(self.window.styleMask & NSWindowStyleMaskFullSizeContentView)
+		[_fullSizeContentController toggleFullSizeContent];
+}
+
 - (void)windowDidEnterFullScreen:(NSNotification *)notification {
 	[self _setClipViewBackground];
 }
@@ -1857,13 +1872,6 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 - (void)windowDidEndSheet:(NSNotification *)notification
 {
 	[_findPanel setIgnoresMouseEvents:NO];
-}
-
-- (void)windowWillEnterFullScreen:(NSNotification *)notification {
-	//	about to enter macOS' fullscreen mode: if the window is in full-size
-	//	content mode (titlebar hidden) then switch it back to normal mode
-	if(self.window.styleMask & NSWindowStyleMaskFullSizeContentView)
-		[_fullSizeContentController toggleFullSizeContent];
 }
 
 //	MARK: - <PGClipViewDelegate>
