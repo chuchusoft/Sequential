@@ -65,7 +65,7 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 
 @property (nonatomic, assign) BOOL parentWindowIsAnimating;
 
-- (void)_updateInfoWindowFrame:(BOOL)needsDisplay;	//	2023/10/02
+- (void)_updateInfoWindowFrame;	//	2023/10/02
 - (void)_updateWindowFrame;
 
 @end
@@ -74,7 +74,7 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 
 @interface PGThumbnailController(Private) <PGFullSizeContentProtocol>
 
-- (void)_updateInfoWindowFrame:(BOOL)needsDisplay;	//	2023/10/02
+- (void)_updateInfoWindowFrame;	//	2023/10/02
 - (void)_updateWindowFrame;
 
 @end
@@ -135,7 +135,7 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 	[_document PG_addObserver:self selector:@selector(documentNodeIsViewableDidChange:) name:PGDocumentNodeIsViewableDidChangeNotification];
 	[_document PG_addObserver:self selector:@selector(documentBaseOrientationDidChange:) name:PGPrefObjectBaseOrientationDidChangeNotification];
 	[self _updateWindowFrame];
-	[self _updateInfoWindowFrame:YES];	//	2023/10/02
+	[self _updateInfoWindowFrame];	//	2023/10/02
 	[self displayControllerActiveNodeDidChange:nil];
 	[self documentBaseOrientationDidChange:nil];
 //	[self _updateWindowFrame];
@@ -170,7 +170,7 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 	[_window removeChildWindow:_infoWindow];
 	[_window addChildWindow:_infoWindow ordered:NSWindowAbove];	//	2023/10/02
 //NSLog(@"[_window addChildWindow:_infoWindow]");
-	[self _updateInfoWindowFrame:YES];	//	2023/10/02
+	[self _updateInfoWindowFrame];	//	2023/10/02
 }
 - (void)selectionNeedsDisplay {	//	2023/11/12
 	[_browser selectionNeedsDisplay];
@@ -210,15 +210,22 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 {
 	[_browser redisplayItem:[[self displayController] activeNode] recursively:NO];
 
-//	[self _updateInfoWindowFrame:YES];	//	2023/10/14
+//	[self _updateInfoWindowFrame];	//	2023/10/14
 }
 - (void)parentWindowDidResize:(NSNotification *)aNotif
 {
 	[self _updateWindowFrame];
-	[self _updateInfoWindowFrame:YES];	//	2023/10/14
+	[self _updateInfoWindowFrame];	//	2023/10/14
 }
 - (void)parentWindowWillEnterFullScreenToScreenFrame:(NSRect)parentWindowFrame {
 	[self _updateWindowFrameWithContentRect:parentWindowFrame usingAnimator:YES];
+
+	if(_infoView.hidden)
+		return;
+
+	parentWindowFrame = NSMakeRect(NSMinX(parentWindowFrame), NSMinY(parentWindowFrame),
+									_window.frame.size.width, NSHeight(parentWindowFrame));
+	[self _updateInfoWindowFrameWithContentRect:parentWindowFrame usingAnimator:YES];
 }
 //- (void)parentWindowWillExitFullScreenToScreenFrame:(NSRect)parentWindowFrame {
 //	[self _updateWindowFrameWithContentRect:parentWindowFrame usingAnimator:YES];
@@ -260,18 +267,10 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 			0 != (self.window.styleMask & NSWindowStyleMaskFullScreen);
 }
 
-- (void)_updateInfoWindowFrame:(BOOL)needsDisplay	//	2023/10/02
+- (void)_updateInfoWindowFrameWithContentRect:(NSRect)r usingAnimator:(BOOL)useAnimator
 {
-	if(_infoView.hidden)
-		return;
-
-	NSWindow *const p = [_displayController window];
-	if(!p)
-		return;
-
-	NSRect const browserFrame = _window.frame;
 	NSRect const cf = [(PGThumbnailInfoView*)_infoView bezelPanel:_infoWindow
-											  frameForContentRect:browserFrame//PGInsetRect(r, _frameInset)
+											  frameForContentRect:r
 															scale:(CGFloat)1.0f];
 	CGFloat const infoWindowHeight = NSHeight(cf);
 #if 1	//	2023/10/14 Info window is displayed at the top of thumbnail view
@@ -279,17 +278,32 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 	//	below the menu bar (notch) area but why it does so is unknown: the frame rect
 	//	Y co-ord is actually correct and *should* make the Info window appear in the
 	//	notch area but the OS must be clipping it to under the notch somehow.
-	NSRect const infoWindowFrame = NSMakeRect(NSMaxX(browserFrame) - _browser.columnWidth,
-												NSMaxY(browserFrame) - infoWindowHeight,	//	Y co-ords are bottom-upwards
+	NSRect const infoWindowFrame = NSMakeRect(NSMaxX(r) - _browser.columnWidth,
+												NSMaxY(r) - infoWindowHeight,	//	Y co-ords are bottom-upwards
 												_browser.columnWidth, infoWindowHeight);
 #else	//	info window is displayed at the bottom of thumbnail view
-	NSRect const infoWindowFrame = NSMakeRect(NSMaxX(browserFrame) - _browser.columnWidth,
-												NSMinY(browserFrame),	//	Y co-ords are bottom-upwards
+	NSRect const infoWindowFrame = NSMakeRect(NSMaxX(r) - _browser.columnWidth,
+												NSMinY(r),	//	Y co-ords are bottom-upwards
 												_browser.columnWidth, infoWindowHeight);
 #endif
 //NSLog(@"infoWindowFrame = (%5.2f, %5.2f) [%5.2f x %5.2f]",
 //infoWindowFrame.origin.x, infoWindowFrame.origin.y, infoWindowFrame.size.width, infoWindowFrame.size.height);
-	[_infoWindow setFrame:infoWindowFrame display:needsDisplay];
+
+	if(NSEqualRects(infoWindowFrame, _infoWindow.frame))
+		return;
+
+	if(useAnimator)
+		[_infoWindow.animator setFrame:infoWindowFrame display:YES];
+	else
+		[_infoWindow setFrame:infoWindowFrame display:YES];
+}
+
+- (void)_updateInfoWindowFrame	//	2023/10/02
+{
+	if(_infoView.hidden)
+		return;
+
+	[self _updateInfoWindowFrameWithContentRect:_window.frame usingAnimator:NO];
 }
 
 - (void)_updateWindowFrameWithContentRect:(NSRect)r usingAnimator:(BOOL)useAnimator
@@ -464,14 +478,14 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 		//	byteSizeTotal += node.dataProvider.dataLength.unsignedLongValue;
 		}
 		[(PGThumbnailInfoView*)_infoView setImageCount:count byteSizeTotal:byteSizeTotal];
-		[self _updateInfoWindowFrame:showInfoWindow];
+		[self _updateInfoWindowFrame];
 	}
 /*	else {	//	show the address of the active node (this is a debugging aid)
 		static uint8_t ii = 0;
 		[(PGThumbnailInfoView*)_infoView setImageCount:++ii % 10
 										 byteSizeTotal:_displayController.activeNode];
 		_infoView.hidden = NO;
-		[self _updateInfoWindowFrame:YES];
+		[self _updateInfoWindowFrame];
 	}	*/
 }
 - (void)thumbnailBrowser:(PGThumbnailBrowser *)sender numberOfColumnsDidChangeFrom:(NSUInteger)oldCount
