@@ -143,6 +143,7 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 @property (nonatomic, strong) NSTimer *timer;
 
 @property (nonatomic, strong) PGFullSizeContentController *fullSizeContentController;
+@property (nonatomic, assign) NSRect windowFrameBeforeEnteringFullScreen;
 
 - (void)_setClipViewBackground;
 - (void)_setImageView:(PGImageView *)aView;
@@ -1153,20 +1154,24 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 			0 != (self.window.styleMask & NSWindowStyleMaskFullScreen);
 }
 
-- (void)_setClipViewBackground {
+- (NSColor *)_clipViewBackgroundColorWhenFullscreen:(BOOL)fullscreen {
 	//	2023/08/14 added this method to enable the background color to depend on
 	//	whether the view's window is in fullscreen mode and whether user wants it
 	//	used in fullscreen mode.
-	if(self._isInAnyFullScreenMode &&
-		![NSUserDefaults.standardUserDefaults boolForKey:PGBackgroundColorUsedInFullScreenKey])
+	if(fullscreen && ![NSUserDefaults.standardUserDefaults
+						boolForKey:PGBackgroundColorUsedInFullScreenKey])
+		return NSColor.blackColor;
+	else
+		return [PGPreferenceWindowController.sharedPrefController backgroundPatternColor];
+}
+
+- (void)_setClipViewBackground {
+	NSColor *const clipViewBackgroundColor = [self
+		_clipViewBackgroundColorWhenFullscreen:self._isInAnyFullScreenMode];
 #if __has_feature(objc_arc)
-		[_clipView setBackgroundColor:NSColor.blackColor];
-	else
-		[_clipView setBackgroundColor:[PGPreferenceWindowController.sharedPrefController backgroundPatternColor]];
+	[_clipView setBackgroundColor:clipViewBackgroundColor];
 #else
-		[clipView setBackgroundColor:NSColor.blackColor];
-	else
-		[clipView setBackgroundColor:[PGPreferenceWindowController.sharedPrefController backgroundPatternColor]];
+	[clipView setBackgroundColor:clipViewBackgroundColor];
 #endif
 }
 
@@ -1795,6 +1800,122 @@ frameSize.width, frameSize.height);
 } */
 
 //	MARK: -
+
+- (NSApplicationPresentationOptions)window:(NSWindow *)window
+	  willUseFullScreenPresentationOptions:(NSApplicationPresentationOptions)proposedOptions
+{
+	// customize our appearance when entering full screen:
+	// we don't want the dock to appear but we want the menubar to hide/show automatically
+	return (NSApplicationPresentationFullScreen |
+			NSApplicationPresentationHideDock |
+			NSApplicationPresentationAutoHideMenuBar);
+}
+
+- (nullable NSArray<NSWindow *> *)customWindowsToEnterFullScreenForWindow:(NSWindow *)window {
+	return [NSArray arrayWithObject:window];
+}
+
+- (void)window:(NSWindow *)window startCustomAnimationToEnterFullScreenOnScreen:(NSScreen *)screen
+  withDuration:(NSTimeInterval)duration {
+//NSLog(@"duration %5.2f", duration);
+
+	_windowFrameBeforeEnteringFullScreen = window.frame;
+	[self invalidateRestorableState];
+
+	NSInteger previousWindowLevel = [window level];
+	[window setLevel:(NSMainMenuWindowLevel + 1)];
+
+	//	Setting the styleMask will disable the animation (Apple's sample code
+	//	does this; why it works in the sample code but not here is unknown).
+//	window.styleMask = window.styleMask | NSWindowStyleMaskFullScreen;
+
+	// If our window animation takes the same amount of time as the system's animation,
+	// a small black flash will occur atthe end of your animation.  However, if we
+	// leave some extra time between when our animation completes and when the system's
+	// animation completes we can avoid this.
+	duration -= 0.2;
+
+	NSRect proposedFrame = [screen frame];
+	if (@available(macOS 12.0, *)) {
+		NSEdgeInsets insets = [screen safeAreaInsets];
+		proposedFrame.size.height -= insets.top;
+	}
+
+	[NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
+		[context setDuration:duration];
+
+//NSLog(@"(%5.2f, %5.2f) [%5.2f x %5.2f]", proposedFrame.origin.x, proposedFrame.origin.y,
+//proposedFrame.size.width, proposedFrame.size.height);
+		[window.animator setFrame:proposedFrame display:YES];
+
+		//	altering the styleMask like this causes the Exit Full Screen menu item
+		//	to become disabled which makes it very difficult to exit full screen mode:
+	//	window.animator.styleMask = window.animator.styleMask & ~NSWindowStyleMaskTitled;
+	//	window.animator.titlebarAppearsTransparent = YES; <== doesn't do anything
+
+		[self.thumbnailController parentWindowWillEnterFullScreenToScreenFrame:proposedFrame];
+
+#if __has_feature(objc_arc)
+		_clipView.animator.backgroundColor =
+			[self _clipViewBackgroundColorWhenFullscreen:YES];
+#else
+		clipView.animator.backgroundColor =
+			[self _clipViewBackgroundColorWhenFullscreen:YES];
+#endif
+	} completionHandler:^{
+		[self.window setLevel:previousWindowLevel];
+
+//NSLog(@"-[PGDisplayController window:startCustomAnimationToEnterFullScreenOnScreen:withDuration:] DONE");
+	}];
+}
+
+- (nullable NSArray<NSWindow *> *)customWindowsToExitFullScreenForWindow:(NSWindow *)window {
+	return [NSArray arrayWithObject:window];
+}
+
+- (void)window:(NSWindow *)window startCustomAnimationToExitFullScreenWithDuration:(NSTimeInterval)duration {
+//NSLog(@"duration %5.2f", duration);
+
+	NSInteger previousWindowLevel = [window level];
+	[window setLevel:(NSMainMenuWindowLevel + 1)];
+
+	window.styleMask = window.styleMask & ~NSWindowStyleMaskFullScreen;
+
+	// If our window animation takes the same amount of time as the system's animation,
+	// a small black flash will occur atthe end of your animation.  However, if we
+	// leave some extra time between when our animation completes and when the system's
+	// animation completes we can avoid this.
+	duration -= 0.1;
+
+	[NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
+		[context setDuration:duration];
+
+		[window.animator setFrame:_windowFrameBeforeEnteringFullScreen display:YES];
+
+	//	window.animator.styleMask = window.animator.styleMask | NSWindowStyleMaskTitled;
+	//	window.animator.titlebarAppearsTransparent = NO; <== doesn't do anything
+
+		//	not needed and produces an incorrectly located/sized thumbnail browser window
+	//	[self.thumbnailController
+	//	 parentWindowWillExitFullScreenToScreenFrame:_windowFrameBeforeEnteringFullScreen];
+
+#if __has_feature(objc_arc)
+		_clipView.animator.backgroundColor =
+			[self _clipViewBackgroundColorWhenFullscreen:NO];
+#else
+		clipView.animator.backgroundColor =
+			[self _clipViewBackgroundColorWhenFullscreen:NO];
+#endif
+	} completionHandler:^{
+		[self.window setLevel:previousWindowLevel];
+
+//NSLog(@"-[PGDisplayController window:startCustomAnimationToExitFullScreenWithDuration:] DONE");
+		NSAssert(NSEqualRects(self.window.frame, _windowFrameBeforeEnteringFullScreen), @"");
+		_windowFrameBeforeEnteringFullScreen = NSZeroRect;
+	}];
+}
+
+//	MARK: -
 - (void)windowWillEnterFullScreen:(NSNotification *)notification {
 	//	about to enter macOS' fullscreen mode: if the window is in full-size
 	//	content mode (titlebar hidden) then switch it back to normal mode
@@ -1802,23 +1923,29 @@ frameSize.width, frameSize.height);
 		[_fullSizeContentController toggleFullSizeContent];
 }
 
-- (void)windowDidEnterFullScreen:(NSNotification *)notification {
-	[self _setClipViewBackground];
-}
-
-- (void)windowDidExitFullScreen:(NSNotification *)notification {
-	[self _setClipViewBackground];
-
-	//	When macOS-fullscreen mode is exited, the Use Entire Window command
-	//	is not executed when option-F is typed because the menu items in the
-	//	View menu are in an incorrect state, so find the View menu and update
-	//	its items.
+- (void)_updateViewMenuItems {
 	NSMenu *const mainMenu = NSApplication.sharedApplication.mainMenu;
 	NSInteger const viewMenuIndex = [mainMenu indexOfItemWithTitle:@"View"];
 	NSAssert(NSNotFound != viewMenuIndex, @"");
 	NSMenuItem *const viewMenuItem = [mainMenu itemAtIndex:viewMenuIndex];
 	NSAssert(nil != viewMenuItem, @"");
 	[viewMenuItem.submenu update];
+}
+
+- (void)windowDidEnterFullScreen:(NSNotification *)notification {
+//NSLog(@"-[PGDisplayController windowDidEnterFullScreen:]");
+	[self _setClipViewBackground];
+}
+
+- (void)windowDidExitFullScreen:(NSNotification *)notification {
+//NSLog(@"-[PGDisplayController windowDidExitFullScreen:]");
+	[self _setClipViewBackground];
+
+	//	When macOS-fullscreen mode is exited, the Use Entire Window command
+	//	is not executed when option-F is typed because the menu items in the
+	//	View menu are in an incorrect state, so find the View menu and update
+	//	its items.
+	[self _updateViewMenuItems];
 }
 
 //	MARK: -
