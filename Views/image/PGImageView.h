@@ -43,6 +43,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	BOOL _animates;
 	NSUInteger _pauseCount;
 
+	NSUInteger _imageRepHash;
 	NSImage *_image;
 	BOOL _isPDF;
 	NSUInteger _numberOfFrames;
