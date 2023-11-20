@@ -214,10 +214,15 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 }
 - (void)parentWindowDidResize:(NSNotification *)aNotif
 {
-//NSLog(@"-[PGThumbnailController parentWindowDidResize:] %@", [NSAnimationContext currentContext]);
 	[self _updateWindowFrame];
 	[self _updateInfoWindowFrame:YES];	//	2023/10/14
 }
+- (void)parentWindowWillEnterFullScreenToScreenFrame:(NSRect)parentWindowFrame {
+	[self _updateWindowFrameWithContentRect:parentWindowFrame usingAnimator:YES];
+}
+//- (void)parentWindowWillExitFullScreenToScreenFrame:(NSRect)parentWindowFrame {
+//	[self _updateWindowFrameWithContentRect:parentWindowFrame usingAnimator:YES];
+//}
 - (void)parentWindowWillBeginSheet:(NSNotification *)aNotif
 {
 	[_window setIgnoresMouseEvents:YES];
@@ -247,6 +252,13 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 }
 
 //	MARK: - PGThumbnailController(Private)
+
+//	ensures that whether in macOS-fullscreen or Sequential-fullscreen,
+//	the app behaves the same
+- (BOOL)_isInAnyFullScreenMode {
+	return PGDocumentController.sharedDocumentController.fullscreen ||
+			0 != (self.window.styleMask & NSWindowStyleMaskFullScreen);
+}
 
 - (void)_updateInfoWindowFrame:(BOOL)needsDisplay	//	2023/10/02
 {
@@ -280,29 +292,42 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 	[_infoWindow setFrame:infoWindowFrame display:needsDisplay];
 }
 
+- (void)_updateWindowFrameWithContentRect:(NSRect)r usingAnimator:(BOOL)useAnimator
+{
+#if 1	//	2021/07/21 modernized
+	NSRect const newFrame = NSMakeRect(NSMinX(r), NSMinY(r),
+									   MIN(_browser.numberOfColumns, PGMaxVisibleColumns) * _browser.columnWidth,
+									   NSHeight(r));
+#else
+	NSRect const newFrame = NSMakeRect(NSMinX(r), NSMinY(r),
+		(MIN([_browser numberOfColumns], PGMaxVisibleColumns) * [_browser columnWidth]) * [_window userSpaceScaleFactor],
+									   NSHeight(r));
+#endif
+//NSLog(@"_updateWindowFrame equal-rects %u", NSEqualRects(newFrame, [_window frame]));
+	if(NSEqualRects(newFrame, [_window frame]))
+		return;
+
+	if(useAnimator)
+		[_window.animator setFrame:newFrame display:YES];
+	else
+		[_window setFrame:newFrame display:YES];
+}
+
 - (void)_updateWindowFrame
 {
 	if(_parentWindowIsAnimating) return;
 	NSWindow *const p = [_displayController window];
 	if(!p) return;
 	NSRect r = [p PG_contentRect];
-	//	when in full-size-content mode, make sure the thumbnail columns do
-	//	not obscure the window's standard close/miniaturize/zoom buttons
-	if(!PGDocumentController.sharedDocumentController.fullscreen &&
+	//	if (1) not in full-screen mode, and (2) in full-size-content mode
+	//	then make sure the thumbnail columns do not obscure the window's
+	//	standard close/miniaturize/zoom buttons
+	if(![self _isInAnyFullScreenMode] && // was: if(!PGDocumentController.sharedDocumentController.fullscreen &&
 		0 != (p.styleMask & NSWindowStyleMaskFullSizeContentView)) {
-		CGFloat const h =
-			[p standardWindowButton:NSWindowCloseButton].superview.frame.size.height;
+		CGFloat const h = [p standardWindowButton:NSWindowCloseButton].superview.frame.size.height;
 		r.size.height -= h;
 	}
-#if 1	//	2021/07/21 modernized
-	NSRect const newFrame = NSMakeRect(NSMinX(r), NSMinY(r),
-									   MIN(_browser.numberOfColumns, PGMaxVisibleColumns) * _browser.columnWidth,
-									   NSHeight(r));
-#else
-	NSRect const newFrame = NSMakeRect(NSMinX(r), NSMinY(r), (MIN([_browser numberOfColumns], PGMaxVisibleColumns) * [_browser columnWidth]) * [_window userSpaceScaleFactor], NSHeight(r));
-#endif
-	if(NSEqualRects(newFrame, [_window frame])) return;
-	[_window setFrame:newFrame display:YES];
+	[self _updateWindowFrameWithContentRect:r usingAnimator:NO];
 	[self PG_postNotificationName:PGThumbnailControllerContentInsetDidChangeNotification];
 }
 
