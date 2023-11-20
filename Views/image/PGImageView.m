@@ -42,7 +42,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 static __strong NSImage *PGRoundedCornerImages[4];
 static NSSize PGRoundedCornerSizes[4];
 
-@interface PGImageView()
+@interface PGImageView ()
 
 @property (nonatomic, assign) NSSize size;
 @property (nonatomic, assign) NSSize immediateSize;
@@ -51,6 +51,7 @@ static NSSize PGRoundedCornerSizes[4];
 
 @property (nonatomic, assign) NSUInteger pauseCount;
 
+@property (nonatomic, assign) NSUInteger imageRepHash;
 @property (nonatomic, strong) NSImage *image;
 @property (nonatomic, assign) BOOL isPDF;
 @property (nonatomic, assign) NSUInteger numberOfFrames;
@@ -170,9 +171,16 @@ static NSSize PGRoundedCornerSizes[4];
 }
 - (NSImageInterpolation)interpolation
 {
+//NSLog(@"_sizeTransitionTimer %@  self.inLiveResize %u  self.canAnimateRep %u  self animates %u  %s",
+//_sizeTransitionTimer, self.inLiveResize, self.canAnimateRep, self.animates,
+//_sizeTransitionTimer || [self inLiveResize] || ([self canAnimateRep] && [self animates]) ? "NSImageInterpolationNone" : "...");
 	if(_sizeTransitionTimer || [self inLiveResize] || ([self canAnimateRep] && [self animates])) return NSImageInterpolationNone;
 	if([self antialiasWhenUpscaling]) return NSImageInterpolationHigh;
 	NSSize const imageSize = NSMakeSize([_rep pixelsWide], [_rep pixelsHigh]), viewSize = [self size];
+
+//NSLog(@"imageSize.width %5.2f  viewSize.width %5.2f  imageSize.height %5.2f  viewSize.height %5.2f  result %s",
+//imageSize.width, viewSize.width, imageSize.height, viewSize.height,
+//imageSize.width < viewSize.width && imageSize.height < viewSize.height ? "NSImageInterpolationNone" : "NSImageInterpolationHigh");
 	return imageSize.width < viewSize.width && imageSize.height < viewSize.height ? NSImageInterpolationNone : NSImageInterpolationHigh;
 }
 - (void)setUsesRoundedCorners:(BOOL)flag
@@ -226,7 +234,19 @@ static NSSize PGRoundedCornerSizes[4];
 {
 	[self _invalidateCache];
 	[self setNeedsDisplay:YES];
-	if(orientation == _orientation && rep == _rep && !_sizeTransitionTimer && NSEqualSizes(size, _immediateSize)) return;
+
+	//	rep equality is not sufficient: this method is called with the same rep but different
+	//	parameters such as orientation or size or a different page in the *same* rep (when
+	//	rep is a NSPDFImageRep). To handle the case of same-rep-but-different-page, the rep's
+	//	hash is compared, where the hash includes the current page's index
+	NSUInteger imageRepHash = rep.hash;
+	if([rep isKindOfClass:NSPDFImageRep.class])
+		imageRepHash ^= ((NSPDFImageRep *)rep).currentPage;
+//NSLog(@"rep %p   imageRepHash 0x%lX", rep, imageRepHash);
+	if(orientation == _orientation && rep == _rep && imageRepHash == _imageRepHash &&
+		!_sizeTransitionTimer && NSEqualSizes(size, _immediateSize))
+		return;
+
 	_orientation = orientation;
 	[_image setSize:NSMakeSize([rep pixelsWide], [rep pixelsHigh])];
 	if(rep != _rep) {
@@ -244,17 +264,22 @@ static NSSize PGRoundedCornerSizes[4];
 #endif
 		[_image addRepresentation:_rep];
 
+		[_image recache];
+		_imageRepHash = imageRepHash;
+
 		_isPDF = [_rep isKindOfClass:[NSPDFImageRep class]];
 		_numberOfFrames = [_rep isKindOfClass:[NSBitmapImageRep class]] ?
 			[[(NSBitmapImageRep *)_rep valueForProperty:NSImageFrameCount] unsignedIntegerValue] : 1;
 
-		//	NB: bitmap images will use the default cache mode which
-		//	for NSBitmapImageRep will be NSImageCacheBySize.
-		if(_isPDF)	//	must set NSImageCacheNever for PDFs to draw correctly
-			[_image setCacheMode:NSImageCacheNever];
-
 		[self _runAnimationTimer];
-	} else [self setSize:size allowAnimation:NO];
+	} else {
+		[self setSize:size allowAnimation:NO];
+
+		if(imageRepHash != _imageRepHash) {
+			[_image recache];
+			_imageRepHash = imageRepHash;
+		}
+	}
 }
 - (void)setSize:(NSSize)size allowAnimation:(BOOL)flag
 {
