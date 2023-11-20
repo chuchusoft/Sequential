@@ -79,6 +79,8 @@ extern NSString *const PGThumbnailControllerContentInsetDidChangeNotification;
 - (void)displayControllerActiveNodeWasRead:(NSNotification *)aNotif;
 - (void)clipViewBoundsDidChange:(NSNotification *)aNotif;
 - (void)parentWindowDidResize:(NSNotification *)aNotif;
+- (void)parentWindowWillEnterFullScreenToScreenFrame:(NSRect)parentWindowFrame;
+//- (void)parentWindowWillExitFullScreenToScreenFrame:(NSRect)parentWindowFrame;
 - (void)parentWindowWillBeginSheet:(NSNotification *)aNotif;
 - (void)parentWindowDidEndSheet:(NSNotification *)aNotif;
 
