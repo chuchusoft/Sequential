@@ -1154,12 +1154,16 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 			0 != (self.window.styleMask & NSWindowStyleMaskFullScreen);
 }
 
-- (NSColor *)_clipViewBackgroundColorWhenFullscreen:(BOOL)fullscreen {
+- (BOOL)_usePreferredBackgroundColorWhenFullScreen {
+	return [NSUserDefaults.standardUserDefaults
+			boolForKey:PGBackgroundColorUsedInFullScreenKey];
+}
+
+- (NSColor *)_clipViewBackgroundColorWhenFullScreen:(BOOL)fullscreen {
 	//	2023/08/14 added this method to enable the background color to depend on
 	//	whether the view's window is in fullscreen mode and whether user wants it
 	//	used in fullscreen mode.
-	if(fullscreen && ![NSUserDefaults.standardUserDefaults
-						boolForKey:PGBackgroundColorUsedInFullScreenKey])
+	if(fullscreen && ![self _usePreferredBackgroundColorWhenFullScreen])
 		return NSColor.blackColor;
 	else
 		return [PGPreferenceWindowController.sharedPrefController backgroundPatternColor];
@@ -1167,7 +1171,7 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 
 - (void)_setClipViewBackground {
 	NSColor *const clipViewBackgroundColor = [self
-		_clipViewBackgroundColorWhenFullscreen:self._isInAnyFullScreenMode];
+		_clipViewBackgroundColorWhenFullScreen:self._isInAnyFullScreenMode];
 #if __has_feature(objc_arc)
 	[_clipView setBackgroundColor:clipViewBackgroundColor];
 #else
@@ -1855,12 +1859,13 @@ frameSize.width, frameSize.height);
 
 		[self.thumbnailController parentWindowWillEnterFullScreenToScreenFrame:proposedFrame];
 
+		if(![self _usePreferredBackgroundColorWhenFullScreen])
 #if __has_feature(objc_arc)
-		_clipView.animator.backgroundColor =
-			[self _clipViewBackgroundColorWhenFullscreen:YES];
+			_clipView.animator.backgroundColor =
+				[self _clipViewBackgroundColorWhenFullScreen:YES];
 #else
-		clipView.animator.backgroundColor =
-			[self _clipViewBackgroundColorWhenFullscreen:YES];
+			clipView.animator.backgroundColor =
+				[self _clipViewBackgroundColorWhenFullScreen:YES];
 #endif
 	} completionHandler:^{
 		[self.window setLevel:previousWindowLevel];
@@ -1899,12 +1904,13 @@ frameSize.width, frameSize.height);
 	//	[self.thumbnailController
 	//	 parentWindowWillExitFullScreenToScreenFrame:_windowFrameBeforeEnteringFullScreen];
 
+		if(![self _usePreferredBackgroundColorWhenFullScreen])
 #if __has_feature(objc_arc)
-		_clipView.animator.backgroundColor =
-			[self _clipViewBackgroundColorWhenFullscreen:NO];
+			_clipView.animator.backgroundColor =
+				[self _clipViewBackgroundColorWhenFullScreen:NO];
 #else
-		clipView.animator.backgroundColor =
-			[self _clipViewBackgroundColorWhenFullscreen:NO];
+			clipView.animator.backgroundColor =
+				[self _clipViewBackgroundColorWhenFullScreen:NO];
 #endif
 	} completionHandler:^{
 		[self.window setLevel:previousWindowLevel];
