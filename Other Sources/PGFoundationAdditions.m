@@ -207,7 +207,9 @@ OSType PGOSTypeFromString(NSString *str)
 }
 - (void)PG_postNotificationName:(NSString *)aName userInfo:(NSDictionary *)aDict
 {
-	[(NSNotificationCenter *)[NSNotificationCenter defaultCenter] postNotificationName:aName object:self userInfo:aDict];
+	[NSNotificationCenter.defaultCenter postNotificationName:aName
+													  object:self
+													userInfo:aDict];
 }
 
 //	MARK: -
