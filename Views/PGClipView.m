@@ -27,6 +27,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import <IOKit/hidsystem/event_status_driver.h>
 #import <tgmath.h>
 #import <Carbon/Carbon.h>
+#import <QuartzCore/QuartzCore.h>
 
 // Other Sources
 #import "PGAppKitAdditions.h"
@@ -101,6 +102,17 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 
 //	MARK: -
 @implementation PGClipView
+
++ (id)defaultAnimationForKey:(NSString *)key {
+    if ([key isEqualToString:@"backgroundColor"]) {
+        // By default, animate background color changes with simple linear
+        // interpolation to the new color value.
+        return [CABasicAnimation animation];
+    } else {
+        // Defer to super's implementation for any keys we don't specifically handle.
+        return [super defaultAnimationForKey:key];
+    }
+}
 
 #if __has_feature(objc_arc)
 @synthesize documentView;	//	IBOutlet
