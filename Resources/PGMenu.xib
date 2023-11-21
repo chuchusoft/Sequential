@@ -238,7 +238,7 @@ CA
                 <menuItem title="View" id="890">
                     <menu key="submenu" title="View" id="891">
                         <items>
-                            <menuItem title="Enter Full Screen (Sequential)" keyEquivalent="f" id="892">
+                            <menuItem title="Enter Full Screen (classic)" keyEquivalent="f" id="892">
                                 <connections>
                                     <action selector="toggleFullscreen:" target="-1" id="961"/>
                                 </connections>
