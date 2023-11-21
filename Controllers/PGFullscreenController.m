@@ -110,11 +110,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 }
 - (void)_hideMenuBar
 {
-	SetSystemUIMode(kUIModeAllSuppressed, kNilOptions);
+	//	There is no NSApplication option to hide the menu bar using animation
+	//	while the Carbon version offers kUIOptionAnimateMenuBar. As a result,
+	//	the original Carbon version is still used.
+#ifndef __CARBON__
+	NSApp.presentationOptions = NSApplicationPresentationAutoHideDock |
+								NSApplicationPresentationAutoHideMenuBar;
+#else
+	SetSystemUIMode(kUIModeAllSuppressed, kUIOptionAnimateMenuBar);
+#endif
 }
 - (void)_showMenuBar
 {
-	SetSystemUIMode(kUIModeNormal, kNilOptions);
+#ifndef __CARBON__
+	NSApp.presentationOptions = NSApplicationPresentationDefault;
+#else
+	SetSystemUIMode(kUIModeNormal, kUIOptionAnimateMenuBar);
+#endif
 }
 
 //	MARK: - PGDisplayController
