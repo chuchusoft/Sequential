@@ -33,10 +33,20 @@
   the image drawn in the notch area on screens with a notch (it does nothing
   if a notch is not present). The keyboard shortcut is the same: option-F.
 - added a standard macOS Full Screen menu item (shortcut: ctrl-command-F or
-  fn-F). The Sequential Full Screen menu item is now labelled
-  "Enter Full Screen (Sequential)" to make it clear which is which.
+  fn-F).
+- the original Full Screen menu item text is now "Enter Full Screen (classic)"
+  to make it clear which is which.
+- added support for transitioning to and from macOS fullscreen mode (the
+  previously builds did not do anything to customize the transitioning which
+  resulted in a less-than-optimal experience when transitioning).
 - updated XADMaster library to v1.10.8 (used to navigate and decompress
   archives)
+- re-enabled PDF image caching; it was previously disabled because navigating
+  PDF files with it enabled resulted in the image not changing, which turns
+  out to be a bug in the way Sequential caches the image; with the bug now
+  fixed, PDF image caching can occur and as a result, PDF image rendering is
+  now more performant (especially during window animations like when the
+  window transitions to full screen).
 
 2.4.0 (2023-11-02)
 - PDF image drawing was being cached in a layer which resulted in a sub-optimal
