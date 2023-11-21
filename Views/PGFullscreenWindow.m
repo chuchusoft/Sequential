@@ -151,7 +151,7 @@ GetSuitableFrameForScreenWithNotch(BOOL useEntireScreen, NSScreen* screen) {
 		   display:YES];
 }
 
-- (void)resizeToUseEntireScreen	//	called when the "Use Entire Screen In Full Screen" command is used
+- (void)resizeToUseEntireScreen	//	called when the "Use Entire Screen" command is used
 {
 	NSScreen*	screen = self.screen;
 	const BOOL	useEntireScreen = ShouldUseEntireScreenWhenInFullScreen();
