@@ -143,7 +143,8 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 @property (nonatomic, strong) NSTimer *timer;
 
 @property (nonatomic, strong) PGFullSizeContentController *fullSizeContentController;
-@property (nonatomic, assign) NSRect windowFrameBeforeEnteringFullScreen;
+@property (nonatomic, assign) NSRect windowFrameForNonFullScreenMode;
+@property (nonatomic, assign) BOOL isInFullSizeContentModeForNonFullScreenMode;
 
 - (void)_setClipViewBackground;
 - (void)_setImageView:(PGImageView *)aView;
@@ -1599,10 +1600,17 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 	}
 
 	// View:
-	if(@selector(toggleFullscreen:) == action)
-		[anItem setTitle:NSLocalizedString((PGDocumentController.sharedDocumentController.isFullscreen ?
-							@"Exit Full Screen (Sequential)" : @"Enter Full Screen (Sequential)"),
-							@"Enter/exit full screen. Two states of the same item.")];
+	if(@selector(toggleFullscreen:) == action) {
+		anItem.title = NSLocalizedString(
+						PGDocumentController.sharedDocumentController.isFullscreen ?
+						@"Exit Full Screen (classic)" : @"Enter Full Screen (classic)",
+						@"Enter/exit full screen. Two states of the same item.");
+
+		//	if the window is already in macOS-fullscreen mode
+		//	then disallow entering classic fullscreen mode
+		return !(NSWindowStyleMaskFullScreen & self.window.styleMask) &&
+			[[PGDocumentController sharedDocumentController] canToggleFullscreen];
+	}
 
 	if(@selector(toggleEntireWindowOrScreen:) == action) {	//	2023/08/14 added; 2023/11/16 renamed
 		//	this command is labelled (and behaves) differently depending on the fullscreen state:
@@ -1684,9 +1692,6 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 	PGResourceIdentifier *const selectedNodeIdent = [[self selectedNode] identifier];
 	if(![selectedNodeIdent isFileIdentifier] || ![selectedNodeIdent URL]) {
 		if(@selector(moveToTrash:) == action) return NO;
-	}
-	if(![[PGDocumentController sharedDocumentController] canToggleFullscreen]) {
-		if(@selector(toggleFullscreen:) == action) return NO;
 	}
 	if(![self canShowInfo]) {
 		if(@selector(toggleInfo:) == action) return NO;
@@ -1805,7 +1810,7 @@ frameSize.width, frameSize.height);
 
 //	MARK: -
 
-- (NSApplicationPresentationOptions)window:(NSWindow *)window
+/* - (NSApplicationPresentationOptions)window:(NSWindow *)window
 	  willUseFullScreenPresentationOptions:(NSApplicationPresentationOptions)proposedOptions
 {
 	// customize our appearance when entering full screen:
@@ -1813,25 +1818,58 @@ frameSize.width, frameSize.height);
 	return (NSApplicationPresentationFullScreen |
 			NSApplicationPresentationHideDock |
 			NSApplicationPresentationAutoHideMenuBar);
-}
+} */
 
 - (nullable NSArray<NSWindow *> *)customWindowsToEnterFullScreenForWindow:(NSWindow *)window {
 	return [NSArray arrayWithObject:window];
 }
 
-- (void)window:(NSWindow *)window startCustomAnimationToEnterFullScreenOnScreen:(NSScreen *)screen
-  withDuration:(NSTimeInterval)duration {
+static
+CGFloat
+GetNotchHeight(NSScreen* screen) {
+	if(@available(macOS 12.0, *))
+		return screen.safeAreaInsets.top;
+	else
+		return 0;
+}
+
+#if 0
+//	Using this delegate method cause the statement:
+//		window.styleMask = window.styleMask | NSWindowStyleMaskFullScreen;
+//	to not work: the animation does not occur. Instead, the window immediately
+//	goes fullscreen. This appears to be a bug in macOS Monterey 12.7.1.
+- (void)window:(NSWindow *)window startCustomAnimationToEnterFullScreenOnScreen:(NSScreen *)screen withDuration:(NSTimeInterval)duration
+{
+//	NSScreen *screen0 = [[NSScreen screens] objectAtIndex:0];
+//NSLog(@"screen %@  screen0 %@", screen, screen0);
+#else
+//	Using this delegate method cause the statement:
+//		window.styleMask = window.styleMask | NSWindowStyleMaskFullScreen;
+//	to work.
+- (void)window:(NSWindow *)window startCustomAnimationToEnterFullScreenWithDuration:(NSTimeInterval)duration
+{
+//	NSScreen *screen = [[NSScreen screens] objectAtIndex:0];
+	NSScreen *screen = window.screen;
+#endif
 //NSLog(@"duration %5.2f", duration);
 
-	_windowFrameBeforeEnteringFullScreen = window.frame;
+	_windowFrameForNonFullScreenMode = window.frame;
+	_isInFullSizeContentModeForNonFullScreenMode =
+		0 != (window.styleMask & NSWindowStyleMaskFullSizeContentView);
 	[self invalidateRestorableState];
 
-	NSInteger previousWindowLevel = [window level];
-	[window setLevel:(NSMainMenuWindowLevel + 1)];
+//	NSInteger previousWindowLevel = [window level];
+//	[window setLevel:(NSMainMenuWindowLevel + 1)];	<== this causes flashing
 
-	//	Setting the styleMask will disable the animation (Apple's sample code
-	//	does this; why it works in the sample code but not here is unknown).
-//	window.styleMask = window.styleMask | NSWindowStyleMaskFullScreen;
+	//	if the window is in fullsize content mode then the animation to
+	//	go fullscreen will not occur so first get out of fullsize content
+	//	mode and then add NSWindowStyleMaskFullScreen to the styleMask
+	if(_isInFullSizeContentModeForNonFullScreenMode)
+		[_fullSizeContentController toggleFullSizeContent];
+
+	//	if -toggleFullSizeContent was called, window.styleMask was changed
+	//	so it must be reloaded here:
+	window.styleMask = window.styleMask | NSWindowStyleMaskFullScreen;
 
 	// If our window animation takes the same amount of time as the system's animation,
 	// a small black flash will occur atthe end of your animation.  However, if we
@@ -1840,24 +1878,27 @@ frameSize.width, frameSize.height);
 	duration -= 0.2;
 
 	NSRect proposedFrame = [screen frame];
-	if (@available(macOS 12.0, *)) {
-		NSEdgeInsets insets = [screen safeAreaInsets];
-		proposedFrame.size.height -= insets.top;
+#if 1
+	proposedFrame.size.height -= GetNotchHeight(screen);
+#else
+	if(@available(macOS 12.0, *)) {
+		proposedFrame.size.height -= screen.safeAreaInsets.top;
+
+/* NSRect vf = screen.visibleFrame;
+NSLog(@"visibleFrame (%5.2f, %5.2f) [%5.2f x %5.2f]",
+vf.origin.x, vf.origin.y, vf.size.width, vf.size.height);
+NSLog(@"proposedFrame (%5.2f, %5.2f) [%5.2f x %5.2f]",
+proposedFrame.origin.x, proposedFrame.origin.y,
+proposedFrame.size.width, proposedFrame.size.height); */
 	}
+#endif
 
 	[NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
 		[context setDuration:duration];
 
-//NSLog(@"(%5.2f, %5.2f) [%5.2f x %5.2f]", proposedFrame.origin.x, proposedFrame.origin.y,
-//proposedFrame.size.width, proposedFrame.size.height);
-		[window.animator setFrame:proposedFrame display:YES];
+		[window.animator setFrame:proposedFrame display:NO];
 
-		//	altering the styleMask like this causes the Exit Full Screen menu item
-		//	to become disabled which makes it very difficult to exit full screen mode:
-	//	window.animator.styleMask = window.animator.styleMask & ~NSWindowStyleMaskTitled;
-	//	window.animator.titlebarAppearsTransparent = YES; <== doesn't do anything
-
-		[self.thumbnailController parentWindowWillEnterFullScreenToScreenFrame:proposedFrame];
+		[self.thumbnailController parentWindowWillTransitionToScreenFrame:proposedFrame];
 
 		if(![self _usePreferredBackgroundColorWhenFullScreen])
 #if __has_feature(objc_arc)
@@ -1868,21 +1909,23 @@ frameSize.width, frameSize.height);
 				[self _clipViewBackgroundColorWhenFullScreen:YES];
 #endif
 	} completionHandler:^{
-		[self.window setLevel:previousWindowLevel];
-
-//NSLog(@"-[PGDisplayController window:startCustomAnimationToEnterFullScreenOnScreen:withDuration:] DONE");
+	//	[self.window setLevel:previousWindowLevel];
 	}];
+#if 0
 }
+#else
+}
+#endif
 
 - (nullable NSArray<NSWindow *> *)customWindowsToExitFullScreenForWindow:(NSWindow *)window {
 	return [NSArray arrayWithObject:window];
 }
 
 - (void)window:(NSWindow *)window startCustomAnimationToExitFullScreenWithDuration:(NSTimeInterval)duration {
-//NSLog(@"duration %5.2f", duration);
-
-	NSInteger previousWindowLevel = [window level];
-	[window setLevel:(NSMainMenuWindowLevel + 1)];
+	NSAssert(NSMainMenuWindowLevel + 1 == window.level, @"");
+//	NSInteger previousWindowLevel = [window level];
+//NSLog(@"%lu", previousWindowLevel);
+//	[window setLevel:(NSMainMenuWindowLevel + 1)];
 
 	window.styleMask = window.styleMask & ~NSWindowStyleMaskFullScreen;
 
@@ -1895,14 +1938,22 @@ frameSize.width, frameSize.height);
 	[NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
 		[context setDuration:duration];
 
-		[window.animator setFrame:_windowFrameBeforeEnteringFullScreen display:YES];
+		//	If the window was in fullsize content mode when fullscreen mode was
+		//	entered then restore it. Do this *before* calling -setFrame:display:
+		if(_isInFullSizeContentModeForNonFullScreenMode)
+			[_fullSizeContentController toggleFullSizeContent];
 
-	//	window.animator.styleMask = window.animator.styleMask | NSWindowStyleMaskTitled;
-	//	window.animator.titlebarAppearsTransparent = NO; <== doesn't do anything
+		[window.animator setFrame:_windowFrameForNonFullScreenMode display:YES];
 
-		//	not needed and produces an incorrectly located/sized thumbnail browser window
-	//	[self.thumbnailController
-	//	 parentWindowWillExitFullScreenToScreenFrame:_windowFrameBeforeEnteringFullScreen];
+		if(_thumbnailController) {
+			CGFloat const wh = [window
+				standardWindowButton:NSWindowCloseButton].superview.frame.size.height;
+			[_thumbnailController parentWindowWillTransitionToScreenFrame:
+				NSMakeRect(NSMinX(_windowFrameForNonFullScreenMode),
+							NSMinY(_windowFrameForNonFullScreenMode),
+							NSWidth(_windowFrameForNonFullScreenMode),
+							NSHeight(_windowFrameForNonFullScreenMode) - wh)];
+		}
 
 		if(![self _usePreferredBackgroundColorWhenFullScreen])
 #if __has_feature(objc_arc)
@@ -1913,20 +1964,21 @@ frameSize.width, frameSize.height);
 				[self _clipViewBackgroundColorWhenFullScreen:NO];
 #endif
 	} completionHandler:^{
-		[self.window setLevel:previousWindowLevel];
+	//	[window setLevel:previousWindowLevel];
+		[window setLevel:NSNormalWindowLevel];
+		NSAssert(NSNormalWindowLevel == window.level, @"");
 
-//NSLog(@"-[PGDisplayController window:startCustomAnimationToExitFullScreenWithDuration:] DONE");
-		NSAssert(NSEqualRects(self.window.frame, _windowFrameBeforeEnteringFullScreen), @"");
-		_windowFrameBeforeEnteringFullScreen = NSZeroRect;
+		NSAssert(NSEqualRects(window.frame, _windowFrameForNonFullScreenMode), @"");
+		_windowFrameForNonFullScreenMode = NSZeroRect;
 	}];
 }
 
 //	MARK: -
 - (void)windowWillEnterFullScreen:(NSNotification *)notification {
-	//	about to enter macOS' fullscreen mode: if the window is in full-size
-	//	content mode (titlebar hidden) then switch it back to normal mode
-	if(self.window.styleMask & NSWindowStyleMaskFullSizeContentView)
-		[_fullSizeContentController toggleFullSizeContent];
+	//	changing the window's level in the method
+	//		-window:startCustomAnimationToEnterFullScreenOnScreen:withDuration:
+	//	causes a visible screen flashing; doing it in this method does not
+	[self.window setLevel:(1 + NSMainMenuWindowLevel)];
 }
 
 - (void)_updateViewMenuItems {
