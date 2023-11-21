@@ -87,7 +87,8 @@ extern NSString *const PGDisplayControllerTimerDidChangeNotification;
 	NSTimer *_timer;
 
 	PGFullSizeContentController *_fullSizeContentController;
-	NSRect _windowFrameBeforeEnteringFullScreen;
+	NSRect _windowFrameForNonFullScreenMode;
+	BOOL _isInFullSizeContentModeForNonFullScreenMode;
 }
 #endif
 
