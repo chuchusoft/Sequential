@@ -217,7 +217,7 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 	[self _updateWindowFrame];
 	[self _updateInfoWindowFrame];	//	2023/10/14
 }
-- (void)parentWindowWillEnterFullScreenToScreenFrame:(NSRect)parentWindowFrame {
+- (void)parentWindowWillTransitionToScreenFrame:(NSRect)parentWindowFrame {
 	[self _updateWindowFrameWithContentRect:parentWindowFrame usingAnimator:YES];
 
 	if(_infoView.hidden)
