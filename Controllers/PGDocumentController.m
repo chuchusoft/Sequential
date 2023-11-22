@@ -618,6 +618,46 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 	[[NSUserDefaults standardUserDefaults] setObject:archivedData forKey:PGRecentItemsKey];
 }
 
+static
+BeforeState
+HandlePreEnterFullScreen(PGFloatingPanelController *panel) {
+	if(panel.isShown) {
+//NSLog(@"hiding %@", panel);
+		[panel toggleShownUsing:PGFloatingPanelToggleInstructionHide];
+		return PGFloatingPanelToggleInstructionShowAtStatusWindowLevel;
+	} else
+		return PGFloatingPanelToggleInstructionDoNothing;
+}
+
+static
+BeforeState
+HandlePostEnterFullScreen(PGFloatingPanelController *panel, BeforeState state) {
+	PGFloatingPanelToggleInstruction ins = 0x0F & state;
+	state >>= 4;
+	if(PGFloatingPanelToggleInstructionDoNothing != ins) {
+//NSLog(@"showing %@", panel);
+		[panel toggleShownUsing:ins];
+	}
+	return state;
+}
+
+- (BeforeState)togglePanelsForExitingFullScreen:(BOOL)exitingFullScreen
+								withBeforeState:(BeforeState)state {
+	if(0 != state) {	//	after the transition has finshed
+		state = HandlePostEnterFullScreen(_activityPanel, state);
+		state = HandlePostEnterFullScreen(_timerPanel, state);
+		state = HandlePostEnterFullScreen(_inspectorPanel, state);
+		NSAssert(0 == state, @"");
+		return state;
+	}
+
+	//	before the transition has started
+	BeforeState result = HandlePreEnterFullScreen(_inspectorPanel);
+	result <<= 4;	result |= HandlePreEnterFullScreen(_timerPanel);
+	result <<= 4;	result |= HandlePreEnterFullScreen(_activityPanel);
+	return result;
+}
+
 //	MARK: - PGDocumentController(Private)
 
 - (void)_awakeAfterLocalizing
@@ -1032,6 +1072,7 @@ extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
 
 @end
 
+//	MARK: -
 @interface PGApplication : NSApplication {
 @private
 	//	<https://lapcatsoftware.com/articles/Preferences2.html>
