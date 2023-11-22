@@ -43,7 +43,8 @@
 								cellFrame, HALF_STROKE_WIDTH, HALF_STROKE_WIDTH)];
 	path.lineWidth = STROKE_WIDTH;
 
-	BOOL const isEnabled = self.isEnabled;
+	BOOL const isEnabled = self.isEnabled && self.controlView && self.controlView.window &&
+							self.controlView.window.isKeyWindow;
 	NSColor *color = nil;
 	if(isEnabled) {
 		if(self.isHighlighted)
