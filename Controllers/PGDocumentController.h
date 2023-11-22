@@ -199,4 +199,8 @@ typedef NSUInteger PGImageScaleConstraint;
 
 - (void)recentDocumentIdentifierDidChange:(NSNotification *)aNotif;
 
+typedef NSUInteger BeforeState;
+- (BeforeState)togglePanelsForExitingFullScreen:(BOOL)exitingFullScreen
+								withBeforeState:(BeforeState)state;
+
 @end
