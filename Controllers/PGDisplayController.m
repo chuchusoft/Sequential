@@ -143,6 +143,8 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 @property (nonatomic, strong) NSTimer *timer;
 
 @property (nonatomic, strong) PGFullSizeContentController *fullSizeContentController;
+
+@property (nonatomic, assign) BeforeState bs;
 @property (nonatomic, assign) NSRect windowFrameForNonFullScreenMode;
 @property (nonatomic, assign) BOOL isInFullSizeContentModeForNonFullScreenMode;
 
@@ -1859,7 +1861,7 @@ GetNotchHeight(NSScreen* screen) {
 	[self invalidateRestorableState];
 
 //	NSInteger previousWindowLevel = [window level];
-//	[window setLevel:(NSMainMenuWindowLevel + 1)];	<== this causes flashing
+//	[window setLevel:NSStatusWindowLevel];	<== this causes flashing
 
 	//	if the window is in fullsize content mode then the animation to
 	//	go fullscreen will not occur so first get out of fullsize content
@@ -1893,6 +1895,7 @@ proposedFrame.size.width, proposedFrame.size.height); */
 	}
 #endif
 
+
 	[NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
 		[context setDuration:duration];
 
@@ -1910,6 +1913,12 @@ proposedFrame.size.width, proposedFrame.size.height); */
 #endif
 	} completionHandler:^{
 	//	[self.window setLevel:previousWindowLevel];
+
+		NSAssert(0 != _bs, @"");
+		(void) [PGDocumentController.sharedDocumentController
+					togglePanelsForExitingFullScreen:NO
+									 withBeforeState:_bs];
+		_bs = 0;
 	}];
 #if 0
 }
@@ -1922,10 +1931,10 @@ proposedFrame.size.width, proposedFrame.size.height); */
 }
 
 - (void)window:(NSWindow *)window startCustomAnimationToExitFullScreenWithDuration:(NSTimeInterval)duration {
-	NSAssert(NSMainMenuWindowLevel + 1 == window.level, @"");
+	NSAssert(NSStatusWindowLevel == window.level, @"");
 //	NSInteger previousWindowLevel = [window level];
 //NSLog(@"%lu", previousWindowLevel);
-//	[window setLevel:(NSMainMenuWindowLevel + 1)];
+//	[window setLevel:NSStatusWindowLevel];
 
 	window.styleMask = window.styleMask & ~NSWindowStyleMaskFullScreen;
 
@@ -1978,7 +1987,11 @@ proposedFrame.size.width, proposedFrame.size.height); */
 	//	changing the window's level in the method
 	//		-window:startCustomAnimationToEnterFullScreenOnScreen:withDuration:
 	//	causes a visible screen flashing; doing it in this method does not
-	[self.window setLevel:(1 + NSMainMenuWindowLevel)];
+	[self.window setLevel:NSStatusWindowLevel];
+
+	_bs = [PGDocumentController.sharedDocumentController
+			togglePanelsForExitingFullScreen:NO
+							 withBeforeState:0];
 }
 
 - (void)_updateViewMenuItems {
