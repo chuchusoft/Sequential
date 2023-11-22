@@ -22,11 +22,15 @@ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
 ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
-// Models
-@class PGNode;
 
 // Controllers
 @class PGDisplayController;
+
+typedef enum PGFloatingPanelToggleInstruction {
+	PGFloatingPanelToggleInstructionHide = 0,
+	PGFloatingPanelToggleInstructionDoNothing = 1,
+	PGFloatingPanelToggleInstructionShowAtStatusWindowLevel = 2,
+} PGFloatingPanelToggleInstruction;
 
 @interface PGFloatingPanelController : NSWindowController
 #if !__has_feature(objc_arc)
@@ -36,7 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	PGDisplayController *_displayController;
 }
 
-@property(assign, nonatomic, getter = isShown) BOOL shown;
+@property(readonly, getter = isShown) BOOL shown;
 - (PGDisplayController *)displayController;
 // For overriding:
 @property(readonly) NSString *nibName;
@@ -46,16 +50,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 @property (readonly) PGDisplayController *displayController;
 #endif
 - (void)toggleShown;
-
-- (void)windowWillShow;
-- (void)windowWillClose;
+- (void)toggleShownUsing:(PGFloatingPanelToggleInstruction)i;
 
 //	this was -(BOOL)setDisplayController: but that signature is non-standard
-//	(because it returns a BOOL), and causes ARC to stop compilation with an
-//	error so use a similarly-named signature:
+//	(because it returns a BOOL), and produces an error when compiling under
+//	ARC, so use a similarly-named method:
 - (BOOL)setDisplayControllerReturningWasChanged:(PGDisplayController *)controller;
 
-- (void)windowDidBecomeMain:(NSNotification *)aNotif;
-- (void)windowDidResignMain:(NSNotification *)aNotif;
+@end
 
+@protocol PGFloatingPanelProtocol
+@required
+- (void)windowWillShow;
+- (void)windowWillClose;
 @end
