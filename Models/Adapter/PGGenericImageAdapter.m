@@ -57,8 +57,8 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 @property (nonatomic, assign) BOOL readFailed;
 @property (nonatomic, assign) PGOrientation orientation;
 @property (nonatomic, strong) NSImageRep *cachedRep;
+@property (readonly) NSDictionary *imageSourceOptions;
 
-- (NSDictionary *)_imageSourceOptions;
 - (void)_setImageProperties:(NSDictionary *)properties;
 - (void)_readFinishedWithImageRep:(NSImageRep *)aRep;
 
@@ -81,14 +81,24 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 
 #if __has_feature(objc_arc)
 @synthesize imageProperties = _imageProperties;
-#endif
 
+- (NSDictionary *)imageSourceOptions
+{
+	NSString *utiType = self.dataProvider.UTIType;
+	if(!utiType)
+		return @{};
+
+	return @{ (NSString *)kCGImageSourceTypeIdentifierHint: self.dataProvider.UTIType };
+}
+#else
 - (NSDictionary *)_imageSourceOptions
 {
 	return [NSDictionary dictionaryWithObjectsAndKeys:
 		[[self dataProvider] UTIType], kCGImageSourceTypeIdentifierHint,
 		nil];
 }
+#endif
+
 - (void)_setImageProperties:(NSDictionary *)properties
 {
 	_orientation = PGOrientationWithTIFFOrientation([[properties objectForKey:(NSString *)kCGImagePropertyOrientation] unsignedIntegerValue]);
@@ -201,15 +211,19 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 		//	fall through to slower code (e.g., for an animated image)
 	}
 
-	NSData *const data = [[self dataProvider] data];
-	if(!data || [operation isCancelled])
-		return;
-	CGImageSourceRef const source = CGImageSourceCreateWithData((CFDataRef)data, (CFDictionaryRef)[self _imageSourceOptions]);
-	if(!source)
-		return;
-	size_t const count = CGImageSourceGetCount(source);
-	if(!count || [operation isCancelled]) {
-		CFRelease(source);
+	NSData *const data = !operation.isCancelled ? [[self dataProvider] data] : nil;
+	CGImageSourceRef const source = data && !operation.isCancelled ?
+		CGImageSourceCreateWithData((CFDataRef)data,
+									(CFDictionaryRef)self.imageSourceOptions) :
+		NULL;
+	size_t const count = source && !operation.isCancelled ? CGImageSourceGetCount(source) : 0;
+	if(0 == count) {
+		if(source)
+			CFRelease(source);
+
+		[self performSelectorOnMainThread:@selector(_readFinishedWithImageRep:)
+							   withObject:nil	//	nil means "reading failed"
+							waitUntilDone:NO];
 		return;
 	}
 
