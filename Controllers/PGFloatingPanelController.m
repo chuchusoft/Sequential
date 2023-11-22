@@ -54,20 +54,31 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 #endif
 
+//	MARK: -
 @implementation PGFloatingPanelController
 
-//	MARK: - PGFloatingPanelController
+- (void)_updateWithDisplayController:(PGDisplayController *)controller
+{
+	PGDisplayController *const c = controller ? controller : [[NSApp mainWindow] windowController];
+	[self setDisplayControllerReturningWasChanged:[c isKindOfClass:[PGDisplayController class]] ? c : nil];
+}
 
-- (void)setShown:(BOOL)flag
+- (void)setShown:(BOOL)flag forFullScreenTransition:(BOOL)forFullScreenTransition
 {
 	if(flag == _shown) return;
 	_shown = flag;
+	id<PGFloatingPanelProtocol> pr = !forFullScreenTransition &&
+		[self conformsToProtocol:@protocol(PGFloatingPanelProtocol)] ?
+		(id<PGFloatingPanelProtocol>)self : nil;
 	if(flag) {
-		[self windowWillShow];
+		[pr windowWillShow];
 		[super showWindow:self];
 	} else {
-		[self windowWillClose];
-		[[self window] performClose:self];
+		[pr windowWillClose];
+		if(forFullScreenTransition)
+			[[self window] orderOut:self];
+		else
+			[[self window] performClose:self];
 	}
 }
 #if !__has_feature(objc_arc)
@@ -76,9 +87,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	return [[_displayController retain] autorelease];
 }
 #endif
-- (void)toggleShown
+- (void)toggleShown {
+	[self setShown:![self isShown] forFullScreenTransition:NO];
+}
+- (void)toggleShownUsing:(PGFloatingPanelToggleInstruction)i
 {
-	[self setShown:![self isShown]];
+	NSAssert(PGFloatingPanelToggleInstructionHide == i && self.isShown ||
+		PGFloatingPanelToggleInstructionShowAtStatusWindowLevel == i && !self.isShown,
+		@"");
+	if(PGFloatingPanelToggleInstructionShowAtStatusWindowLevel == i)
+		self.window.level = NSStatusWindowLevel;
+	[self setShown:![self isShown] forFullScreenTransition:YES];
 }
 
 //	MARK: -
@@ -92,8 +111,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	NSString *const name = [self nibName];
 	return name ? [NSString stringWithFormat:@"%@PanelFrame", name] : [NSString string];
 }
-- (void)windowWillShow {}
-- (void)windowWillClose {}
 - (BOOL)setDisplayControllerReturningWasChanged:(PGDisplayController *)controller
 {
 	if(controller == _displayController) return NO;
@@ -106,35 +123,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	return YES;
 }
 
-//	MARK: -
-
-- (void)windowDidBecomeMain:(NSNotification *)aNotif
-{
-	[self _updateWithDisplayController:aNotif ? [[aNotif object] windowController] : [[NSApp mainWindow] windowController]];
-}
-- (void)windowDidResignMain:(NSNotification *)aNotif
-{
-	[self _updateWithDisplayController:nil];
-}
-
-//	MARK: - PGFloatingPanelController(Private)
-
-- (void)_updateWithDisplayController:(PGDisplayController *)controller
-{
-	PGDisplayController *const c = controller ? controller : [[NSApp mainWindow] windowController];
-	[self setDisplayControllerReturningWasChanged:[c isKindOfClass:[PGDisplayController class]] ? c : nil];
-}
-
 //	MARK: - NSWindowController
 
-- (id)initWithWindowNibName:(NSString *)name
+/* - (id)initWithWindowNibName:(NSString *)name
 {
 	if((self = [super initWithWindowNibName:name])) {
+		//	these are not needed anymore (NSWindow will call these methods even if self
+		//	is not registered as an observer)
 		[(NSNotificationCenter *)[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(windowDidBecomeMain:) name:NSWindowDidBecomeMainNotification object:nil];
 		[(NSNotificationCenter *)[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(windowDidResignMain:) name:NSWindowDidResignMainNotification object:nil];
 	}
 	return self;
-}
+} */
 
 //	MARK: -
 
@@ -167,6 +167,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		[[self window] setFrame:r display:YES];
 	}
 #endif
+
+//NSLog(@"collectionBehavior %lu", self.window.collectionBehavior);
+
+	//	Do not do this; it causes the floating windows to not transition to macOS
+	//	fullscreen mode correctly - probably one of the settings is incorrect;
+	//	because the default behavior works correctly anyway, there's no need for this.
+	//	It looks like Preview.app hides its Info window before entering fullscreen
+	//	mode and then shows the Info window once the transition to fullscreen mode
+	//	has been completed. That's now what this app does too.
+/*	NSWindowCollectionBehavior cb = NSWindowCollectionBehaviorMoveToActiveSpace |
+		NSWindowCollectionBehaviorStationary | NSWindowCollectionBehaviorIgnoresCycle |
+		NSWindowCollectionBehaviorFullScreenAuxiliary |
+		NSWindowCollectionBehaviorFullScreenDisallowsTiling;
+	if(@available(macOS 13.0, *))
+		cb |= NSWindowCollectionBehaviorAuxiliary;
+
+	self.window.collectionBehavior = cb;	*/
 }
 
 //	MARK: - NSObject
@@ -175,14 +192,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 {
 	return [self initWithWindowNibName:[self nibName]];
 }
+#if !__has_feature(objc_arc)
 - (void)dealloc
 {
-	[self PG_removeObserver];
-#if !__has_feature(objc_arc)
+//	[self PG_removeObserver];	no longer needed
+
 	[_displayController release];
 	[super dealloc];
-#endif
 }
+#endif
 
 //	MARK: - <NSWindowDelegate>
 
@@ -198,11 +216,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 {
 	[self windowDidResize:nil];
 }
-
 - (void)windowWillClose:(NSNotification *)aNotif
 {
 	_shown = NO;
-	[self windowWillClose];
+
+	if([self conformsToProtocol:@protocol(PGFloatingPanelProtocol)])
+		[(id<PGFloatingPanelProtocol>)self windowWillClose];
+}
+- (void)windowDidBecomeMain:(NSNotification *)aNotif
+{
+	[self _updateWithDisplayController:aNotif ? [[aNotif object] windowController] : [[NSApp mainWindow] windowController]];
+}
+- (void)windowDidResignMain:(NSNotification *)aNotif
+{
+	[self _updateWithDisplayController:nil];
 }
 
 @end
