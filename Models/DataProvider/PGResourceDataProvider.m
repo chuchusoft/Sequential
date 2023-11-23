@@ -155,6 +155,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 {
 	return [[NSWorkspace sharedWorkspace] iconForFile:[[_identifier URL] path]];
 }
+/* this method does (more or less) the same thing as the superclass, so removed
 - (NSString *)kindString
 {
 	NSString* uniformTypeIdentifier = [self UTIType];
@@ -168,7 +169,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	NSParameterAssert(desc);
 	return [(NSString *)desc autorelease];
 #endif
-}
+} */
 
 //	MARK: - NSObject
 
