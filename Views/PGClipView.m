@@ -26,7 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import <IOKit/hidsystem/IOHIDLib.h>
 #import <IOKit/hidsystem/event_status_driver.h>
 #import <tgmath.h>
-#import <Carbon/Carbon.h>
 #import <QuartzCore/QuartzCore.h>
 
 // Other Sources
