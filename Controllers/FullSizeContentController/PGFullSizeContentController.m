@@ -120,10 +120,10 @@ static
 void
 InformPossiblePGFullSizeContentProtocolAdopter(id object,
 	PGFullSizeContentController *sender, NSWindow *parent) {
-	if(![object conformsToProtocol:@protocol(PGFullSizeContentProtocol)])
+	if(![object conformsToProtocol:@protocol(PGFullSizeContentDelegate)])
 		return;
 
-	NSObject<PGFullSizeContentProtocol> *adopter = (NSObject<PGFullSizeContentProtocol> *)object;
+	NSObject<PGFullSizeContentDelegate> *adopter = (NSObject<PGFullSizeContentDelegate> *)object;
 
 	//	start message:
 	[adopter fullSizeContentController:sender willStartAnimating:parent];
