@@ -22,6 +22,9 @@ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
 ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
+
+#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
+
 #import "PGDataProvider.h"
 
 // Models
@@ -196,26 +199,67 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #endif
 	}
 	NSString *const extension = [self extension];
-	if(extension) return [[NSWorkspace sharedWorkspace] iconForFileType:extension];
+	if(extension) return [NSWorkspace.sharedWorkspace iconForFileType:extension];
 	return nil;
 }
 - (NSString *)kindString
 {
-	NSString *kind = [[NSWorkspace sharedWorkspace] localizedDescriptionForType:[self UTIType]]; // Ugly ("Portable Network Graphics image"), but more accurate than file extensions.
+	NSString *const utiType = [self UTIType];
+	NSString *kind = utiType ? [NSWorkspace.sharedWorkspace localizedDescriptionForType:utiType] : nil; // Ugly ("Portable Network Graphics image"), but more accurate than file extensions.
 	if(kind) return kind;
 #if 1
+	if(utiType) {
+		if (@available(macOS 11.0, *))
+			return [UTType typeWithIdentifier:utiType].localizedDescription;
 	#if __has_feature(objc_arc)
-	CFStringRef desc = UTTypeCopyDescription((__bridge CFStringRef) [self UTIType]);
+		CFStringRef desc = UTTypeCopyDescription((__bridge CFStringRef) utiType);
+		if(desc)
+			return (NSString*)CFBridgingRelease(desc);
 	#else
-	CFStringRef desc = UTTypeCopyDescription((CFStringRef) [self UTIType]);
+		CFStringRef desc = UTTypeCopyDescription((CFStringRef) utiType);
+		if(desc)
+			return [(NSString*)desc autorelease];
 	#endif
-	if(desc)
+	}
+
+	NSString *const mimeType = [self MIMEType];
+	if(mimeType) {
+		if (@available(macOS 11.0, *))
+			return [UTType typeWithMIMEType:mimeType].localizedDescription;
+
+		CFStringRef uti = UTTypeCreatePreferredIdentifierForTag(kUTTagClassMIMEType,
+												(__bridge CFStringRef)mimeType, NULL);
+		if(uti) {
+			CFStringRef desc = UTTypeCopyDescription(uti);
+			CFRelease(uti);
+			if(desc)
 	#if __has_feature(objc_arc)
-		return (NSString*)CFBridgingRelease(desc);
+				return (NSString *)CFBridgingRelease(desc);
 	#else
-		return [(NSString*)desc autorelease];
+				return [(NSString*)desc autorelease];
 	#endif
-#else
+		}
+	}
+
+	NSString *const extension = [self extension];
+	if(extension) {
+		if (@available(macOS 11.0, *))
+			return [UTType typeWithFilenameExtension:extension].localizedDescription;
+
+		CFStringRef uti = UTTypeCreatePreferredIdentifierForTag(kUTTagClassFilenameExtension,
+														(__bridge CFStringRef)extension, NULL);
+		if(uti) {
+			CFStringRef desc = UTTypeCopyDescription(uti);
+			CFRelease(uti);
+			if(desc)
+	#if __has_feature(objc_arc)
+				return (NSString *)CFBridgingRelease(desc);
+	#else
+				return [(NSString*)desc autorelease];
+	#endif
+		}
+	}
+#else	//	original code:
 	if(noErr == LSCopyKindStringForTypeInfo(kLSUnknownType, kLSUnknownCreator, (CFStringRef)[self extension], (CFStringRef *)&kind)) return [kind autorelease];
 	if(noErr == LSCopyKindStringForMIMEType((CFStringRef)[self MIMEType], (CFStringRef *)&kind)) return [kind autorelease]; // Extremely ugly ("TextEdit.app Document"), worst case.
 #endif
@@ -279,6 +323,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (NSString *)UTIType
 {
 #if __has_feature(objc_arc)
+	if (@available(macOS 11.0, *))
+		return [UTType typeWithMIMEType:self.MIMEType].identifier;
+
 	return (NSString *)CFBridgingRelease(UTTypeCreatePreferredIdentifierForTag(kUTTagClassMIMEType,
 													   (__bridge CFStringRef)[self MIMEType], NULL));
 #else
