@@ -48,6 +48,9 @@
   now more performant (especially during window animations like when the
   window transitions to full screen).
 - using the Find panel crashed the app. Fixed.
+- the kind string and byte size used for sorting and displaying was incorrect
+  for folders/containers, which in turn made sorting by kind or size produce
+  incorrect results. Fixed.
 
 2.4.0 (2023-11-02)
 - PDF image drawing was being cached in a layer which resulted in a sub-optimal
