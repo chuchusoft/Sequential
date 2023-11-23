@@ -26,9 +26,9 @@ NS_ASSUME_NONNULL_BEGIN
 
 //	With the window passed to -[PGFullSizeContentController initWithWindow:],
 //	its child windows are checked whether any conform to this protocol. If
-//	so, the child window is invoked when the animation begins and ends when
-//	the parent window is being transitioned to/from fullsize-content mode.
-@protocol PGFullSizeContentProtocol <NSObject>
+//	so, when the parent window is being transitioned to/from fullsize-content
+//	mode, the child window is invoked when the animation begins and ends.
+@protocol PGFullSizeContentDelegate <NSObject>
 
 @required
 - (void)fullSizeContentController:(PGFullSizeContentController *)controller
