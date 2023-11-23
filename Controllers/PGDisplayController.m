@@ -1303,9 +1303,12 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 
 	[infoView setIndex:_displayImageIndex];
 
+	//	Update the entry in the Window menu, and yes, it's
+	//	done in -synchronizeWindowTitleWithDocumentName.
+	[self synchronizeWindowTitleWithDocumentName];
+
 	//	update the title bar accessory instead of the title
 	{
-	//	[self synchronizeWindowTitleWithDocumentName];
 		NSTextField *const accessoryTextField = _fullSizeContentController.accessoryTextField;
 
 		NSUInteger const nodeCount = [[[[self activeDocument] node] resourceAdapter] viewableNodeCount];
@@ -1803,11 +1806,64 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 	return _findFieldEditor;
 }
 
-//	MARK : -
-/* - (NSSize)windowWillResize:(NSWindow *)sender toSize:(NSSize)frameSize {
-NSLog(@"-[PGDisplayController windowWillResize:toSize:(%5.2f, %5.2f)]",
-frameSize.width, frameSize.height);
-	return frameSize;
+//	MARK: -
+
+- (void)windowDidBecomeKey:(NSNotification *)notification
+{
+#if __has_feature(objc_arc)
+	if([notification object] == _findPanel) [_findPanel makeFirstResponder:_searchField];
+#else
+	if([notification object] == _findPanel) [_findPanel makeFirstResponder:searchField];
+#endif
+}
+- (void)windowDidResignKey:(NSNotification *)notification
+{
+	if([notification object] == _findPanel) [_findPanel makeFirstResponder:nil];
+}
+
+- (void)windowDidBecomeMain:(NSNotification *)notification
+{
+	NSParameterAssert(notification);
+	if([notification object] != [self window]) return;
+	[[PGDocumentController sharedDocumentController] setCurrentDocument:[self activeDocument]];
+
+	if(_thumbnailController)
+		[_thumbnailController selectionNeedsDisplay];	//	2023/11/12
+}
+- (void)windowDidResignMain:(NSNotification *)notification
+{
+	NSParameterAssert(notification);
+	if([notification object] != [self window]) return;
+	[[PGDocumentController sharedDocumentController] setCurrentDocument:nil];
+
+	if(_thumbnailController)
+		[_thumbnailController selectionNeedsDisplay];	//	2023/11/12
+}
+
+- (void)windowWillClose:(NSNotification *)notification
+{
+	NSParameterAssert(notification);
+	if([notification object] != [self window])
+		return;
+	if([_findPanel parentWindow])
+		[_findPanel close];
+	[self close];
+}
+
+- (void)windowWillBeginSheet:(NSNotification *)notification
+{
+	[_findPanel setIgnoresMouseEvents:YES];
+}
+- (void)windowDidEndSheet:(NSNotification *)notification
+{
+	[_findPanel setIgnoresMouseEvents:NO];
+}
+/*
+- (void)windowWillStartLiveResize:(NSNotification *)notification {
+NSLog(@"-windowWillStartLiveResize: duration %5.2f", NSAnimationContext.currentContext.duration);
+}
+- (void)windowDidEndLiveResize:(NSNotification *)notification {
+NSLog(@"-windowDidEndLiveResize:");
 } */
 
 //	MARK: -
@@ -2017,59 +2073,6 @@ proposedFrame.size.width, proposedFrame.size.height); */
 	//	View menu are in an incorrect state, so find the View menu and update
 	//	its items.
 	[self _updateViewMenuItems];
-}
-
-//	MARK: -
-
-- (void)windowDidBecomeKey:(NSNotification *)notification
-{
-#if __has_feature(objc_arc)
-	if([notification object] == _findPanel) [_findPanel makeFirstResponder:_searchField];
-#else
-	if([notification object] == _findPanel) [_findPanel makeFirstResponder:searchField];
-#endif
-}
-- (void)windowDidResignKey:(NSNotification *)notification
-{
-	if([notification object] == _findPanel) [_findPanel makeFirstResponder:nil];
-}
-
-- (void)windowDidBecomeMain:(NSNotification *)notification
-{
-	NSParameterAssert(notification);
-	if([notification object] != [self window]) return;
-	[[PGDocumentController sharedDocumentController] setCurrentDocument:[self activeDocument]];
-
-	if(_thumbnailController)
-		[_thumbnailController selectionNeedsDisplay];	//	2023/11/12
-}
-- (void)windowDidResignMain:(NSNotification *)notification
-{
-	NSParameterAssert(notification);
-	if([notification object] != [self window]) return;
-	[[PGDocumentController sharedDocumentController] setCurrentDocument:nil];
-
-	if(_thumbnailController)
-		[_thumbnailController selectionNeedsDisplay];	//	2023/11/12
-}
-
-- (void)windowWillClose:(NSNotification *)notification
-{
-	NSParameterAssert(notification);
-	if([notification object] != [self window])
-		return;
-	if([_findPanel parentWindow])
-		[_findPanel close];
-	[self close];
-}
-
-- (void)windowWillBeginSheet:(NSNotification *)notification
-{
-	[_findPanel setIgnoresMouseEvents:YES];
-}
-- (void)windowDidEndSheet:(NSNotification *)notification
-{
-	[_findPanel setIgnoresMouseEvents:NO];
 }
 
 //	MARK: - <PGClipViewDelegate>
