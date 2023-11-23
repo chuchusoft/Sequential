@@ -47,6 +47,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import "PGFoundationAdditions.h"
 #import "PGGeometry.h"
 
+//	should match #define in PGDisplayController.m
+#define FULL_HEIGHT_BROWSER_IN_FULLSIZE_CONTENT_MODE	false
+
 NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThumbnailControllerContentInsetDidChange";
 
 #define PGMaxVisibleColumns (NSUInteger)3
@@ -55,7 +58,7 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 
 #if __has_feature(objc_arc)
 
-@interface PGThumbnailController () <PGFullSizeContentProtocol>
+@interface PGThumbnailController () <PGFullSizeContentDelegate>
 
 @property (nonatomic, strong) PGBezelPanel *window;
 @property (nonatomic, weak) PGThumbnailBrowser *browser;
@@ -63,7 +66,12 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 @property (nonatomic, strong) PGBezelPanel *infoWindow;	//	2023/10/02 added
 @property (nonatomic, weak) NSView *infoView;	//	2023/10/02 added [PGThumbnailInfoView]
 
+#if FULL_HEIGHT_BROWSER_IN_FULLSIZE_CONTENT_MODE
+@property (nonatomic, strong) NSTrackingArea *browserTrackingArea;
 @property (nonatomic, assign) BOOL parentWindowIsAnimating;
+#else
+@property (nonatomic, assign) BOOL parentWindowIsAnimating;
+#endif
 
 - (void)_updateInfoWindowFrame;	//	2023/10/02
 - (void)_updateWindowFrame;
@@ -142,7 +150,7 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 }
 - (PGInset)contentInset
 {
-	return PGMakeInset(NSWidth([_window frame]), 0.0f, 0.0f, 0.0f);
+	return PGMakeInset(NSWidth(_window.frame), 0.0f, 0.0f, 0.0f);
 }
 - (NSSet *)selectedNodes
 {
@@ -218,7 +226,12 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 	[self _updateInfoWindowFrame];	//	2023/10/14
 }
 - (void)parentWindowWillTransitionToScreenFrame:(NSRect)parentWindowFrame {
-	[self _updateWindowFrameWithContentRect:parentWindowFrame usingAnimator:YES];
+	[self _updateWindowFrameWithContentRect:parentWindowFrame
+							  usingAnimator:YES
+#if FULL_HEIGHT_BROWSER_IN_FULLSIZE_CONTENT_MODE
+							 titleBarHeight:0
+#endif
+	];
 
 	if(_infoView.hidden)
 		return;
@@ -306,7 +319,11 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 	[self _updateInfoWindowFrameWithContentRect:_window.frame usingAnimator:NO];
 }
 
-- (void)_updateWindowFrameWithContentRect:(NSRect)r usingAnimator:(BOOL)useAnimator
+- (void)_updateWindowFrameWithContentRect:(NSRect)r
+							usingAnimator:(BOOL)useAnimator
+#if FULL_HEIGHT_BROWSER_IN_FULLSIZE_CONTENT_MODE
+						   titleBarHeight:(CGFloat)titleBarHeight
+#endif
 {
 #if 1	//	2021/07/21 modernized
 	NSRect const newFrame = NSMakeRect(NSMinX(r), NSMinY(r),
@@ -317,31 +334,91 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 		(MIN([_browser numberOfColumns], PGMaxVisibleColumns) * [_browser columnWidth]) * [_window userSpaceScaleFactor],
 									   NSHeight(r));
 #endif
-//NSLog(@"_updateWindowFrame equal-rects %u", NSEqualRects(newFrame, [_window frame]));
-	if(NSEqualRects(newFrame, [_window frame]))
+
+//NSLog(@"_updateWindowFrameWithContentRect:usingAnimator:titleBarHeight: equal-rects %u", NSEqualRects(newFrame, _window.frame));
+	if(!NSEqualRects(newFrame, _window.frame)) {
+#if FULL_HEIGHT_BROWSER_IN_FULLSIZE_CONTENT_MODE
+		if(_browserTrackingArea) {
+//NSLog(@"-_browser removeTrackingArea:");
+			[_browser removeTrackingArea:_browserTrackingArea];
+	#if !__has_feature(objc_arc)
+			[_browserTrackingArea release];
+	#endif
+			_browserTrackingArea = nil;
+		}
+#else
+#endif
+
+		if(useAnimator)
+			[_window.animator setFrame:newFrame display:YES];
+		else
+			[_window setFrame:newFrame display:YES];
+	}
+
+#if FULL_HEIGHT_BROWSER_IN_FULLSIZE_CONTENT_MODE
+	if(0 == titleBarHeight || useAnimator || _browserTrackingArea || [self _isInAnyFullScreenMode])
 		return;
 
-	if(useAnimator)
-		[_window.animator setFrame:newFrame display:YES];
-	else
-		[_window setFrame:newFrame display:YES];
+	//	if in full-size-content mode and not animating and not already tracking
+	//	and not in full-screen mode then create a tracking area to show/hide
+	//	the standard close/miniaturize/zoom buttons when the mouse moves in/out
+	//	of the tracking area
+
+	//	for unknown reasons, -convertRect: does not convert to _browser's co-ord system
+	//	so just create the tracking rect directly:
+	NSRect const trackingRect = NSMakeRect(0, NSHeight(newFrame) - titleBarHeight,
+											NSWidth(newFrame), titleBarHeight);
+//	NSRect const trackingRect = [_browser convertRect:NSMakeRect(NSMinX(newFrame), NSMaxY(newFrame) - titleBarHeight,
+//																 NSWidth(newFrame), titleBarHeight)
+//											 fromView:nil];
+	_browserTrackingArea = [[NSTrackingArea alloc] initWithRect:trackingRect
+													//	options:(NSTrackingMouseEnteredAndExited | NSTrackingMouseMoved | NSTrackingActiveAlways)
+														options:(NSTrackingMouseEnteredAndExited | NSTrackingActiveAlways)
+														  owner:self
+													   userInfo:nil];//(nullable NSDictionary<id, id> *)userInfo
+	[_browser addTrackingArea:_browserTrackingArea];
+
+//NSLog(@"newFrame = (%5.2f, %5.2f) [%5.2f x %5.2f]",
+//newFrame.origin.x, newFrame.origin.y, newFrame.size.width, newFrame.size.height);
+
+//NSLog(@"-_browser addTrackingArea: (%5.2f, %5.2f) [%5.2f x %5.2f]",
+//trackingRect.origin.x, trackingRect.origin.y, trackingRect.size.width, trackingRect.size.height);
+#else
+#endif
 }
 
 - (void)_updateWindowFrame
 {
+#if FULL_HEIGHT_BROWSER_IN_FULLSIZE_CONTENT_MODE
+#else
 	if(_parentWindowIsAnimating) return;
+#endif
 	NSWindow *const p = [_displayController window];
 	if(!p) return;
 	NSRect r = [p PG_contentRect];
+#if FULL_HEIGHT_BROWSER_IN_FULLSIZE_CONTENT_MODE
+	//	if not in full-screen mode and in full-size-content mode and the
+	//	parent window is not animating then ensure that a tracking area
+	//	is created so that mousing into that area will allow the parent
+	//	window's standard close/miniaturize/zoom buttons to be shown
+	CGFloat const titleBarHeight = ![self _isInAnyFullScreenMode] &&
+		0 != (p.styleMask & NSWindowStyleMaskFullSizeContentView) &&
+		!_parentWindowIsAnimating ?
+		[p standardWindowButton:NSWindowCloseButton].superview.frame.size.height: 0;
+
+	[self _updateWindowFrameWithContentRect:r usingAnimator:NO titleBarHeight:titleBarHeight];
+#else
 	//	if (1) not in full-screen mode, and (2) in full-size-content mode
 	//	then make sure the thumbnail columns do not obscure the window's
 	//	standard close/miniaturize/zoom buttons
 	if(![self _isInAnyFullScreenMode] && // was: if(!PGDocumentController.sharedDocumentController.fullscreen &&
 		0 != (p.styleMask & NSWindowStyleMaskFullSizeContentView)) {
-		CGFloat const h = [p standardWindowButton:NSWindowCloseButton].superview.frame.size.height;
-		r.size.height -= h;
+		CGFloat const titleBarHeight =
+			[p standardWindowButton:NSWindowCloseButton].superview.frame.size.height;
+		r.size.height -= titleBarHeight;
 	}
 	[self _updateWindowFrameWithContentRect:r usingAnimator:NO];
+#endif
 	[self PG_postNotificationName:PGThumbnailControllerContentInsetDidChangeNotification];
 }
 
@@ -399,6 +476,10 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 	[_window setDelegate:nil];
 #if !__has_feature(objc_arc)
 	[_window release];
+	#if FULL_HEIGHT_BROWSER_IN_FULLSIZE_CONTENT_MODE
+	[_browserTrackingArea release];
+	#else
+	#endif
 
 	[super dealloc];
 #endif
@@ -422,17 +503,49 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 #endif
 }
 
+//	MARK: - <NSTrackingArea owner>
+
+- (void)mouseEntered:(NSEvent *)event {
+#if FULL_HEIGHT_BROWSER_IN_FULLSIZE_CONTENT_MODE
+	NSAssert(nil != _browserTrackingArea, @"");
+#endif
+NSLog(@"-mouseEntered:");
+	_browser.needsDisplay = YES;
+}
+/* - (void)mouseMoved:(NSEvent *)event {
+	NSAssert(nil != _browserTrackingArea, @"");
+NSLog(@"-mouseMoved:");
+
+	[_displayController mouseMoved:event];
+} */
+- (void)mouseExited:(NSEvent *)event {
+#if FULL_HEIGHT_BROWSER_IN_FULLSIZE_CONTENT_MODE
+	NSAssert(nil != _browserTrackingArea, @"");
+#endif
+NSLog(@"-mouseExited:");
+	_browser.needsDisplay = YES;
+}
+
 //	MARK: - <PGFullSizeContentProtocol>
 
 - (void)fullSizeContentController:(PGFullSizeContentController *)controller
 			   willStartAnimating:(NSWindow *)window {
 //NSLog(@"-[PGThumbnailController fullSizeContentController:willStartAnimating:]");
+#if FULL_HEIGHT_BROWSER_IN_FULLSIZE_CONTENT_MODE
+	_parentWindowIsAnimating = YES;
+#else
 	_parentWindowIsAnimating = YES;	//	disable browser window resizing
+#endif
 }
 - (void)fullSizeContentController:(PGFullSizeContentController *)controller
 			   didFinishAnimating:(NSWindow *)window {
 //NSLog(@"-[PGThumbnailController fullSizeContentController:didFinishAnimating:]");
+#if FULL_HEIGHT_BROWSER_IN_FULLSIZE_CONTENT_MODE
+	_parentWindowIsAnimating = NO;
+	[self _updateWindowFrame];
+#else
 	_parentWindowIsAnimating = NO;	//	enable browser window resizing
+#endif
 }
 
 //	MARK: - <PGThumbnailBrowserDataSource>
