@@ -1438,14 +1438,14 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 //	[[self window] useOptimizedDrawing:YES];	2021/07/21 deprecated
 	[[self window] setMinSize:PGWindowMinSize];
 
-	NSImage *const cursorImage = [NSImage imageNamed:@"Cursor-Hand-Pointing"];
 #if __has_feature(objc_arc)
 	[_clipView setAcceptsFirstResponder:YES];
-	[_clipView setCursor:cursorImage ? [[NSCursor alloc] initWithImage:cursorImage hotSpot:NSMakePoint(5.0f, 0.0f)] : [NSCursor pointingHandCursor]];
+	[_clipView setCursor:[NSCursor openHandCursor]];
 	[_clipView setPostsFrameChangedNotifications:YES];
 	[_clipView PG_addObserver:self selector:@selector(clipViewFrameDidChange:) name:NSViewFrameDidChangeNotification];
 #else
 	[clipView setAcceptsFirstResponder:YES];
+	NSImage *const cursorImage = [NSImage imageNamed:@"Cursor-Hand-Pointing"];
 	[clipView setCursor:cursorImage ? [[[NSCursor alloc] initWithImage:cursorImage hotSpot:NSMakePoint(5.0f, 0.0f)] autorelease] : [NSCursor pointingHandCursor]];
 	[clipView setPostsFrameChangedNotifications:YES];
 	[clipView PG_addObserver:self selector:@selector(clipViewFrameDidChange:) name:NSViewFrameDidChangeNotification];
