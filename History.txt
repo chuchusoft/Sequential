@@ -32,8 +32,8 @@
   The same menu item changes to "Use Entire Screen" when in fullscreen to have
   the image drawn in the notch area on screens with a notch (it does nothing
   if a notch is not present). The keyboard shortcut is the same: option-F.
-- added a standard macOS Full Screen menu item (shortcut: ctrl-command-F or
-  fn-F).
+- added a standard macOS Full Screen menu item (shortcut: ctrl-command-F on
+  older macOS versions or fn-F on newer versions).
 - the original Full Screen menu item text is now "Enter Full Screen (classic)"
   to make it clear which is which.
 - added support for transitioning to and from macOS fullscreen mode (the
