@@ -143,6 +143,7 @@
 		0EF543240DC1291600905391 /* PGFolderAdapter.m in Sources */ = {isa = PBXBuildFile; fileRef = 0EF543230DC1291600905391 /* PGFolderAdapter.m */; };
 		0EF9B2550FA348F700B7E16A /* PGIconTextFieldCell.m in Sources */ = {isa = PBXBuildFile; fileRef = 0EF9B2540FA348F700B7E16A /* PGIconTextFieldCell.m */; };
 		4B2462E02ADAC51700BA81EF /* PGThumbnailInfoView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4B2462DE2ADAC51700BA81EF /* PGThumbnailInfoView.m */; };
+		4B3525672B0CF90000805A19 /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F1E5358726AF027D0057A129 /* Carbon.framework */; };
 		4B86CC832B01E93000268688 /* History.txt in Resources */ = {isa = PBXBuildFile; fileRef = 0E3378E8100C82B700373E83 /* History.txt */; };
 		4BBA2F632B0A809F004935FA /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4BBA2F552B0A809F004935FA /* QuartzCore.framework */; };
 		4BD905F82AE4D36F001FECBD /* PGResourceDataProvider.m in Sources */ = {isa = PBXBuildFile; fileRef = 4BD905F72AE4D36F001FECBD /* PGResourceDataProvider.m */; };
@@ -160,7 +161,6 @@
 		F1CA6DDB26BA587100ECE823 /* only_for_linking_cpp_dylib.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F1CA6DDA26BA587100ECE823 /* only_for_linking_cpp_dylib.cpp */; };
 		F1E5355A26AE74120057A129 /* PGFadeOutPanel.m in Sources */ = {isa = PBXBuildFile; fileRef = F1E5354F26AE74110057A129 /* PGFadeOutPanel.m */; };
 		F1E5356926AE74BC0057A129 /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F1E5356826AE74BC0057A129 /* AppKit.framework */; };
-		F1E5358826AF027D0057A129 /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F1E5358726AF027D0057A129 /* Carbon.framework */; };
 		F1E5360F26B2E74A0057A129 /* PGHTMLAdapter.m in Sources */ = {isa = PBXBuildFile; fileRef = 0EE646A90DC8416F00A90F86 /* PGHTMLAdapter.m */; };
 		F1E5361326B3123B0057A129 /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F1E5361226B3123B0057A129 /* WebKit.framework */; };
 /* End PBXBuildFile section */
@@ -619,9 +619,9 @@
 				F1CA6DD726BA57BB00ECE823 /* libXADMaster.a in Frameworks */,
 				4BEC932729152136009B5F59 /* libUniversalDetector.a in Frameworks */,
 				F1E5356926AE74BC0057A129 /* AppKit.framework in Frameworks */,
-				F1E5358826AF027D0057A129 /* Carbon.framework in Frameworks */,
 				F1E5361326B3123B0057A129 /* WebKit.framework in Frameworks */,
 				4BBA2F632B0A809F004935FA /* QuartzCore.framework in Frameworks */,
+				4B3525672B0CF90000805A19 /* Carbon.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
