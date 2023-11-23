@@ -2011,13 +2011,20 @@ proposedFrame.size.width, proposedFrame.size.height); */
 		[window.animator setFrame:_windowFrameForNonFullScreenMode display:YES];
 
 		if(_thumbnailController) {
-			CGFloat const wh = [window
+//	should match #define in PGThumbnailController.m
+#define FULL_HEIGHT_BROWSER_IN_FULLSIZE_CONTENT_MODE	false
+#if FULL_HEIGHT_BROWSER_IN_FULLSIZE_CONTENT_MODE
+			[_thumbnailController parentWindowWillTransitionToScreenFrame:
+				[window contentRectForFrameRect:_windowFrameForNonFullScreenMode]];
+#else
+			CGFloat const titleBarHeight = [window
 				standardWindowButton:NSWindowCloseButton].superview.frame.size.height;
 			[_thumbnailController parentWindowWillTransitionToScreenFrame:
 				NSMakeRect(NSMinX(_windowFrameForNonFullScreenMode),
 							NSMinY(_windowFrameForNonFullScreenMode),
 							NSWidth(_windowFrameForNonFullScreenMode),
-							NSHeight(_windowFrameForNonFullScreenMode) - wh)];
+							NSHeight(_windowFrameForNonFullScreenMode) - titleBarHeight)];
+#endif
 		}
 
 		if(![self _usePreferredBackgroundColorWhenFullScreen])
