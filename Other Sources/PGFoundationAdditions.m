@@ -238,14 +238,16 @@ OSType PGOSTypeFromString(NSString *str)
 
 + (void *)PG_useInstance:(BOOL)instance implementationFromClass:(Class)class forSelector:(SEL)aSel
 {
-	//	ARC conversion produces "error: cannot assign to 'self' in a class method"
-	//	so use need a local var which mimics self
-	id self_ = self;
-	if(!instance) self_ = objc_getMetaClass(class_getName(self_));
+	//	swizzle a system method with one inside this app
+
 	Method const newMethod = instance ? class_getInstanceMethod(class, aSel) : class_getClassMethod(class, aSel);
 	if(!newMethod) return NULL;
-	IMP const originalImplementation = class_getMethodImplementation(self_, aSel); // Make sure the IMP we return is gotten using the normal method lookup mechanism.
-	(void)class_replaceMethod(self_, aSel, method_getImplementation(newMethod), method_getTypeEncoding(newMethod)); // If this specific class doesn't provide its own implementation of aSel--even if a superclass does--class_replaceMethod() adds the method without replacing anything and returns NULL. This behavior is good because it prevents our change from spreading to a superclass, but it means the return value is worthless.
+
+	//	ARC conversion produces "error: cannot assign to 'self' in a class method"
+	//	so use need a local var which mimics self
+	id const aSelf = instance ? self : objc_getMetaClass(class_getName(self));
+	IMP const originalImplementation = class_getMethodImplementation(aSelf, aSel); // Make sure the IMP we return is gotten using the normal method lookup mechanism.
+	(void)class_replaceMethod(aSelf, aSel, method_getImplementation(newMethod), method_getTypeEncoding(newMethod)); // If this specific class doesn't provide its own implementation of aSel--even if a superclass does--class_replaceMethod() adds the method without replacing anything and returns NULL. This behavior is good because it prevents our change from spreading to a superclass, but it means the return value is worthless.
 	return originalImplementation;
 }
 
