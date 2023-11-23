@@ -48,6 +48,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import "PGGeometry.h"
 
 //	should match #define in PGDisplayController.m
+	//	does not work well so disabled until it's fixed
 #define FULL_HEIGHT_BROWSER_IN_FULLSIZE_CONTENT_MODE	false
 
 NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThumbnailControllerContentInsetDidChange";
@@ -505,11 +506,10 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 
 //	MARK: - <NSTrackingArea owner>
 
-- (void)mouseEntered:(NSEvent *)event {
 #if FULL_HEIGHT_BROWSER_IN_FULLSIZE_CONTENT_MODE
+- (void)mouseEntered:(NSEvent *)event {
 	NSAssert(nil != _browserTrackingArea, @"");
-#endif
-NSLog(@"-mouseEntered:");
+//NSLog(@"-mouseEntered:");
 	_browser.needsDisplay = YES;
 }
 /* - (void)mouseMoved:(NSEvent *)event {
@@ -519,12 +519,11 @@ NSLog(@"-mouseMoved:");
 	[_displayController mouseMoved:event];
 } */
 - (void)mouseExited:(NSEvent *)event {
-#if FULL_HEIGHT_BROWSER_IN_FULLSIZE_CONTENT_MODE
 	NSAssert(nil != _browserTrackingArea, @"");
-#endif
-NSLog(@"-mouseExited:");
+//NSLog(@"-mouseExited:");
 	_browser.needsDisplay = YES;
 }
+#endif
 
 //	MARK: - <PGFullSizeContentProtocol>
 
