@@ -297,8 +297,8 @@ NSString *const PGMaxDepthKey = @"PGMaxDepth";
 		PGResourceAdapter *const adapter = [[children objectAtIndex:i] resourceAdapter];
 		IMP const search = [adapter methodForSelector:sel];
 		if(!search) continue;
-		PGNode* (* searchInvoker)(id,SEL,BOOL,id) = (PGNode* (*)(id,SEL,BOOL,id)) search;
-		PGNode *const node = searchInvoker(adapter, sel, forward, context);
+		PGNode* (*searchInvoker)(id,SEL,BOOL,id,id) = (PGNode* (*)(id,SEL,BOOL,id,id))search;
+		PGNode *const node = searchInvoker(adapter, sel, forward, context, nil);
 	//	PGNode *const node = search(adapter, sel, forward, context, nil);
 		if(node) return node;
 	}
