@@ -1102,6 +1102,8 @@ static void (*PGNSMenuItemSetEnabled)(id, SEL, BOOL);
 {
 	if([PGApplication class] != self) return;
 
+	//	swizzle -[NSWindow validateMenuItem:], -[NSMenu performKeyEquivalent:], and
+	//	-[NSMenuItem setEnabled:]
 	PGNSWindowValidateMenuItem = [NSWindow PG_useInstance:YES implementationFromClass:[PGWindow class] forSelector:@selector(validateMenuItem:)];
 	PGNSMenuPerformKeyEquivalent = [NSMenu PG_useInstance:YES implementationFromClass:[PGMenu class] forSelector:@selector(performKeyEquivalent:)];
 	PGNSMenuItemSetEnabled = [NSMenuItem PG_useInstance:YES implementationFromClass:[PGMenuItem class] forSelector:@selector(setEnabled:)];
