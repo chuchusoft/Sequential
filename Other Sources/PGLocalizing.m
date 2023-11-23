@@ -192,8 +192,15 @@ static BOOL (*PGNSBundleLoadNibFileExternalNameTableWithZone)(id, SEL, NSString 
 
 + (void)PG_prepareToAutoLocalize
 {
-	if(PGNSBundleLoadNibFileExternalNameTableWithZone) return;
-	PGNSBundleLoadNibFileExternalNameTableWithZone = (BOOL (*)(id, SEL, NSString *, NSDictionary *, NSZone *))[self PG_useInstance:NO implementationFromClass:[PGBundle class] forSelector:@selector(loadNibFile:externalNameTable:withZone:)];
+	if(PGNSBundleLoadNibFileExternalNameTableWithZone)
+		return;
+
+	//	swizzle +[NSBundle loadNibFile:externalNameTable:withZone:]
+	typedef BOOL(*LoadNibFileMethod)(id, SEL, NSString *, NSDictionary *, NSZone *);
+	PGNSBundleLoadNibFileExternalNameTableWithZone = (LoadNibFileMethod)
+			[self PG_useInstance:NO
+		 implementationFromClass:[PGBundle class]
+					 forSelector:@selector(loadNibFile:externalNameTable:withZone:)];
 }
 
 @end
