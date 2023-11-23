@@ -46,6 +46,14 @@ CompareByteSize(uint64_t a, uint64_t b) {
 	return NSOrderedDescending;
 }
 
+static
+uint64_t
+GetByteSizeForSortingOrDisplay(PGResourceAdapter *ra) {
+	return ra.isContainer ?
+		((PGContainerAdapter *)ra).byteSizeOfAllChildren :
+		ra.dataProvider.dataByteSize;
+}
+
 NSString *const PGNodeLoadingDidProgressNotification = @"PGNodeLoadingDidProgress";
 NSString *const PGNodeReadyForViewingNotification    = @"PGNodeReadyForViewing";
 
@@ -292,8 +300,8 @@ enum {
 		case PGUnsorted:           return NSOrderedSame;
 		case PGSortByDateModified: r = [[dp1 dateModified] compare:[dp2 dateModified]]; break;
 		case PGSortByDateCreated:  r = [[dp1 dateCreated] compare:[dp2 dateCreated]]; break;
-		case PGSortBySize:         r = CompareByteSize([dp1 dataByteSize], [dp2 dataByteSize]); break;
-	//	case PGSortBySize:         r = [[dp1 dataLength] compare:[dp2 dataLength]]; break;
+		case PGSortBySize:         r = CompareByteSize(GetByteSizeForSortingOrDisplay(self.resourceAdapter),
+														GetByteSizeForSortingOrDisplay(node.resourceAdapter)); break;
 		case PGSortByKind:         r = [[dp1 kindString] compare:[dp2 kindString]]; break;
 		case PGSortShuffle:        return random() & 1 ? NSOrderedAscending : NSOrderedDescending;
 	}
@@ -462,8 +470,8 @@ enum {
 	switch(PGSortOrderMask & [[self document] sortOrder]) {
 		case PGSortByDateModified: date = [dp dateModified]; break;
 		case PGSortByDateCreated:  date = [dp dateCreated]; break;
-		case PGSortBySize: info = [[NSNumber numberWithUnsignedLongLong:[dp dataByteSize]] PG_bytesAsLocalizedString]; break;
-	//	case PGSortBySize: info = [[dp dataLength] PG_bytesAsLocalizedString]; break;
+		case PGSortBySize: info = [[NSNumber
+			numberWithUnsignedLongLong:GetByteSizeForSortingOrDisplay(self.resourceAdapter)] PG_bytesAsLocalizedString]; break;
 		case PGSortByKind: info = [dp kindString]; break;
 	}
 #if __has_feature(objc_arc)
