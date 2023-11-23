@@ -22,6 +22,9 @@ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
 ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
+
+#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
+
 #import "PGFolderAdapter.h"
 #import <sys/event.h>
 
@@ -44,6 +47,13 @@ static NSArray *PGIgnoredPaths = nil;
 @implementation PGDiskFolderDataProvider
 
 //	MARK: PGDataProvider
+- (NSString *)UTIType
+{
+	if (@available(macOS 11.0, *))
+		return UTTypeFolder.identifier;
+	else
+		return (NSString *)kUTTypeFolder;
+}
 - (OSType)typeCode
 {
 	return 'fold';
