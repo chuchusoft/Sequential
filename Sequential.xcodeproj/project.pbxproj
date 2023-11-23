@@ -144,6 +144,7 @@
 		0EF9B2550FA348F700B7E16A /* PGIconTextFieldCell.m in Sources */ = {isa = PBXBuildFile; fileRef = 0EF9B2540FA348F700B7E16A /* PGIconTextFieldCell.m */; };
 		4B2462E02ADAC51700BA81EF /* PGThumbnailInfoView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4B2462DE2ADAC51700BA81EF /* PGThumbnailInfoView.m */; };
 		4B3525672B0CF90000805A19 /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F1E5358726AF027D0057A129 /* Carbon.framework */; };
+		4B65307C2B0FA78900CBC2BD /* UniformTypeIdentifiers.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B65307B2B0FA78900CBC2BD /* UniformTypeIdentifiers.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
 		4B86CC832B01E93000268688 /* History.txt in Resources */ = {isa = PBXBuildFile; fileRef = 0E3378E8100C82B700373E83 /* History.txt */; };
 		4BBA2F632B0A809F004935FA /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4BBA2F552B0A809F004935FA /* QuartzCore.framework */; };
 		4BD905F82AE4D36F001FECBD /* PGResourceDataProvider.m in Sources */ = {isa = PBXBuildFile; fileRef = 4BD905F72AE4D36F001FECBD /* PGResourceDataProvider.m */; };
@@ -579,6 +580,7 @@
 		4B2462DA2ADAC15C00BA81EF /* PGColorWell.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PGColorWell.h; sourceTree = "<group>"; };
 		4B2462DE2ADAC51700BA81EF /* PGThumbnailInfoView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PGThumbnailInfoView.m; sourceTree = "<group>"; };
 		4B2462DF2ADAC51700BA81EF /* PGThumbnailInfoView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PGThumbnailInfoView.h; sourceTree = "<group>"; };
+		4B65307B2B0FA78900CBC2BD /* UniformTypeIdentifiers.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UniformTypeIdentifiers.framework; path = System/Library/Frameworks/UniformTypeIdentifiers.framework; sourceTree = SDKROOT; };
 		4B88FD0C2ADCC5610052CE66 /* Sequential_Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Sequential_Prefix.pch; sourceTree = "<group>"; };
 		4BBA2F552B0A809F004935FA /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		4BC63F6D291628360099C1FF /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
@@ -622,6 +624,7 @@
 				F1E5361326B3123B0057A129 /* WebKit.framework in Frameworks */,
 				4BBA2F632B0A809F004935FA /* QuartzCore.framework in Frameworks */,
 				4B3525672B0CF90000805A19 /* Carbon.framework in Frameworks */,
+				4B65307C2B0FA78900CBC2BD /* UniformTypeIdentifiers.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -870,13 +873,14 @@
 		2A37F4C3FDCFA73011CA2CEA /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				4BBA2F552B0A809F004935FA /* QuartzCore.framework */,
 				F1CA6DC526BA31D400ECE823 /* libSystem.B.tbd */,
 				F1CA6DBE26BA316900ECE823 /* libbz2.tbd */,
 				F1CA6DBC26BA316300ECE823 /* libz.tbd */,
-				F1E5361226B3123B0057A129 /* WebKit.framework */,
-				F1E5358726AF027D0057A129 /* Carbon.framework */,
 				F1E5356826AE74BC0057A129 /* AppKit.framework */,
+				F1E5361226B3123B0057A129 /* WebKit.framework */,
+				4BBA2F552B0A809F004935FA /* QuartzCore.framework */,
+				F1E5358726AF027D0057A129 /* Carbon.framework */,
+				4B65307B2B0FA78900CBC2BD /* UniformTypeIdentifiers.framework */,
 				1058C7A6FEA54F5311CA2CBB /* Linked Frameworks */,
 				1058C7A8FEA54F5311CA2CBB /* Other Frameworks */,
 			);
