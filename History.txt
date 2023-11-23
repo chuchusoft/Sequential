@@ -47,6 +47,7 @@
   fixed, PDF image caching can occur and as a result, PDF image rendering is
   now more performant (especially during window animations like when the
   window transitions to full screen).
+- using the Find panel crashed the app. Fixed.
 
 2.4.0 (2023-11-02)
 - PDF image drawing was being cached in a layer which resulted in a sub-optimal
