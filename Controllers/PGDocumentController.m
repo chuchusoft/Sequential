@@ -417,12 +417,15 @@ static PGDocumentController *PGSharedDocumentController = nil;
 - (BOOL)canToggleFullscreen
 {
 	if(_fullscreen) return YES;
-	for(PGDocument *const doc in [self documents]) if([[[doc displayController] window] attachedSheet]) return NO;
+	for(PGDocument *const doc in [self documents])
+		if([[[doc displayController] window] attachedSheet])
+			return NO;
 	return YES;
 }
 
 extern	const NSString* const	PGUseEntireScreenWhenInFullScreenKey;
-		const NSString* const	PGUseEntireScreenWhenInFullScreenKey	=	@"PGUseEntireScreenWhenInFullScreen";
+		const NSString* const	PGUseEntireScreenWhenInFullScreenKey	=
+								@"PGUseEntireScreenWhenInFullScreen";
 
 - (BOOL) usesEntireScreenWhenInFullScreen
 {
@@ -779,6 +782,11 @@ HandlePostEnterFullScreen(PGFloatingPanelController *panel, BeforeState state) {
 			[doc setDisplayController:dc];
 			[dc showWindow:self];
 
+			//	this must be done *after* showing the window otherwise the
+			//	title bar does not appear when the mouse hovers over it
+			dc.inFullSizeContentModeForNonFullScreenMode =
+				_fullscreenController.inFullSizeContentModeForNonFullScreenMode;
+
 			//	2023/10/02 sets the selection in the new controller,
 			//	ie, restores selection
 			if(selectedNodes && currentDoc == doc)
@@ -799,12 +807,15 @@ HandlePostEnterFullScreen(PGFloatingPanelController *panel, BeforeState state) {
 
 			//	2023/10/02 get the selected nodes from the (old) thumbnail
 			//	browser before it is lost
-			if(nil == selectedNodes && currentDoc == doc)
+			if(nil == selectedNodes && currentDoc == doc) {
 #if __has_feature(objc_arc)
 				selectedNodes = oldController.selectedNodes;
 #else
 				selectedNodes = [[oldController.selectedNodes retain] autorelease];
 #endif
+				_fullscreenController.inFullSizeContentModeForNonFullScreenMode =
+					oldController.isInFullSizeContentModeForNonFullScreenMode;
+			}
 
 			[doc setDisplayController:_fullscreenController];
 			[[oldController window] close];
