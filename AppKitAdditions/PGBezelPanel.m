@@ -36,9 +36,7 @@ NSString *const PGBezelPanelFrameDidChangeNotification    = @"PGBezelPanelFrameD
 
 @interface PGBezelPanel ()
 
-@property (nonatomic, assign) BOOL acceptsEvents;
 @property (nonatomic, assign) BOOL canBecomeKey;
-@property (nonatomic, assign) PGInset frameInset;
 
 - (void)_updateFrameWithWindow:(NSWindow *)aWindow display:(BOOL)flag;
 
@@ -68,32 +66,32 @@ NSString *const PGBezelPanelFrameDidChangeNotification    = @"PGBezelPanelFrameD
 
 //	MARK: Instance Methods
 
-- (id)initWithContentView:(NSView *)aView
+- (instancetype)initWithContentView:(NSView *)aView
 {
-	if((self = [super initWithContentRect:(NSRect){NSZeroPoint, [aView frame].size} styleMask:NSWindowStyleMaskBorderless backing:NSBackingStoreBuffered defer:YES])) {
+	if((self = [super initWithContentRect:(NSRect){NSZeroPoint, aView.frame.size} styleMask:NSWindowStyleMaskBorderless backing:NSBackingStoreBuffered defer:YES])) {
 		[self setOpaque:NO];
-		[self setBackgroundColor:[NSColor clearColor]];
+		self.backgroundColor = NSColor.clearColor;
 	//	[self useOptimizedDrawing:YES];	2021/07/21 deprecated
-		[self setHidesOnDeactivate:NO];
-		[self setContentView:aView];
+		self.hidesOnDeactivate = NO;
+		self.contentView = aView;
 	}
 	return self;
 }
 - (void)displayOverWindow:(NSWindow *)aWindow
 {
 	[self cancelFadeOut];
-	if(aWindow != [self parentWindow]) [[self parentWindow] removeChildWindow:self];
-	[self setIgnoresMouseEvents:!_acceptsEvents];
+	if(aWindow != self.parentWindow) [self.parentWindow removeChildWindow:self];
+	self.ignoresMouseEvents = !_acceptsEvents;
 	[self _updateFrameWithWindow:aWindow display:NO];
 	[aWindow addChildWindow:self ordered:NSWindowAbove];
 }
 
 //	MARK: -
 
-- (id)content
+/* - (id)content
 {
-	return [self contentView];
-}
+	return self.contentView;
+} */
 
 //	MARK: -
 
@@ -129,7 +127,7 @@ NSString *const PGBezelPanelFrameDidChangeNotification    = @"PGBezelPanelFrameD
 
 - (void)updateFrameDisplay:(BOOL)flag
 {
-	[self _updateFrameWithWindow:[self parentWindow] display:flag];
+	[self _updateFrameWithWindow:self.parentWindow display:flag];
 }
 
 //	MARK: -
@@ -147,7 +145,7 @@ NSString *const PGBezelPanelFrameDidChangeNotification    = @"PGBezelPanelFrameD
 
 - (void)_updateFrameWithWindow:(NSWindow *)aWindow display:(BOOL)flag
 {
-	if(![[self contentView] respondsToSelector:@selector(bezelPanel:frameForContentRect:scale:)])
+	if(![self.contentView respondsToSelector:@selector(bezelPanel:frameForContentRect:scale:)])
 		return;
 #if 1	//	2021/07/21 modernized
 	NSRect const f = [self.contentView bezelPanel:self
@@ -157,12 +155,12 @@ NSString *const PGBezelPanelFrameDidChangeNotification    = @"PGBezelPanelFrameD
 	CGFloat const s = [self userSpaceScaleFactor];
 	NSRect const f = [[self contentView] bezelPanel:self frameForContentRect:PGInsetRect([aWindow PG_contentRect], PGScaleInset(_frameInset, 1.0f / s)) scale:s];
 #endif
-	if(NSEqualRects([self frame], f))
+	if(NSEqualRects(self.frame, f))
 		return;
 //	if(flag) NSDisableScreenUpdates();	2021/07/21 deprecated
 	[self setFrame:f display:NO];
 	if(flag) {
-		[[self content] display]; // Do this instead of sending -setFrame:display:YES to force redisplay no matter what.
+		[self.contentView display]; // Do this instead of sending -setFrame:display:YES to force redisplay no matter what.
 	//	NSEnableScreenUpdates();	2021/07/21 deprecated
 	}
 	[self PG_postNotificationName:PGBezelPanelFrameDidChangeNotification];
@@ -195,25 +193,25 @@ NSString *const PGBezelPanelFrameDidChangeNotification    = @"PGBezelPanelFrameD
 
 - (BOOL)canBecomeKeyWindow
 {
-	if([self isFadingOut]) return NO;
-	return _canBecomeKey || (_acceptsEvents && ![[self parentWindow] isKeyWindow] && [[self parentWindow] canBecomeKeyWindow]);
+	if(self.isFadingOut) return NO;
+	return _canBecomeKey || (_acceptsEvents && !self.parentWindow.keyWindow && self.parentWindow.canBecomeKeyWindow);
 }
 - (void)becomeKeyWindow
 {
 	[super becomeKeyWindow];
-	if(!_canBecomeKey) [[self parentWindow] makeKeyAndOrderFront:self];
+	if(!_canBecomeKey) [self.parentWindow makeKeyAndOrderFront:self];
 }
 - (void)setContentView:(NSView *)aView
 {
-	[[self contentView] PG_removeObserver:self name:PGBezelPanelFrameShouldChangeNotification];
-	[super setContentView:aView];
-	[[self contentView] PG_addObserver:self selector:@selector(frameShouldChange:) name:PGBezelPanelFrameShouldChangeNotification];
+	[self.contentView PG_removeObserver:self name:PGBezelPanelFrameShouldChangeNotification];
+	super.contentView = aView;
+	[self.contentView PG_addObserver:self selector:@selector(frameShouldChange:) name:PGBezelPanelFrameShouldChangeNotification];
 }
 - (void)setParentWindow:(NSWindow *)aWindow
 {
-	[[self parentWindow] PG_removeObserver:self name:NSWindowDidResizeNotification];
-	[super setParentWindow:aWindow];
-	[[self parentWindow] PG_addObserver:self selector:@selector(windowDidResize:) name:NSWindowDidResizeNotification];
+	[self.parentWindow PG_removeObserver:self name:NSWindowDidResizeNotification];
+	super.parentWindow = aWindow;
+	[self.parentWindow PG_addObserver:self selector:@selector(windowDidResize:) name:NSWindowDidResizeNotification];
 }
 
 //	MARK: NSObject
