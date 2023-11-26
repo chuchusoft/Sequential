@@ -29,12 +29,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 extern NSString *const PGPasswordKey;
 
-enum {
+typedef NS_ENUM(NSInteger, PGRecursionPolicy) {
 	PGRecurseToMaxDepth = 0,
 	PGRecurseToAnyDepth = 1,
 	PGRecurseNoFurther = 2,
 };
-typedef NSInteger PGRecursionPolicy;
 
 @protocol PGResourceAdapterImageGeneratorCompletion <NSObject>	//	2023/10/21
 
@@ -61,7 +60,9 @@ typedef NSInteger PGRecursionPolicy;
 + (NSArray *)supportedFileTypes;
 + (NSArray *)supportedMIMETypes;
 
-- (id)initWithNode:(PGNode *)node dataProvider:(PGDataProvider *)dataProvider;
+- (instancetype)initWithNode:(PGNode *)node dataProvider:(PGDataProvider *)dataProvider NS_DESIGNATED_INITIALIZER;
+- (instancetype)init NS_UNAVAILABLE;
+
 @property(readonly) PGNode *node;
 #if __has_feature(objc_arc)
 @property(readonly) __kindof PGDataProvider *dataProvider;
@@ -106,10 +107,10 @@ typedef NSInteger PGRecursionPolicy;
 - (void)load; // Sent by -loadIfNecessary, never call it directly. -[node loadFinishedForAdapter:] OR -[node fallbackFromFailedAdapter:] must be sent sometime hereafter.
 - (void)read; // Sent by -[PGNode readIfNecessary], never call it directly. -readFinishedWithImageRep: must be sent sometime hereafter.
 
-- (NSImage *)thumbnail;
-- (NSImage *)fastThumbnail;
-- (NSImage *)realThumbnail;
-- (BOOL)canGenerateRealThumbnail;
+@property (nonatomic, readonly) NSImage *thumbnail;
+@property (nonatomic, readonly) NSImage *fastThumbnail;
+@property (nonatomic, readonly) NSImage *realThumbnail;
+@property (nonatomic, readonly) BOOL canGenerateRealThumbnail;
 - (void)invalidateThumbnail;
 
 @property(readonly) NSDictionary *imageProperties;

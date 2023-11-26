@@ -54,7 +54,8 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 	NSObject<PGResourceAdapterImageGeneratorCompletion, PGResourceAdapterImageGeneration> *_adapter;
 }
 
-- (id)initWithResourceAdapter:(PGResourceAdapter *)adapter;
+- (instancetype)initWithResourceAdapter:(PGResourceAdapter *)adapter NS_DESIGNATED_INITIALIZER;
+- (instancetype)init NS_UNAVAILABLE;
 @end
 
 #if __has_feature(objc_arc)
@@ -86,7 +87,7 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 
 + (NSDictionary *)typesDictionary
 {
-	return [[[NSBundle mainBundle] infoDictionary] objectForKey:@"PGResourceAdapterClasses"];
+	return [NSBundle mainBundle].infoDictionary[@"PGResourceAdapterClasses"];
 }
 + (NSArray *)supportedFileTypes
 {
@@ -95,9 +96,9 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 	for(NSString *const classString in types) {
 		id const adapterClass = NSClassFromString(classString);
 		if(!adapterClass) continue;
-		NSDictionary *const typeDict = [types objectForKey:classString];
-		[fileTypes addObjectsFromArray:[typeDict objectForKey:PGCFBundleTypeExtensionsKey]];
-		for(NSString *const type in [typeDict objectForKey:PGCFBundleTypeOSTypesKey]) [fileTypes addObject:PGOSTypeToStringQuoted(PGOSTypeFromString(type), YES)];
+		NSDictionary *const typeDict = types[classString];
+		[fileTypes addObjectsFromArray:typeDict[PGCFBundleTypeExtensionsKey]];
+		for(NSString *const type in typeDict[PGCFBundleTypeOSTypesKey]) [fileTypes addObject:PGOSTypeToStringQuoted(PGOSTypeFromString(type), YES)];
 	}
 	return fileTypes;
 }
@@ -108,15 +109,15 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 	for(NSString *const classString in types) {
 		id const adapterClass = NSClassFromString(classString);
 		if(!adapterClass) continue;
-		NSDictionary *const typeDict = [types objectForKey:classString];
-		[MIMETypes addObjectsFromArray:[typeDict objectForKey:PGCFBundleTypeMIMETypesKey]];
+		NSDictionary *const typeDict = types[classString];
+		[MIMETypes addObjectsFromArray:typeDict[PGCFBundleTypeMIMETypesKey]];
 	}
 	return MIMETypes;
 }
 
 //	MARK: - PGResourceAdapter
 
-- (id)initWithNode:(PGNode *)node dataProvider:(PGDataProvider *)dataProvider
+- (instancetype)initWithNode:(PGNode *)node dataProvider:(PGDataProvider *)dataProvider
 {
 	if((self = [super init])) {
 		_node = node;
@@ -134,25 +135,25 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 
 - (PGContainerAdapter *)containerAdapter
 {
-	return [self parentAdapter];
+	return self.parentAdapter;
 }
 - (PGContainerAdapter *)rootContainerAdapter
 {
-	return [[self parentAdapter] rootContainerAdapter];
+	return self.parentAdapter.rootContainerAdapter;
 }
 - (NSUInteger)depth
 {
-	return [[self parentAdapter] depth] + 1;
+	return self.parentAdapter.depth + 1;
 }
 - (PGRecursionPolicy)recursionPolicy
 {
-	PGContainerAdapter *const p = [self parentAdapter];
-	return p ? [p descendantRecursionPolicy] : PGRecurseToMaxDepth;
+	PGContainerAdapter *const p = self.parentAdapter;
+	return p ? p.descendantRecursionPolicy : PGRecurseToMaxDepth;
 }
 - (BOOL)shouldRecursivelyCreateChildren
 {
-	switch([self recursionPolicy]) {
-		case PGRecurseToMaxDepth: return [self depth] <= [[[NSUserDefaults standardUserDefaults] objectForKey:PGMaxDepthKey] unsignedIntegerValue] + 1;
+	switch(self.recursionPolicy) {
+		case PGRecurseToMaxDepth: return self.depth <= [[[NSUserDefaults standardUserDefaults] objectForKey:PGMaxDepthKey] unsignedIntegerValue] + 1;
 		case PGRecurseToAnyDepth: return YES;
 		case PGRecurseNoFurther: return NO;
 	}
@@ -164,19 +165,19 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 
 - (NSData *)data
 {
-	return [_dataProvider data];
+	return _dataProvider.data;
 }
 - (uint64_t)dataByteSize
 {
-	return [_dataProvider dataByteSize];
+	return _dataProvider.dataByteSize;
 }
 - (BOOL)canGetData
 {
-	return [_dataProvider hasData];
+	return _dataProvider.hasData;
 }
 - (BOOL)hasNodesWithData
 {
-	return [self canGetData];
+	return self.canGetData;
 }
 
 //	MARK: -
@@ -207,8 +208,8 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 }
 - (BOOL)isSortedFirstViewableNodeOfFolder
 {
-	PGContainerAdapter *const container = [self containerAdapter];
-	return !container || [container sortedFirstViewableNodeInFolderFirst:YES] == [self node];
+	PGContainerAdapter *const container = self.containerAdapter;
+	return !container || [container sortedFirstViewableNodeInFolderFirst:YES] == self.node;
 }
 - (BOOL)hasRealThumbnail
 {
@@ -231,15 +232,15 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 
 - (NSUInteger)viewableNodeIndex
 {
-	return [[self parentAdapter] viewableIndexOfChild:[self node]];
+	return [self.parentAdapter viewableIndexOfChild:self.node];
 }
 - (NSUInteger)viewableNodeCount
 {
-	return [[self node] isViewable] ? 1 : 0;
+	return self.node.isViewable ? 1 : 0;
 }
 - (BOOL)hasViewableNodeCountGreaterThan:(NSUInteger)anInt
 {
-	return [self viewableNodeCount] > anInt;
+	return self.viewableNodeCount > anInt;
 }
 
 //	MARK: -
@@ -256,21 +257,21 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 }
 - (void)load
 {
-	[[self node] loadFinishedForAdapter:self];
+	[self.node loadFinishedForAdapter:self];
 }
 - (void)read
 {
-	[[self node] readFinishedWithImageRep:nil];
+	[self.node readFinishedWithImageRep:nil];
 }
 
 //	MARK: -
 
 - (NSImage *)thumbnail
 {
-	NSImage *const realThumbnail = [self realThumbnail];
+	NSImage *const realThumbnail = self.realThumbnail;
 	if(realThumbnail) return realThumbnail;
 
-	if([self canGenerateRealThumbnail])
+	if(self.canGenerateRealThumbnail)
 		[self _startGeneratingImages];	//	2023/10/21
 	else if ([(NSObject<PGResourceAdapterImageGeneration>*)self respondsToSelector:@selector(generateThumbnailForContainer)])
 		//	2023/10/22 currently, only PGPDFAdapter implements -generateThumbnailForContainer
@@ -279,7 +280,7 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 		//	contents by mod-date, for example, so what is then the first page?]).
 		[(NSObject<PGResourceAdapterImageGeneration>*)self generateThumbnailForContainer];
 
-	return [self fastThumbnail];
+	return self.fastThumbnail;
 }
 - (NSImage *)fastThumbnail
 {
@@ -309,7 +310,7 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 		[_realThumbnail release];
 		_realThumbnail = [anImage retain];
 #endif
-		[[self document] noteNodeThumbnailDidChange:[self node] recursively:NO];
+		[self.document noteNodeThumbnailDidChange:self.node recursively:NO];
 	}
 }
 - (BOOL)canGenerateRealThumbnail
@@ -318,7 +319,7 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 }
 - (void)invalidateThumbnail
 {
-	if(![self canGenerateRealThumbnail]) return;
+	if(!self.canGenerateRealThumbnail) return;
 
 	[self _stopGeneratingImagesInOperation:_generateImageOperation];
 #if !__has_feature(objc_arc)
@@ -326,7 +327,7 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 #endif
 	_realThumbnail = nil;
 
-	(void)[self thumbnail];
+	(void)self.thumbnail;
 }
 
 //	MARK: -
@@ -337,7 +338,7 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 }
 - (PGOrientation)orientationWithBase:(BOOL)flag
 {
-	return flag ? [[self document] baseOrientation] : PGUpright;
+	return flag ? self.document.baseOrientation : PGUpright;
 }
 - (void)clearCache {}
 - (void)addChildrenToMenu:(NSMenu *)menu {}
@@ -346,7 +347,7 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 
 - (PGNode *)nodeForIdentifier:(PGResourceIdentifier *)ident
 {
-	return PGEqualObjects(ident, [[self node] identifier]) ? [self node] : nil;
+	return PGEqualObjects(ident, self.node.identifier) ? self.node : nil;
 }
 
 - (PGNode *)sortedViewableNodeFirst:(BOOL)flag
@@ -355,7 +356,7 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 }
 - (PGNode *)sortedViewableNodeFirst:(BOOL)flag stopAtNode:(PGNode *)descendent includeSelf:(BOOL)includeSelf
 {
-	return includeSelf && [[self node] isViewable] && [self node] != descendent ? [self node] : nil;
+	return includeSelf && self.node.isViewable && self.node != descendent ? self.node : nil;
 }
 
 - (PGNode *)sortedViewableNodeNext:(BOOL)flag
@@ -364,20 +365,20 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 }
 - (PGNode *)sortedViewableNodeNext:(BOOL)flag includeChildren:(BOOL)children
 {
-	return [[self parentAdapter] outwardSearchForward:flag fromChild:[self node] inclusive:NO withSelector:@selector(sortedViewableNodeFirst:) context:nil];
+	return [self.parentAdapter outwardSearchForward:flag fromChild:self.node inclusive:NO withSelector:@selector(sortedViewableNodeFirst:) context:nil];
 }
 - (PGNode *)sortedViewableNodeNext:(BOOL)flag afterRemovalOfChildren:(NSArray *)removedChildren fromNode:(PGNode *)changedNode
 {
-	if(!removedChildren) return [self node];
-	PGNode *const potentiallyRemovedAncestor = [[self node] ancestorThatIsChildOfNode:changedNode];
-	if(!potentiallyRemovedAncestor || NSNotFound == [removedChildren indexOfObjectIdenticalTo:potentiallyRemovedAncestor]) return [self node];
-	return [[[self sortedViewableNodeNext:flag] resourceAdapter] sortedViewableNodeNext:flag afterRemovalOfChildren:removedChildren fromNode:changedNode];
+	if(!removedChildren) return self.node;
+	PGNode *const potentiallyRemovedAncestor = [self.node ancestorThatIsChildOfNode:changedNode];
+	if(!potentiallyRemovedAncestor || NSNotFound == [removedChildren indexOfObjectIdenticalTo:potentiallyRemovedAncestor]) return self.node;
+	return [[self sortedViewableNodeNext:flag].resourceAdapter sortedViewableNodeNext:flag afterRemovalOfChildren:removedChildren fromNode:changedNode];
 }
 
 - (PGNode *)sortedFirstViewableNodeInFolderNext:(BOOL)forward inclusive:(BOOL)inclusive
 {
-	PGNode *const node = [[self parentAdapter] outwardSearchForward:forward fromChild:[self node] inclusive:inclusive withSelector:@selector(sortedFirstViewableNodeInFolderFirst:) context:nil];
-	return node || forward ? node : [[self rootContainerAdapter] sortedViewableNodeFirst:YES stopAtNode:[self node] includeSelf:YES];
+	PGNode *const node = [self.parentAdapter outwardSearchForward:forward fromChild:self.node inclusive:inclusive withSelector:@selector(sortedFirstViewableNodeInFolderFirst:) context:nil];
+	return node || forward ? node : [self.rootContainerAdapter sortedViewableNodeFirst:YES stopAtNode:self.node includeSelf:YES];
 }
 - (PGNode *)sortedFirstViewableNodeInFolderFirst:(BOOL)flag
 {
@@ -385,30 +386,30 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 }
 - (PGNode *)sortedViewableNodeInFolderFirst:(BOOL)flag
 {
-	PGContainerAdapter *ancestor = [self parentAdapter];
+	PGContainerAdapter *ancestor = self.parentAdapter;
 	while(ancestor) {
 		PGNode *const node = [ancestor sortedViewableNodeFirst:flag];
-		if([self node] != node) return node;
-		ancestor = [ancestor parentAdapter];
+		if(self.node != node) return node;
+		ancestor = ancestor.parentAdapter;
 	}
 	return nil;
 }
 
 - (PGNode *)sortedViewableNodeNext:(BOOL)flag matchSearchTerms:(NSArray *)terms
 {
-	PGNode *const node = [[self parentAdapter] outwardSearchForward:flag fromChild:[self node] inclusive:NO withSelector:@selector(sortedViewableNodeFirst:matchSearchTerms:stopAtNode:) context:terms];
-	return node ? node : [[self rootContainerAdapter] sortedViewableNodeFirst:flag matchSearchTerms:terms stopAtNode:[self node]];
+	PGNode *const node = [self.parentAdapter outwardSearchForward:flag fromChild:self.node inclusive:NO withSelector:@selector(sortedViewableNodeFirst:matchSearchTerms:stopAtNode:) context:terms];
+	return node ? node : [self.rootContainerAdapter sortedViewableNodeFirst:flag matchSearchTerms:terms stopAtNode:self.node];
 }
 - (PGNode *)sortedViewableNodeFirst:(BOOL)flag matchSearchTerms:(NSArray *)terms stopAtNode:(PGNode *)descendent
 {
-	return [[self node] isViewable] && [self node] != descendent && [[[[self node] identifier] displayName] PG_matchesSearchTerms:terms] ? [self node] : nil;
+	return self.node.isViewable && self.node != descendent && [self.node.identifier.displayName PG_matchesSearchTerms:terms] ? self.node : nil;
 }
 
 - (BOOL)nodeIsFirstOrLastOfFolder:(BOOL)testForFirst { // 2022/11/04 added
 	//	-sortedViewableNodeInFolderFirst: always excludes self.node so it
 	//	can never produce the correct answer to the question; thus this
 	//	function exists to correctly answer the question
-	PGContainerAdapter *ancestor = [self parentAdapter];
+	PGContainerAdapter *ancestor = self.parentAdapter;
 	if(!ancestor)
 		return NO;
 
@@ -430,18 +431,18 @@ static NSString *const PGCFBundleTypeExtensionsKey = @"CFBundleTypeExtensions";
 - (void)_startGeneratingImages {	//	2023/10/21
 	NSAssert(NSThread.isMainThread, @"");
 	if(!_generateImageOperation) {
-		[[self node] setIsReading:YES];
+		[self.node setIsReading:YES];
 
 		NSAssert([self conformsToProtocol:@protocol(PGResourceAdapterImageGeneration)],
 					@"PGResourceAdapterImageGeneration");
 		_generateImageOperation = [[PGGenerateImageOperation alloc] initWithResourceAdapter:self];
-		[[self document] addOperation:_generateImageOperation];
+		[self.document addOperation:_generateImageOperation];
 	}
 }
 
 - (void)_stopGeneratingImagesInOperation:(NSOperation *)operation {	//	2023/10/21
 	NSAssert(NSThread.isMainThread, @"");
-	[[self node] setIsReading:NO];
+	[self.node setIsReading:NO];
 
 	NSParameterAssert(_generateImageOperation == operation);
 
@@ -458,7 +459,7 @@ static
 NSBitmapImageRep *
 ThumbnailOf(NSImageRep *imageRep, NSSize size, PGOrientation orientation, BOOL opaque) {
 	if(!imageRep) return nil;
-	NSSize const originalSize = PGRotated90CCW & orientation ? NSMakeSize([imageRep pixelsHigh], [imageRep pixelsWide]) : NSMakeSize([imageRep pixelsWide], [imageRep pixelsHigh]);
+	NSSize const originalSize = PGRotated90CCW & orientation ? NSMakeSize(imageRep.pixelsHigh, imageRep.pixelsWide) : NSMakeSize(imageRep.pixelsWide, imageRep.pixelsHigh);
 	NSSize const s = PGIntegralSize(PGScaleSizeByFloat(originalSize, MIN(1.0f, MIN(size.width / originalSize.width, size.height / originalSize.height))));
 #if __has_feature(objc_arc)
 	NSBitmapImageRep *const thumbRep = [[NSBitmapImageRep alloc] initWithBitmapDataPlanes:NULL
@@ -477,7 +478,7 @@ ThumbnailOf(NSImageRep *imageRep, NSSize size, PGOrientation orientation, BOOL o
 	if(!thumbRep) return nil;
 	NSGraphicsContext *const context = [NSGraphicsContext graphicsContextWithBitmapImageRep:thumbRep];
 	[NSGraphicsContext setCurrentContext:context];
-	[context setImageInterpolation:NSImageInterpolationHigh];
+	context.imageInterpolation = NSImageInterpolationHigh;
 	NSRect rect = NSMakeRect(0.0f, 0.0f, s.width, s.height);
 	if(PGUpright != orientation) [[NSAffineTransform PG_transformWithRect:&rect orientation:orientation] concat];
 	if(opaque) {
@@ -496,7 +497,7 @@ ThumbnailOf(NSImageRep *imageRep, NSSize size, PGOrientation orientation, BOOL o
 							   opaque:(BOOL)opaque
 		  setParentContainerThumbnail:(BOOL)setParentContainerThumbnail {
 	NSImageRep *thumbRep = ThumbnailOf(rep, size, orientation, opaque);
-	if(!thumbRep || [operation isCancelled])
+	if(!thumbRep || operation.cancelled)
 		return;
 
 #if __has_feature(objc_arc)
@@ -504,24 +505,24 @@ ThumbnailOf(NSImageRep *imageRep, NSSize size, PGOrientation orientation, BOOL o
 #else
 	NSImage *const thumbImage = [[[NSImage alloc] initWithSize:NSMakeSize([thumbRep pixelsWide], [thumbRep pixelsHigh])] autorelease];
 #endif
-	if(!thumbImage || [operation isCancelled])
+	if(!thumbImage || operation.cancelled)
 		return;
 	[thumbImage addRepresentation:thumbRep];
-	if([operation isCancelled])
+	if(operation.cancelled)
 		return;
 	[self performSelectorOnMainThread:@selector(_setRealThumbnail:)
 						   withObject:thumbImage
 						waitUntilDone:NO];
 
 	if(setParentContainerThumbnail)	//	2023/10/22
-		[[self parentAdapter] performSelectorOnMainThread:@selector(_setRealThumbnail:)
+		[self.parentAdapter performSelectorOnMainThread:@selector(_setRealThumbnail:)
 											   withObject:thumbImage
 											waitUntilDone:NO];
 }
 
 //	MARK: - NSObject
 
-- (id)init
+- (instancetype)init
 {
 	PGAssertNotReached(@"Invalid initializer, use -initWithNode:dataProvider: instead.");
 #if __has_feature(objc_arc)
@@ -562,26 +563,26 @@ ThumbnailOf(NSImageRep *imageRep, NSSize size, PGOrientation orientation, BOOL o
 #endif
 - (NSString *)descriptionForActivity:(PGActivity *)activity
 {
-	return [[[self node] identifier] displayName];
+	return self.node.identifier.displayName;
 }
 
 //	MARK: - <PGResourceAdapting>
 
 - (PGNode *)parentNode
 {
-	return [[self parentAdapter] node];
+	return self.parentAdapter.node;
 }
 - (PGContainerAdapter *)parentAdapter
 {
-	return [_node parentAdapter];
+	return _node.parentAdapter;
 }
 - (PGNode *)rootNode
 {
-	return [[self node] rootNode];
+	return self.node.rootNode;
 }
 - (PGDocument *)document
 {
-	return [_node document];
+	return _node.document;
 }
 
 //	MARK: -
@@ -600,7 +601,7 @@ ThumbnailOf(NSImageRep *imageRep, NSSize size, PGOrientation orientation, BOOL o
 //	MARK: -
 @implementation PGGenerateImageOperation
 
-- (id)initWithResourceAdapter:(NSObject<PGResourceAdapterImageGeneratorCompletion, PGResourceAdapterImageGeneration> *)adapter
+- (instancetype)initWithResourceAdapter:(NSObject<PGResourceAdapterImageGeneratorCompletion, PGResourceAdapterImageGeneration> *)adapter
 {
 	if((self = [super init])) {
 #if __has_feature(objc_arc)
@@ -625,7 +626,7 @@ ThumbnailOf(NSImageRep *imageRep, NSSize size, PGOrientation orientation, BOOL o
 - (void)main
 {
 	@try {	//	2023/08/20 added exception wrapper
-		if([self isCancelled]) return;
+		if(self.cancelled) return;
 		[_adapter generateImagesInOperation:self thumbnailSize:NSMakeSize(PGThumbnailSize, PGThumbnailSize)];	//	2023/10/21
 	}
 	@catch(...) {
@@ -648,10 +649,10 @@ ThumbnailOf(NSImageRep *imageRep, NSSize size, PGOrientation orientation, BOOL o
 {
 	//	2023/10/14 optimized to reduce I/O requests:
 	//	calls to -fourCCData occur only when necessary and only occur once
-	id o = [dict objectForKey:PGBundleTypeFourCCsKey];
+	id o = dict[PGBundleTypeFourCCsKey];
 	if(o) {
 		if(0 == *fourCCData) {
-			NSData *const self_fourCCData = [self fourCCData];
+			NSData *const self_fourCCData = self.fourCCData;
 			if(self_fourCCData)
 				[self_fourCCData getBytes:fourCCData length:(NSUInteger)sizeof(uint32_t)];
 			else
@@ -675,17 +676,17 @@ ThumbnailOf(NSImageRep *imageRep, NSSize size, PGOrientation orientation, BOOL o
 		}
 	}
 
-	o = [dict objectForKey:PGLSItemContentTypes];
-	if(o && [o containsObject:[self UTIType]]) return 4;
+	o = dict[PGLSItemContentTypes];
+	if(o && [o containsObject:self.UTIType]) return 4;
 
-	o = [dict objectForKey:PGCFBundleTypeMIMETypesKey];
-	if(o && [o containsObject:[self MIMEType]]) return 3;
+	o = dict[PGCFBundleTypeMIMETypesKey];
+	if(o && [o containsObject:self.MIMEType]) return 3;
 
-	o = [dict objectForKey:PGCFBundleTypeOSTypesKey];
-	if(o && [o containsObject:PGOSTypeToStringQuoted([self typeCode], NO)]) return 2;
+	o = dict[PGCFBundleTypeOSTypesKey];
+	if(o && [o containsObject:PGOSTypeToStringQuoted(self.typeCode, NO)]) return 2;
 
-	o = [dict objectForKey:PGCFBundleTypeExtensionsKey];
-	if(o && [o containsObject:[[self extension] lowercaseString]]) return 1;
+	o = dict[PGCFBundleTypeExtensionsKey];
+	if(o && [o containsObject:self.extension.lowercaseString]) return 1;
 
 	//	the original code:
 //	if([[dict objectForKey:PGBundleTypeFourCCsKey] containsObject:[self fourCCData]]) return 5;
@@ -700,14 +701,14 @@ ThumbnailOf(NSImageRep *imageRep, NSSize size, PGOrientation orientation, BOOL o
 {
 	NSParameterAssert(node);
 	NSDictionary *const types = [PGResourceAdapter typesDictionary];
-	NSMutableDictionary *const adapterByPriority = [NSMutableDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithUnsignedInteger:0], [PGResourceAdapter class], nil];
+	NSMutableDictionary *const adapterByPriority = [NSMutableDictionary dictionaryWithObjectsAndKeys:@0U, [PGResourceAdapter class], nil];
 	uint8_t fourCCData[4] = {0,0,0,0};	//	2023/10/14
 	for(NSString *const classString in types) {
 		Class const class = NSClassFromString(classString);
 		if(!class) continue;
-		NSDictionary *const typeDict = [types objectForKey:classString];
+		NSDictionary *const typeDict = types[classString];
 		NSUInteger const p = [self _matchPriorityForTypeDictionary:typeDict withFourCCData:fourCCData];
-		if(p) [adapterByPriority setObject:[NSNumber numberWithUnsignedInteger:p] forKey:(id<NSCopying>)class];
+		if(p) adapterByPriority[(id<NSCopying>)class] = @(p);
 	}
 	return [adapterByPriority keysSortedByValueUsingSelector:@selector(compare:)];
 }
