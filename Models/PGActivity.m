@@ -73,7 +73,7 @@ static PGActivity *PGApplicationActivity;
 
 //	MARK: - PGActivity
 
-- (id)initWithOwner:(NSObject<PGActivityOwner> *)owner
+- (instancetype)initWithOwner:(NSObject<PGActivityOwner> *)owner
 {
 	if((self = [self init])) {
 		_owner = owner;
@@ -112,19 +112,19 @@ static PGActivity *PGApplicationActivity;
 }
 - (NSString *)activityDescription
 {
-	NSString *const desc = [[self owner] descriptionForActivity:self];
+	NSString *const desc = [self.owner descriptionForActivity:self];
 	return desc ? desc : @"";
 }
 - (CGFloat)progress
 {
-	NSObject<PGActivityOwner> *const owner = [self owner];
+	NSObject<PGActivityOwner> *const owner = self.owner;
 	return owner ? [owner progressForActivity:self] : -1.0f;
 }
 - (BOOL)isActive
 {
-	if([self progress] >= 0.0f) return YES;
+	if(self.progress >= 0.0f) return YES;
 	@synchronized(self) {
-		for(PGActivity *const child in _childActivities) if([child isActive]) return YES;
+		for(PGActivity *const child in _childActivities) if(child.isActive) return YES;
 	}
 	return NO;
 }
@@ -133,8 +133,8 @@ static PGActivity *PGApplicationActivity;
 	NSMutableArray *activeChildren = nil;
 	@synchronized(self) {
 		if(activeOnly) {
-			activeChildren = [NSMutableArray arrayWithCapacity:[_childActivities count]];
-			for(PGActivity *const child in _childActivities) if([child isActive]) [activeChildren addObject:child];
+			activeChildren = [NSMutableArray arrayWithCapacity:_childActivities.count];
+			for(PGActivity *const child in _childActivities) if(child.isActive) [activeChildren addObject:child];
 		} else
 #if __has_feature(objc_arc)
 			activeChildren = [_childActivities copy];
@@ -157,7 +157,7 @@ static PGActivity *PGApplicationActivity;
 		[[[_childActivities copy] autorelease] makeObjectsPerformSelector:@selector(cancel:) withObject:sender];
 #endif
 	}
-	[[self owner] cancelActivity:self];
+	[self.owner cancelActivity:self];
 }
 - (IBAction)prioritize:(id)sender
 {
@@ -210,7 +210,7 @@ static PGActivity *PGApplicationActivity;
 
 //	MARK: - NSObject
 
-- (id)init
+- (instancetype)init
 {
 	if((self = [super init])) {
 		_childActivities = [NSMutableArray new];
