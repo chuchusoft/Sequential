@@ -44,7 +44,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 + (NSString *)userAgent;
 + (void)setUserAgent:(NSString *)aString;
 
-- (id)initWithRequest:(NSURLRequest *)aRequest parent:(id<PGActivityOwner>)parent delegate:(NSObject<PGURLLoadDelegate> *)delegate;
+- (instancetype)initWithRequest:(NSURLRequest *)aRequest parent:(id<PGActivityOwner>)parent delegate:(NSObject<PGURLLoadDelegate> *)delegate NS_DESIGNATED_INITIALIZER;
+- (instancetype)init NS_UNAVAILABLE;
 
 #if __has_feature(objc_arc)
 @property (readonly, weak) NSObject<PGURLLoadDelegate> *delegate;
@@ -59,7 +60,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #endif
 
 - (void)cancelAndNotify:(BOOL)notify;
-- (BOOL)loaded;
+@property (nonatomic, readonly, getter = isLoaded) BOOL loaded;
 
 @end
 
