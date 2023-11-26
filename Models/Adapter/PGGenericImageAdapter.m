@@ -101,7 +101,7 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 
 - (void)_setImageProperties:(NSDictionary *)properties
 {
-	_orientation = PGOrientationWithTIFFOrientation([[properties objectForKey:(NSString *)kCGImagePropertyOrientation] unsignedIntegerValue]);
+	_orientation = PGOrientationWithTIFFOrientation([properties[(NSString *)kCGImagePropertyOrientation] unsignedIntegerValue]);
 #if !__has_feature(objc_arc)
 	[_imageProperties release];
 #endif
@@ -111,15 +111,15 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 {
 	_reading = NO;
 	_readFailed = !aRep;
-	[[self node] noteIsViewableDidChange];
+	[self.node noteIsViewableDidChange];
 #if __has_feature(objc_arc)
 	_cachedRep = aRep;
 #else
 	[_cachedRep release];
 	_cachedRep = [aRep retain];
 #endif
-	[[self document] noteNodeDidCache:[self node]];
-	[[self node] readFinishedWithImageRep:aRep];
+	[self.document noteNodeDidCache:self.node];
+	[self.node readFinishedWithImageRep:aRep];
 }
 
 //	MARK: - <PGResourceAdapting>
@@ -135,8 +135,8 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 {
 	[self clearCache];
 	_readFailed = NO;
-	[[self node] noteIsViewableDidChange];
-	[[self node] loadFinishedForAdapter:self];
+	[self.node noteIsViewableDidChange];
+	[self.node loadFinishedForAdapter:self];
 }
 
 //	MARK: -
@@ -172,8 +172,8 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 - (void)read
 {
 	if(_cachedRep) {
-		[[self document] noteNodeDidCache:[self node]];
-		[[self node] readFinishedWithImageRep:_cachedRep];
+		[self.document noteNodeDidCache:self.node];
+		[self.node readFinishedWithImageRep:_cachedRep];
 		return;
 	}
 	if(_reading) return;
@@ -211,7 +211,7 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 		//	fall through to slower code (e.g., for an animated image)
 	}
 
-	NSData *const data = !operation.isCancelled ? [[self dataProvider] data] : nil;
+	NSData *const data = !operation.isCancelled ? self.dataProvider.data : nil;
 	CGImageSourceRef const source = data && !operation.isCancelled ?
 		CGImageSourceCreateWithData((CFDataRef)data,
 									(CFDictionaryRef)self.imageSourceOptions) :
@@ -265,7 +265,7 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 					CFRelease(properties);
 				}
 
-				if(md && ![operation isCancelled])
+				if(md && !operation.isCancelled)
 					//	-performSelectorOnMainThread:withObject:waitUntilDone: will
 					//	retain md; after -_setImageProperties: finishes, md is released
 					[self performSelectorOnMainThread:@selector(_setImageProperties:)
@@ -280,7 +280,7 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 				rep = rep0 = PGImageSourceImageRepAtIndex(source, 0);
 		}
 
-		if(rep && ![operation isCancelled])
+		if(rep && !operation.isCancelled)
 			//	-performSelectorOnMainThread:withObject:waitUntilDone: will retain
 			//	rep; after -_readFinishedWithImageRep: finishes, rep is released
 			[self performSelectorOnMainThread:@selector(_readFinishedWithImageRep:)
@@ -289,11 +289,11 @@ static NSBitmapImageRep *PGImageSourceImageRepAtIndex(CGImageSourceRef source, s
 	}
 
 	//	thumbnail generation
-	if([PGThumbnailController shouldShowThumbnailsForDocument:[self document]]) {
+	if([PGThumbnailController shouldShowThumbnailsForDocument:self.document]) {
 		size_t const thumbnailFrameIndex = count / 10;
 		NSBitmapImageRep *const repForThumb = 0 == thumbnailFrameIndex && rep0 ?
 			rep0 : PGImageSourceImageRepAtIndex(source, thumbnailFrameIndex);
-		if(repForThumb && ![operation isCancelled]) {
+		if(repForThumb && !operation.isCancelled) {
 #if __has_feature(objc_arc)
 			CFDictionaryRef const properties = 0 == thumbnailFrameIndex && image0properties ?
 				CFRetain(image0properties) :
