@@ -27,13 +27,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 // Other Sources
 #import "PGGeometryTypes.h"
 
-enum {
+typedef NS_ENUM(NSUInteger, AEIconType) {
 	AENoIcon = 0,
 	AEPlayIcon = 1,
 	AEPauseIcon = 2,
 	AEStopIcon = 3
 };
-typedef NSUInteger AEIconType;
 
 @interface NSBezierPath(PGAppKitAdditions)
 
