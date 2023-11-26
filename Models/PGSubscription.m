@@ -46,7 +46,8 @@ NSString *const PGSubscriptionRootFlagsKey = @"PGSubscriptionRootFlags";
 + (void)threaded_sendFileEvents;
 + (void)mainThread_sendFileEvent:(NSDictionary *)info;
 
-- (id)initWithPath:(NSString *)path;
+- (instancetype)initWithPath:(NSString *)path NS_DESIGNATED_INITIALIZER;
+- (instancetype)init NS_UNAVAILABLE;
 
 @end
 
@@ -59,7 +60,9 @@ NSString *const PGSubscriptionRootFlagsKey = @"PGSubscriptionRootFlags";
 }
 #endif
 
-- (id)initWithPath:(NSString *)path;
+- (instancetype)initWithPath:(NSString *)path NS_DESIGNATED_INITIALIZER;
+- (instancetype)init NS_UNAVAILABLE;
+
 - (void)subscribeWithPath:(NSString *)path;
 - (void)unsubscribe;
 - (void)rootSubscriptionEventDidOccur:(NSNotification *)aNotif;
@@ -70,7 +73,7 @@ NSString *const PGSubscriptionRootFlagsKey = @"PGSubscriptionRootFlags";
 
 //	MARK: +PGSubscription
 
-+ (id)subscriptionWithPath:(NSString *)path descendents:(BOOL)flag
++ (instancetype)subscriptionWithPath:(NSString *)path descendents:(BOOL)flag
 {
 	id result;
 	if(!flag) result = [PGLeafSubscription alloc];
@@ -81,7 +84,7 @@ NSString *const PGSubscriptionRootFlagsKey = @"PGSubscriptionRootFlags";
 	return [[result initWithPath:path] autorelease];
 #endif
 }
-+ (id)subscriptionWithPath:(NSString *)path
++ (instancetype)subscriptionWithPath:(NSString *)path
 {
 	return [self subscriptionWithPath:path descendents:NO];
 }
@@ -97,7 +100,7 @@ NSString *const PGSubscriptionRootFlagsKey = @"PGSubscriptionRootFlags";
 
 - (NSString *)description
 {
-	return [NSString stringWithFormat:@"<%@ %p: %@>", [self class], self, [self path]];
+	return [NSString stringWithFormat:@"<%@ %p: %@>", [self class], self, self.path];
 }
 
 @end
@@ -142,7 +145,7 @@ static CFMutableSetRef PGActiveSubscriptions = nil;
 #else
 				[NSValue valueWithNonretainedObject:(PGLeafSubscription *)ev.udata], PGLeafSubscriptionValueKey,
 #endif
-				[NSNumber numberWithUnsignedInt:ev.fflags], PGLeafSubscriptionFlagsKey, nil]
+				@(ev.fflags), PGLeafSubscriptionFlagsKey, nil]
 								waitUntilDone:NO];
 		}
 	}
@@ -150,17 +153,17 @@ static CFMutableSetRef PGActiveSubscriptions = nil;
 
 + (void)mainThread_sendFileEvent:(NSDictionary *)info
 {
-	PGSubscription *const subscription = [[info objectForKey:PGLeafSubscriptionValueKey] nonretainedObjectValue];
+	PGSubscription *const subscription = [info[PGLeafSubscriptionValueKey] nonretainedObjectValue];
 #if __has_feature(objc_arc)
 	if(!CFSetContainsValue(PGActiveSubscriptions, (__bridge CFTypeRef) subscription)) return;
 #else
 	if(!CFSetContainsValue(PGActiveSubscriptions, subscription)) return;
 #endif
 	NSMutableDictionary *const dict = [NSMutableDictionary dictionary];
-	NSString *const path = [subscription path];
-	if(path) [dict setObject:path forKey:PGSubscriptionPathKey];
-	NSNumber *const flags = [info objectForKey:PGLeafSubscriptionFlagsKey];
-	if(flags) [dict setObject:flags forKey:PGSubscriptionRootFlagsKey];
+	NSString *const path = subscription.path;
+	if(path) dict[PGSubscriptionPathKey] = path;
+	NSNumber *const flags = info[PGLeafSubscriptionFlagsKey];
+	if(flags) dict[PGSubscriptionRootFlagsKey] = flags;
 	[subscription PG_postNotificationName:PGSubscriptionEventDidOccurNotification userInfo:dict];
 }
 
@@ -176,7 +179,7 @@ static CFMutableSetRef PGActiveSubscriptions = nil;
 
 //	MARK: - PGLeafSubscription
 
-- (id)initWithPath:(NSString *)path
+- (instancetype)initWithPath:(NSString *)path
 {
 	NSAssert([NSThread isMainThread], @"PGSubscription is not thread safe.");
 	errno = 0;
@@ -186,7 +189,7 @@ static CFMutableSetRef PGActiveSubscriptions = nil;
 #else
 		CFSetAddValue(PGActiveSubscriptions, self);
 #endif
-		char const *const rep = [path fileSystemRepresentation];
+		char const *const rep = path.fileSystemRepresentation;
 		_descriptor = open(rep, O_EVTONLY);
 		if(-1 == _descriptor) {
 #if __has_feature(objc_arc)
@@ -271,7 +274,7 @@ static CFMutableSetRef PGActiveSubscriptions = nil;
 
 static void PGEventStreamCallback(ConstFSEventStreamRef streamRef, PGBranchSubscription *subscription, size_t numEvents, NSArray *paths, const FSEventStreamEventFlags eventFlags[], const FSEventStreamEventId eventIds[])
 {
-	for(NSString *const path in paths) [subscription PG_postNotificationName:PGSubscriptionEventDidOccurNotification userInfo:[NSDictionary dictionaryWithObjectsAndKeys:path, PGSubscriptionPathKey, nil]];
+	for(NSString *const path in paths) [subscription PG_postNotificationName:PGSubscriptionEventDidOccurNotification userInfo:@{PGSubscriptionPathKey: path}];
 }
 
 #if __has_feature(objc_arc)
@@ -289,7 +292,7 @@ static void PGEventStreamCallback(ConstFSEventStreamRef streamRef, PGBranchSubsc
 
 //	MARK: - PGBranchSubscription
 
-- (id)initWithPath:(NSString *)path
+- (instancetype)initWithPath:(NSString *)path
 {
 	if((self = [super init])) {
 #if __has_feature(objc_arc)
@@ -309,7 +312,7 @@ static void PGEventStreamCallback(ConstFSEventStreamRef streamRef, PGBranchSubsc
 #if __has_feature(objc_arc)
 	FSEventStreamContext context = {.version = 0, .info = (__bridge void *)self};
 	_eventStream = FSEventStreamCreate(kCFAllocatorDefault, (FSEventStreamCallback)PGEventStreamCallback,
-		&context, (__bridge CFArrayRef) [NSArray arrayWithObject:path], kFSEventStreamEventIdSinceNow,
+		&context, (__bridge CFArrayRef) @[path], kFSEventStreamEventIdSinceNow,
 		0.0f, kFSEventStreamCreateFlagUseCFTypes | kFSEventStreamCreateFlagNoDefer);
 #else
 	FSEventStreamContext context = {.version = 0, .info = self};
@@ -331,20 +334,20 @@ static void PGEventStreamCallback(ConstFSEventStreamRef streamRef, PGBranchSubsc
 - (void)rootSubscriptionEventDidOccur:(NSNotification *)aNotif
 {
 	NSParameterAssert(aNotif);
-	NSUInteger const flags = [[[aNotif userInfo] objectForKey:PGSubscriptionRootFlagsKey] unsignedIntegerValue];
+	NSUInteger const flags = [aNotif.userInfo[PGSubscriptionRootFlagsKey] unsignedIntegerValue];
 	if(!(flags & (NOTE_RENAME | NOTE_REVOKE | NOTE_DELETE))) return;
 	[self unsubscribe];
 	//	only resubscribe when the object has not been deleted
 	if(0 == (flags & (NOTE_DELETE | NOTE_REVOKE)))
-		[self subscribeWithPath:[[aNotif userInfo] objectForKey:PGSubscriptionPathKey]];
-	[self PG_postNotificationName:PGSubscriptionEventDidOccurNotification userInfo:[aNotif userInfo]];
+		[self subscribeWithPath:aNotif.userInfo[PGSubscriptionPathKey]];
+	[self PG_postNotificationName:PGSubscriptionEventDidOccurNotification userInfo:aNotif.userInfo];
 }
 
 //	MARK: - PGSubscription
 
 - (NSString *)path
 {
-	return [_rootSubscription path];
+	return _rootSubscription.path;
 }
 
 //	MARK: - NSObject
