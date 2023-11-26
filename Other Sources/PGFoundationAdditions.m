@@ -43,7 +43,7 @@ NSString *PGOSTypeToStringQuoted(OSType type, BOOL flag)
 OSType PGOSTypeFromString(NSString *str)
 {
 	if(!str) return 0;
-	switch([str length]) {
+	switch(str.length) {
 #if __has_feature(objc_arc)
 		case 4: return UTGetOSTypeFromString((__bridge CFStringRef)str);
 #else
@@ -72,7 +72,7 @@ OSType PGOSTypeFromString(NSString *str)
 }
 + (id)PG_counterflipWithRect:(inout NSRectPointer)rectPtr
 {
-	return [[NSGraphicsContext currentContext] isFlipped] ? [self PG_transformWithRect:rectPtr orientation:PGFlippedVert] : [self transform];
+	return [NSGraphicsContext currentContext].flipped ? [self PG_transformWithRect:rectPtr orientation:PGFlippedVert] : [self transform];
 }
 
 @end
@@ -104,8 +104,8 @@ OSType PGOSTypeFromString(NSString *str)
 	NSMutableArray *const array = [[self mutableCopy] autorelease];
 #endif
 	NSUInteger i = 0, count;
-	for(; i < (count = [array count]); i++)
-		[array removeObject:[array objectAtIndex:i] inRange:NSMakeRange(i + 1, count - i - 1)];
+	for(; i < (count = array.count); i++)
+		[array removeObject:array[i] inRange:NSMakeRange(i + 1, count - i - 1)];
 	return array;
 }
 - (void)PG_addObjectObserver:(id)observer selector:(SEL)aSelector name:(NSString *)aName
@@ -163,7 +163,7 @@ OSType PGOSTypeFromString(NSString *str)
 
 - (void)PG_setObject:(id)obj forKey:(id)key
 {
-	if(obj) [self setObject:obj forKey:key];
+	if(obj) self[key] = obj;
 }
 
 @end
@@ -176,12 +176,12 @@ OSType PGOSTypeFromString(NSString *str)
 	static NSNumberFormatter *nf = nil;
 	if(!nf) {
 		nf = [[NSNumberFormatter alloc] init];
-		[nf setFormatterBehavior:NSNumberFormatterBehavior10_4];
-		[nf setNumberStyle:NSNumberFormatterDecimalStyle];
-		[nf setUsesSignificantDigits:YES];
-		[nf setMaximumSignificantDigits:3];
+		nf.formatterBehavior = NSNumberFormatterBehavior10_4;
+		nf.numberStyle = NSNumberFormatterDecimalStyle;
+		nf.usesSignificantDigits = YES;
+		nf.maximumSignificantDigits = 3;
 	}
-	double b = [self doubleValue];
+	double b = self.doubleValue;
 	NSUInteger magnitude = 0;
 	for(; b >= 1000 && magnitude < 4; magnitude++) b /= 1000;
 	NSString *unit = nil;
@@ -193,7 +193,7 @@ OSType PGOSTypeFromString(NSString *str)
 		case 4: unit = NSLocalizedString(@"TB", @"Units (bytes, kilobytes, etc)."); break;
 		default: PGAssertNotReached(@"Divided too far.");
 	}
-	return [NSString localizedStringWithFormat:@"%@ %@", [nf stringFromNumber:[NSNumber numberWithDouble:b]], unit];
+	return [NSString localizedStringWithFormat:@"%@ %@", [nf stringFromNumber:@(b)], unit];
 }
 
 @end
@@ -231,7 +231,7 @@ OSType PGOSTypeFromString(NSString *str)
 
 - (NSArray *)PG_asArray
 {
-	return [NSArray arrayWithObject:self];
+	return @[self];
 }
 
 //	MARK: -
@@ -255,7 +255,7 @@ OSType PGOSTypeFromString(NSString *str)
 
 - (BOOL)validateMenuItem:(NSMenuItem *)anItem
 {
-	return [self respondsToSelector:[anItem action]];
+	return [self respondsToSelector:anItem.action];
 }
 
 @end
@@ -294,7 +294,7 @@ OSType PGOSTypeFromString(NSString *str)
 
 - (BOOL)PG_scanFromString:(NSString *)start toString:(NSString *)end intoString:(out NSString **)outString
 {
-	[self setScanLocation:0];
+	self.scanLocation = 0;
 	[self scanUpToString:start intoString:NULL];
 	if(![self scanString:start intoString:NULL]) return NO;
 	return [self scanUpToString:end intoString:outString];
@@ -311,7 +311,7 @@ OSType PGOSTypeFromString(NSString *str)
 	static UniChar *str2 = NULL;
 	static UniCharCount max1 = 0;
 	static UniCharCount max2 = 0;
-	UniCharCount const length1 = [self length], length2 = [aString length];
+	UniCharCount const length1 = self.length, length2 = aString.length;
 	if(!length1 && !length2) return NSOrderedSame;
 	if(max1 < length1) {
 		max1 = length1;
@@ -332,8 +332,8 @@ OSType PGOSTypeFromString(NSString *str)
 {
 	NSMutableString *const result = [NSMutableString string];
 	NSScanner *const scanner = [NSScanner scannerWithString:self];
-	[scanner setCharactersToBeSkipped:[NSCharacterSet characterSetWithCharactersInString:@""]];
-	while(![scanner isAtEnd]) {
+	scanner.charactersToBeSkipped = [NSCharacterSet characterSetWithCharactersInString:@""];
+	while(!scanner.isAtEnd) {
 		NSString *substring = nil;
 		if([scanner scanUpToCharactersFromSet:set intoString:&substring] && substring) [result appendString:substring];
 		if([scanner scanCharactersFromSet:set intoString:NULL] && replacement) [result appendString:replacement];
@@ -345,7 +345,7 @@ OSType PGOSTypeFromString(NSString *str)
 
 - (NSString *)PG_firstPathComponent
 {
-	for(NSString *const component in [self pathComponents]) if(!PGEqualObjects(component, @"/")) return component;
+	for(NSString *const component in self.pathComponents) if(!PGEqualObjects(component, @"/")) return component;
 	return @"";
 }
 - (NSURL *)PG_fileURL
@@ -373,12 +373,12 @@ OSType PGOSTypeFromString(NSString *str)
 - (NSArray *)PG_searchTerms
 {
 	NSArray *const components = [self componentsSeparatedByString:@" "];
-	NSMutableArray *const terms = [NSMutableArray arrayWithCapacity:[components count]];
+	NSMutableArray *const terms = [NSMutableArray arrayWithCapacity:components.count];
 	for(NSString *const component in components) {
-		if(![component length]) continue;
+		if(!component.length) continue;
 		NSScanner *const scanner = [NSScanner localizedScannerWithString:component];
 		NSInteger index;
-		if([scanner scanInteger:&index] && [scanner isAtEnd] && index != NSIntegerMax && index != NSIntegerMin) [terms addObject:[NSNumber numberWithInteger:index]];
+		if([scanner scanInteger:&index] && scanner.isAtEnd && index != NSIntegerMax && index != NSIntegerMin) [terms addObject:@(index)];
 		else [terms addObject:component];
 	}
 	return terms;
@@ -386,12 +386,12 @@ OSType PGOSTypeFromString(NSString *str)
 - (BOOL)PG_matchesSearchTerms:(NSArray *)terms
 {
 	NSScanner *const scanner = [NSScanner localizedScannerWithString:self];
-	[scanner setCharactersToBeSkipped:[[NSCharacterSet decimalDigitCharacterSet] invertedSet]];
+	scanner.charactersToBeSkipped = [NSCharacterSet decimalDigitCharacterSet].invertedSet;
 	for(id const term in terms) {
 		if([term isKindOfClass:[NSNumber class]]) {
-			[scanner setScanLocation:0];
+			scanner.scanLocation = 0;
 			BOOL foundNumber = NO;
-			while(!foundNumber && ![scanner isAtEnd]) {
+			while(!foundNumber && !scanner.isAtEnd) {
 				NSInteger index;
 				if(![scanner scanInteger:&index]) return NO;
 				if([term integerValue] == index) foundNumber = YES;
@@ -413,13 +413,13 @@ OSType PGOSTypeFromString(NSString *str)
 {
 	NSMutableString *const URL = [NSMutableString string];
 	NSScanner *const scanner = [NSScanner scannerWithString:aString];
-	[scanner setCharactersToBeSkipped:[NSCharacterSet characterSetWithCharactersInString:@"\n\r\t"]];
+	scanner.charactersToBeSkipped = [NSCharacterSet characterSetWithCharactersInString:@"\n\r\t"];
 	NSString *scheme = nil;
 	if(![scanner scanUpToString:@"://" intoString:&scheme]) return nil;
-	if([scanner isAtEnd]) {
-		[scanner setScanLocation:0];
+	if(scanner.isAtEnd) {
+		scanner.scanLocation = 0;
 		scheme = [scanner scanString:@"/" intoString:NULL] || [scanner scanString:@"~" intoString:NULL] ? @"file" : @"http";
-		[scanner setScanLocation:0];
+		scanner.scanLocation = 0;
 	} else {
 #if __has_feature(objc_arc)
 		NSMutableCharacterSet *const schemeCharacters = [[NSCharacterSet letterCharacterSet] mutableCopy];
@@ -427,20 +427,20 @@ OSType PGOSTypeFromString(NSString *str)
 		NSMutableCharacterSet *const schemeCharacters = [[[NSCharacterSet letterCharacterSet] mutableCopy] autorelease];
 #endif
 		[schemeCharacters addCharactersInString:@"+-."];
-		if([scheme rangeOfCharacterFromSet:[schemeCharacters invertedSet]].location != NSNotFound) return nil;
+		if([scheme rangeOfCharacterFromSet:schemeCharacters.invertedSet].location != NSNotFound) return nil;
 		[scanner scanString:@"://" intoString:NULL];
 	}
 	[URL appendFormat:@"%@://", scheme];
 
-	NSUInteger const schemeEnd = [scanner scanLocation];
+	NSUInteger const schemeEnd = scanner.scanLocation;
 	NSString *login = nil;
 	[scanner scanUpToCharactersFromSet:[NSCharacterSet characterSetWithCharactersInString:@"@/"] intoString:&login];
 	if([scanner scanString:@"@" intoString:NULL]) [URL appendFormat:@"%@@", login];
-	else [scanner setScanLocation:schemeEnd];
+	else scanner.scanLocation = schemeEnd;
 
 	NSString *host = @"";
 	if(![scanner scanUpToCharactersFromSet:[NSCharacterSet characterSetWithCharactersInString:@":/"] intoString:&host]) {
-		if(!PGEqualObjects(scheme, @"file") || [scanner isAtEnd]) return nil;
+		if(!PGEqualObjects(scheme, @"file") || scanner.isAtEnd) return nil;
 	} else if(PGEqualObjects(host, @"~")) {
 		host = NSHomeDirectory();
 	} else if(!PGEqualObjects(host, @"localhost")) {
@@ -449,8 +449,8 @@ OSType PGOSTypeFromString(NSString *str)
 		do {
 			NSString *subdomain = nil;
 			[hostScanner scanUpToCharactersFromSet:subdomainDelimitingCharacters intoString:&subdomain];
-			if(![subdomain length] || [subdomain hasPrefix:@"-"] || [subdomain hasSuffix:@"-"]) return nil;
-			if([subdomain rangeOfCharacterFromSet:[[NSCharacterSet alphanumericCharacterSet] invertedSet]].location != NSNotFound) return nil;
+			if(!subdomain.length || [subdomain hasPrefix:@"-"] || [subdomain hasSuffix:@"-"]) return nil;
+			if([subdomain rangeOfCharacterFromSet:[NSCharacterSet alphanumericCharacterSet].invertedSet].location != NSNotFound) return nil;
 		} while([hostScanner scanString:@"." intoString:NULL] || [hostScanner scanString:@"-" intoString:NULL]);
 		if([host rangeOfString:@"."].location == NSNotFound) host = [NSString stringWithFormat:@"www.%@.com", host];
 	}
@@ -467,11 +467,11 @@ OSType PGOSTypeFromString(NSString *str)
 	[scanner scanString:@"/" intoString:NULL];
 	[path appendString:@"/"];
 	if(PGEqualObjects(scheme, @"file")) {
-		while(![scanner isAtEnd]) {
+		while(!scanner.isAtEnd) {
 			NSString *pathSegment = nil;
 			if([scanner scanUpToString:@"/" intoString:&pathSegment]) [path appendString:pathSegment];
 			if([scanner scanString:@"/" intoString:NULL]) {
-				if(![pathSegment length]) return nil;
+				if(!pathSegment.length) return nil;
 				[path appendString:@"/"];
 			}
 		}
@@ -481,19 +481,19 @@ OSType PGOSTypeFromString(NSString *str)
 		while(YES) {
 			NSString *pathPart;
 			if([scanner scanUpToString:@"%" intoString:&pathPart]) {
-				[hexData setLength:0];
+				hexData.length = 0;
 				[path appendString:pathPart];
 			}
 			if(![scanner scanString:@"%" intoString:NULL]) break;
-			NSUInteger const percentLoc = [scanner scanLocation];
+			NSUInteger const percentLoc = scanner.scanLocation;
 			NSString *hex = nil;
-			if(![scanner scanCharactersFromSet:hexCharacterSet intoString:&hex] || [hex length] < 2) {
-				[hexData setLength:0];
-				[scanner setScanLocation:percentLoc];
+			if(![scanner scanCharactersFromSet:hexCharacterSet intoString:&hex] || hex.length < 2) {
+				hexData.length = 0;
+				scanner.scanLocation = percentLoc;
 				[path appendString:@"%"];
 				continue;
 			}
-			[scanner setScanLocation:percentLoc + 2];
+			scanner.scanLocation = percentLoc + 2;
 			NSScanner *const hexScanner = [NSScanner scannerWithString:[hex substringToIndex:2]];
 			unsigned character;
 			if([hexScanner scanHexInt:&character]) {
@@ -505,7 +505,7 @@ OSType PGOSTypeFromString(NSString *str)
 #endif
 				if(hexEncodedString) {
 					[path appendString:hexEncodedString];
-					[hexData setLength:0];
+					hexData.length = 0;
 				}
 			}
 		}
@@ -521,8 +521,8 @@ OSType PGOSTypeFromString(NSString *str)
 
 - (NSImage *)PG_icon
 {
-	if(![self isFileURL]) return [NSImage imageNamed:@"URL"];
-	NSImage *const icon = [[NSWorkspace sharedWorkspace] iconForFile:[self path]];
+	if(!self.fileURL) return [NSImage imageNamed:@"URL"];
+	NSImage *const icon = [[NSWorkspace sharedWorkspace] iconForFile:self.path];
 //	[icon setDataRetained:YES];
 	return icon;
 }
@@ -542,7 +542,7 @@ OSType PGOSTypeFromString(NSString *str)
 	id decodedObj = [NSKeyedUnarchiver unarchivedObjectOfClass:class fromData:data error:&error];
 	if(nil == decodedObj)
 		NSLog(@"in [NSUserDefaults PG_decodeObjectOfClass:forKey:%@, [NSKeyedUnarchiver unarchivedObjectOfClass:%@ fromData:%@] ==> error %@",
-				defaultName, NSStringFromClass(class), [data description], [error description]);
+				defaultName, NSStringFromClass(class), data.description, error.description);
 
 	return decodedObj;
 }
