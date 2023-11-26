@@ -51,9 +51,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @interface PGDataProvider(PGDataProviderCreation)
 
-+ (id)providerWithResourceIdentifier:(PGResourceIdentifier *)ident displayableName:(NSString *)name;
-+ (id)providerWithResourceIdentifier:(PGResourceIdentifier *)ident;
-+ (id)providerWithURLResponse:(NSURLResponse *)response data:(NSData *)data;
++ (instancetype)providerWithResourceIdentifier:(PGResourceIdentifier *)ident displayableName:(NSString *)name;
++ (instancetype)providerWithResourceIdentifier:(PGResourceIdentifier *)ident;
++ (instancetype)providerWithURLResponse:(NSURLResponse *)response data:(NSData *)data;
 
 @end
 
