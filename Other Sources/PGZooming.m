@@ -32,10 +32,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (IBAction)PG_grow:(id)sender
 {
-	if(!([self styleMask] & NSWindowStyleMaskResizable)) return;
-	NSRect const s = [[self screen] visibleFrame];
-	NSRect z = [[self delegate] respondsToSelector:@selector(windowWillUseStandardFrame:defaultFrame:)] ? [[self delegate] windowWillUseStandardFrame:self defaultFrame:s] : s;
-	NSRect const f = [self frame];
+	if(!(self.styleMask & NSWindowStyleMaskResizable)) return;
+	NSRect const s = self.screen.visibleFrame;
+	NSRect z = [self.delegate respondsToSelector:@selector(windowWillUseStandardFrame:defaultFrame:)] ? [self.delegate windowWillUseStandardFrame:self defaultFrame:s] : s;
+	NSRect const f = self.frame;
 	if(NSWidth(z) < NSWidth(f)) z.size.width = NSWidth(f);
 	if(NSHeight(z) < NSHeight(f)) {
 		z.origin.y -= NSHeight(f) - NSHeight(z);
@@ -46,8 +46,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (NSRect)PG_zoomedFrame
 {
-	NSRect f = [self contentRectForFrameRect:[self frame]];
-	NSSize s = [[self contentView] PG_zoomedFrameSize];
+	NSRect f = [self contentRectForFrameRect:self.frame];
+	NSSize s = [self.contentView PG_zoomedFrameSize];
 #if 0	//	2021/07/21 userSpaceScaleFactor is deprecated and not needed anymore
 	CGFloat factor = [self userSpaceScaleFactor];
 	s.width /= factor;
@@ -59,7 +59,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 }
 - (NSRect)PG_constrainedFrameRect:(NSRect)aRect
 {
-	NSRect const b = [[self screen] visibleFrame];
+	NSRect const b = self.screen.visibleFrame;
 	NSRect r = aRect;
 	r.size.width = MIN(MAX(MIN(NSWidth(r), NSWidth(b)), [self minSize].width), [self maxSize].width);
 	r.size.height = MIN(MAX(MIN(NSHeight(r), NSHeight(b)), [self minSize].height), [self maxSize].height);
@@ -78,16 +78,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (NSSize)PG_zoomedFrameSize
 {
-	return [[self window] contentView] == self ? [self PG_zoomedBoundsSize] : [self convertSize:[self PG_zoomedBoundsSize] toView:[self superview]];
+	return self.window.contentView == self ? [self PG_zoomedBoundsSize] : [self convertSize:[self PG_zoomedBoundsSize] toView:self.superview];
 }
 - (NSSize)PG_zoomedBoundsSize
 {
 	NSSize size = NSZeroSize;
-	NSRect const bounds = [self bounds];
-	for(NSView *const subview in [self subviews]) {
+	NSRect const bounds = self.bounds;
+	for(NSView *const subview in self.subviews) {
 		NSSize s = [subview PG_zoomedFrameSize];
-		NSUInteger const m = [subview autoresizingMask];
-		NSRect const f = [subview frame];
+		NSUInteger const m = subview.autoresizingMask;
+		NSRect const f = subview.frame;
 		if(!(m & NSViewWidthSizable)) s.width = NSWidth(f);
 		if(!(m & NSViewHeightSizable)) s.height = NSHeight(f);
 		if(!(m & NSViewMinXMargin)) s.width += MAX(NSMinX(f), 0.0f);
@@ -107,7 +107,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (NSSize)PG_zoomedBoundsSize
 {
-	return [[self cell] cellSizeForBounds:NSMakeRect(0.0f, 0.0f, [self autoresizingMask] & NSViewWidthSizable ? CGFLOAT_MAX : NSWidth([self bounds]), CGFLOAT_MAX)];
+	return [self.cell cellSizeForBounds:NSMakeRect(0.0f, 0.0f, self.autoresizingMask & NSViewWidthSizable ? CGFLOAT_MAX : NSWidth(self.bounds), CGFLOAT_MAX)];
 }
 
 @end
@@ -117,9 +117,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (NSSize)PG_zoomedBoundsSize
 {
-	NSSize const s = [self convertSize:[[self documentView] PG_zoomedFrameSize] fromView:[self contentView]];
-	NSRect const c = [[self contentView] frame];
-	NSRect const b = [self bounds];
+	NSSize const s = [self convertSize:[self.documentView PG_zoomedFrameSize] fromView:self.contentView];
+	NSRect const c = self.contentView.frame;
+	NSRect const b = self.bounds;
 	return NSMakeSize(s.width + NSMinX(c) + NSMaxX(b) - NSMaxX(c), s.height + NSMinY(c) + NSMaxY(b) - NSMaxY(c));
 }
 
@@ -131,17 +131,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (NSSize)PG_zoomedBoundsSize
 {
 	CGFloat totalWidth = 0.0f;
-	NSArray *const columns = [self tableColumns];
-	if(NSTableViewUniformColumnAutoresizingStyle == [self columnAutoresizingStyle]) for(NSTableColumn *const column in columns) {
+	NSArray *const columns = self.tableColumns;
+	if(NSTableViewUniformColumnAutoresizingStyle == self.columnAutoresizingStyle) for(NSTableColumn *const column in columns) {
 		CGFloat const width = [column PG_zoomedWidth];
-		[column setWidth:width];
+		column.width = width;
 		totalWidth += width;
 	} else {
 		NSUInteger i = 0;
-		for(; i < [columns count] - 1; i++) totalWidth += NSWidth([self rectOfColumn:i]);
-		totalWidth += [[columns lastObject] PG_zoomedWidth];
+		for(; i < columns.count - 1; i++) totalWidth += NSWidth([self rectOfColumn:i]);
+		totalWidth += [columns.lastObject PG_zoomedWidth];
 	}
-	return NSMakeSize(totalWidth, NSMaxY([self rectOfRow:[self numberOfRows] - 1]));
+	return NSMakeSize(totalWidth, NSMaxY([self rectOfRow:self.numberOfRows - 1]));
 }
 
 @end
@@ -151,11 +151,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (CGFloat)PG_zoomedWidth
 {
-	if([self resizingMask] == NSTableColumnNoResizing) return [self width];
+	if(self.resizingMask == NSTableColumnNoResizing) return self.width;
 	CGFloat width = 0;
-	NSUInteger const columnIndex = [[[self tableView] tableColumns] indexOfObjectIdenticalTo:self];
+	NSUInteger const columnIndex = [self.tableView.tableColumns indexOfObjectIdenticalTo:self];
 	NSInteger i = 0;
-	for(; i < [[self tableView] numberOfRows]; i++)
+	for(; i < self.tableView.numberOfRows; i++)
 	//	width = MAX(width, [[[self tableView] preparedCellAtColumn:columnIndex row:i] cellSize].width);
 	//	width = MAX(width, NSWidth([[self tableView] frameOfCellAtColumn:columnIndex row:i]));	//	???
 		width = MAX(width, NSWidth([self.tableView viewAtColumn:columnIndex row:i makeIfNecessary:YES].frame));
@@ -172,9 +172,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 {
 	#define PGNSTextViewHorizontalBorder 8.0f
 
-	NSSize s = [[self textStorage] size];
-	s.width += [self textContainerInset].width + PGNSTextViewHorizontalBorder;
-	s.height += [self textContainerInset].height;
+	NSSize s = [self.textStorage size];
+	s.width += self.textContainerInset.width + PGNSTextViewHorizontalBorder;
+	s.height += self.textContainerInset.height;
 	return s;
 }
 
