@@ -74,12 +74,11 @@ enum {
 	PGFullscreenMapping = 0,
 	PGQuitMapping       = 1
 };
-enum {
+typedef NS_ENUM(NSUInteger, PGImageScaleConstraint) {
 	PGScaleFreely = 0,
 	PGDownscaleOnly = 1,
 	PGUpscaleOnly = 2,
 };
-typedef NSUInteger PGImageScaleConstraint;
 
 #define PGScaleMax 16.0f
 #define PGScaleMin (1.0f / 16.0f)
