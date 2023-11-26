@@ -326,7 +326,7 @@ titleTextField.superview.subviews.count);
 			SetTextFieldAlphaAndBackground(titleTextField, YES, NO);
 		if(_midTrackingArea)
 			_midTrackingArea = DeleteTrackingArea(_midTrackingArea,
-				[_midTrackingArea.userInfo objectForKey:TrackingViewKey]);
+				(_midTrackingArea.userInfo)[TrackingViewKey]);
 	}
 }
 
