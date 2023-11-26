@@ -70,7 +70,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	uint64_t _dataByteSize;
 }
 
-- (id)initWithArchive:(XADArchive *)archive entry:(int)entry;
+- (instancetype)initWithArchive:(XADArchive *)archive entry:(int)entry NS_DESIGNATED_INITIALIZER;
+- (instancetype)init NS_UNAVAILABLE;
 
 @end
 
@@ -138,7 +139,7 @@ StringAtDepth(NSInteger depth) {
 	NSParameterAssert(parent);
 	NSParameterAssert(_archive);
 	NSMutableArray *const children = [NSMutableArray array];
-	NSUInteger i = [indexes firstIndex];
+	NSUInteger i = indexes.firstIndex;
 	for(; NSNotFound != i; i = [indexes indexGreaterThanIndex:i]) {
 		@autoreleasepool {	//	REQUIRED otherwise the heap blows up (try it on a 50000 entry zip file)
 			NSString *const entryPath = [_archive nameOfEntry:(int) i];
@@ -218,8 +219,8 @@ StringAtDepth(NSInteger depth) {
 //	  [subpath substringFromIndex:194], isEntrylessFolder, isFile);
 
 			PGDisplayableIdentifier *const identifier =
-				[[self.node.identifier subidentifierWithIndex:isEntrylessFolder ? NSNotFound : i] displayableIdentifier];
-			[identifier setNaturalDisplayName:[subpath lastPathComponent]];
+				[self.node.identifier subidentifierWithIndex:isEntrylessFolder ? NSNotFound : i].displayableIdentifier;
+			identifier.naturalDisplayName = subpath.lastPathComponent;
 #if __has_feature(objc_arc)
 			PGNode *const node = [[PGNode alloc] initWithParent:parent identifier:identifier];
 #else
@@ -227,13 +228,13 @@ StringAtDepth(NSInteger depth) {
 #endif
 			if(isFile)
 #if __has_feature(objc_arc)
-				[node setDataProvider:[[PGArchiveDataProvider alloc] initWithArchive:_archive entry:(int) i]];
+				node.dataProvider = [[PGArchiveDataProvider alloc] initWithArchive:_archive entry:(int) i];
 #else
 				[node setDataProvider:[[[PGArchiveDataProvider alloc] initWithArchive:_archive entry:(int) i] autorelease]];
 #endif
 			else {
 #if __has_feature(objc_arc)
-				[node setDataProvider:[PGArchiveFolderDataProvider new]];
+				node.dataProvider = [PGArchiveFolderDataProvider new];
 #else
 				[node setDataProvider:[[[PGArchiveFolderDataProvider alloc] init] autorelease]];
 #endif
@@ -242,7 +243,7 @@ StringAtDepth(NSInteger depth) {
 //NSLog(@"isEntrylessFolder so adding index %lu backinto indexes", i);
 					[indexes addIndex:i]; // We ended up taking care of a folder in its path instead.
 				}
-				PGContainerAdapter *const adapter = (PGContainerAdapter *)[node resourceAdapter];
+				PGContainerAdapter *const adapter = (PGContainerAdapter *)node.resourceAdapter;
 //NSLog(@"%@\t>>> entering recursion to get children of subpath >>>", StringAtDepth(depth));
 				[adapter setUnsortedChildren:[self nodesUnderPath:subpath
 													parentAdapter:adapter
@@ -252,7 +253,7 @@ StringAtDepth(NSInteger depth) {
 //NSLog(@"%@\t<<< exiting recursion to get children of subpath <<<", StringAtDepth(depth));
 			}
 		//	[identifier setIcon:[[[node resourceAdapter] dataProvider] icon]];
-			[identifier setIcon:[node.resourceAdapter.dataProvider icon]];
+			identifier.icon = (node.resourceAdapter.dataProvider).icon;
 			if(node) {
 //NSLog(@"%@\tpath '%@' is getting child @ subpath '%@'", StringAtDepth(depth),
 //[path substringFromIndex:194], [subpath substringFromIndex:194]);
@@ -280,7 +281,7 @@ StringAtDepth(NSInteger depth) {
 }
 - (void)_updateThumbnailsOfChildren
 {
-	[[self document] noteNodeThumbnailDidChange:[self node] recursively:YES];
+	[self.document noteNodeThumbnailDidChange:self.node recursively:YES];
 }
 
 //	MARK: - PGContainerAdapter
@@ -303,33 +304,33 @@ StringAtDepth(NSInteger depth) {
 {
 	if(!_archive) {
 		XADError error = XADNoError;
-		PGDataProvider *const dataProvider = [self dataProvider];
-		PGResourceIdentifier *const ident = [dataProvider identifier];
+		PGDataProvider *const dataProvider = self.dataProvider;
+		PGResourceIdentifier *const ident = dataProvider.identifier;
 		if([dataProvider archive]) @synchronized([dataProvider archive]) {
 			_archive = [[XADArchive alloc] initWithArchive:[dataProvider archive]
 													 entry:[dataProvider entry]
 												  delegate:self
 													 error:&error];
-		} else if([ident isFileIdentifier])
+		} else if(ident.isFileIdentifier)
 			_archive = [[XADArchive alloc] initWithFile:ident.URL.path
 											   delegate:self
 												  error:&error]; // -data will return data for file URLs, but it's worth using -[XADArchive initWithFile:...].
 		else {
-			NSData *const data = [self data];
+			NSData *const data = self.data;
 			if(data)
 				_archive = [[XADArchive alloc] initWithData:data
 												   delegate:self
 													  error:&error];
 		}
 		if(!_archive || error != XADNoError || [_archive isCorrupted])
-			return [[self node] fallbackFromFailedAdapter:self]; // TODO: Return an appropriate error.
+			return [self.node fallbackFromFailedAdapter:self]; // TODO: Return an appropriate error.
 	}
 	NSMutableIndexSet* indexSet = [NSMutableIndexSet indexSetWithIndexesInRange:NSMakeRange(0, _archive.numberOfEntries)];
 	NSArray *const children = [self nodesUnderPath:[_archive PG_commonRootPath]
 									 parentAdapter:self
 								  remainingIndexes:indexSet];
 	[self setUnsortedChildren:children presortedOrder:PGUnsorted];
-	[[self node] loadFinishedForAdapter:self];
+	[self.node loadFinishedForAdapter:self];
 }
 
 //	MARK: - NSObject
@@ -429,7 +430,7 @@ StringAtDepth(NSInteger depth) {
 
 @implementation PGArchiveDataProvider
 
-- (id)initWithArchive:(XADArchive *)archive entry:(int)entry;
+- (instancetype)initWithArchive:(XADArchive *)archive entry:(int)entry;
 {
 	if((self = [super init])) {
 		NSParameterAssert(nil != archive);
@@ -442,7 +443,7 @@ StringAtDepth(NSInteger depth) {
 
 		_typeCode = [archive PG_OSTypeForEntry:entry];
 #if __has_feature(objc_arc)
-		_extension = [[[archive nameOfEntry:entry] pathExtension] lowercaseString];
+		_extension = [archive nameOfEntry:entry].pathExtension.lowercaseString;
 #else
 		_extension = [[[[archive nameOfEntry:entry] pathExtension] lowercaseString] retain];
 #endif
@@ -478,7 +479,7 @@ StringAtDepth(NSInteger depth) {
 - (NSDate *)dateModified
 {	//	2023/09/17 added to implement sorting by date modified in archives
 	@synchronized(_archive) {
-		return [[_archive attributesOfEntry:_entry] objectForKey:NSFileModificationDate];
+		return [_archive attributesOfEntry:_entry][NSFileModificationDate];
 	}
 	return nil;
 }
@@ -486,7 +487,7 @@ StringAtDepth(NSInteger depth) {
 {
 	@synchronized(_archive) {
 		//	2023/09/18 bugfix: was using XADCreationDateKey instead of NSFileCreationDate
-		return [[_archive attributesOfEntry:_entry] objectForKey:NSFileCreationDate];
+		return [_archive attributesOfEntry:_entry][NSFileCreationDate];
 	}
 	return nil;
 }
@@ -552,7 +553,7 @@ StringAtDepth(NSInteger depth) {
 - (NSArray *)adapterClassesForNode:(PGNode *)node
 {
 	@synchronized(_archive) {
-		if([_archive entryIsArchive:_entry]) return [NSArray arrayWithObject:[PGArchiveAdapter class]];
+		if([_archive entryIsArchive:_entry]) return @[[PGArchiveAdapter class]];
 	}
 	return [super adapterClassesForNode:node];
 }
@@ -591,7 +592,7 @@ StringAtDepth(NSInteger depth) {
 
 - (NSArray *)adapterClassesForNode:(PGNode *)node
 {
-	return [NSArray arrayWithObject:[PGContainerAdapter class]];
+	return @[[PGContainerAdapter class]];
 }
 
 @end
@@ -618,19 +619,19 @@ StringAtDepth(NSInteger depth) {
 		NSString *entryName = [self nameOfEntry:(int) i];
 		if(PG_entryIsInvisibleForName(entryName))//if([self PG_entryIsInvisibleForName:entryName])
 			continue;
-		if(![self entryIsDirectory:(int) i]) entryName = [entryName stringByDeletingLastPathComponent];
-		else if([entryName hasSuffix:@"/"]) entryName = [entryName substringToIndex:[entryName length] - 1];
+		if(![self entryIsDirectory:(int) i]) entryName = entryName.stringByDeletingLastPathComponent;
+		else if([entryName hasSuffix:@"/"]) entryName = [entryName substringToIndex:entryName.length - 1];
 		if(!root) root = entryName;
 		else while(!PGEqualObjects(root, entryName)) {
-			if([root length] > [entryName length]) root = [root stringByDeletingLastPathComponent];
-			else entryName = [entryName stringByDeletingLastPathComponent];
+			if(root.length > entryName.length) root = root.stringByDeletingLastPathComponent;
+			else entryName = entryName.stringByDeletingLastPathComponent;
 		}
 	}
 	return root ? root : @"";
 }
 - (OSType)PG_OSTypeForEntry:(int)entry
 {
-	return [self entryIsDirectory:entry] ? 'fold' : [[[self attributesOfEntry:entry] objectForKey:NSFileHFSTypeCode] unsignedIntValue];
+	return [self entryIsDirectory:entry] ? 'fold' : [[self attributesOfEntry:entry][NSFileHFSTypeCode] unsignedIntValue];
 }
 
 @end
