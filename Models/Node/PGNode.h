@@ -42,12 +42,11 @@ extern NSString *const PGNodeReadyForViewingNotification;
 extern NSString *const PGImageRepKey;
 
 extern NSString *const PGNodeErrorDomain;
-enum {
+
+typedef NS_ENUM(NSUInteger, PGNodeStatus) {
 	PGGenericError  = 1,
 	PGPasswordError = 2,
 };
-
-typedef NSUInteger PGNodeStatus;
 
 @interface PGNode : NSObject <PGResourceAdapting>
 #if !__has_feature(objc_arc)
@@ -69,7 +68,7 @@ typedef NSUInteger PGNodeStatus;
 
 + (NSArray *)pasteboardTypes;
 
-- (id)initWithParent:(id<PGNodeParenting>)parent identifier:(PGDisplayableIdentifier *)ident;
+- (instancetype)initWithParent:(id<PGNodeParenting>)parent identifier:(PGDisplayableIdentifier *)ident NS_DESIGNATED_INITIALIZER;
 @property(readonly) PGDisplayableIdentifier *identifier;
 
 #if __has_feature(objc_arc)
