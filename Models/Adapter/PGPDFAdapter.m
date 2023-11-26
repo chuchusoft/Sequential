@@ -46,7 +46,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 }
 #endif
 
-- (id)initWithMainRep:(NSPDFImageRep *)mainRep threadRep:(NSPDFImageRep *)threadRep pageIndex:(NSInteger)page;
+- (instancetype)initWithMainRep:(NSPDFImageRep *)mainRep
+					  threadRep:(NSPDFImageRep *)threadRep
+					  pageIndex:(NSInteger)page NS_DESIGNATED_INITIALIZER;
 @property(readonly) NSPDFImageRep *mainRep;
 @property(readonly) NSPDFImageRep *threadRep;
 @property(readonly) NSInteger pageIndex;
@@ -67,14 +69,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (void)load
 {
-	NSData *const data = [self data];
-	if(!data || ![NSPDFImageRep canInitWithData:data]) return [[self node] loadFinishedForAdapter:self];
+	NSData *const data = self.data;
+	if(!data || ![NSPDFImageRep canInitWithData:data]) return [self.node loadFinishedForAdapter:self];
 #if __has_feature(objc_arc)
 	NSPDFImageRep *const mainRep = [[NSPDFImageRep alloc] initWithData:data];
 #else
 	NSPDFImageRep *const mainRep = [[[NSPDFImageRep alloc] initWithData:data] autorelease];
 #endif
-	if(!mainRep) return [[self node] fallbackFromFailedAdapter:self];
+	if(!mainRep) return [self.node fallbackFromFailedAdapter:self];
 #if __has_feature(objc_arc)
 	NSPDFImageRep *const threadRep = [mainRep copy];
 #else
@@ -82,11 +84,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #endif
 
 	NSDictionary *const localeDict = [[NSUserDefaults standardUserDefaults] dictionaryRepresentation];
-	NSUInteger const pageCount = [mainRep pageCount];
+	NSUInteger const pageCount = mainRep.pageCount;
 	NSMutableArray *const nodes = [NSMutableArray arrayWithCapacity:pageCount];
 	for(NSUInteger i = 0; i < pageCount; i++) {
-		PGDisplayableIdentifier *const identifier = [[[[self node] identifier] subidentifierWithIndex:i] displayableIdentifier];
-		[identifier setNaturalDisplayName:[[NSNumber numberWithUnsignedInteger:i + 1] descriptionWithLocale:localeDict]];
+		PGDisplayableIdentifier *const identifier = [self.node.identifier subidentifierWithIndex:i].displayableIdentifier;
+		identifier.naturalDisplayName = [@(i + 1) descriptionWithLocale:localeDict];
 #if __has_feature(objc_arc)
 		PGNode *const node = [[PGNode alloc] initWithParent:self identifier:identifier];
 #else
@@ -94,14 +96,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #endif
 		if(!node) continue;
 #if __has_feature(objc_arc)
-		[node setDataProvider:[[PGPDFPageDataProvider alloc] initWithMainRep:mainRep threadRep:threadRep pageIndex:i]];
+		node.dataProvider = [[PGPDFPageDataProvider alloc] initWithMainRep:mainRep threadRep:threadRep pageIndex:i];
 #else
 		[node setDataProvider:[[[PGPDFPageDataProvider alloc] initWithMainRep:mainRep threadRep:threadRep pageIndex:i] autorelease]];
 #endif
 		[nodes addObject:node];
 	}
 	[self setUnsortedChildren:nodes presortedOrder:PGSortInnateOrder];
-	[[self node] loadFinishedForAdapter:self];
+	[self.node loadFinishedForAdapter:self];
 }
 - (BOOL)canSaveData
 {
@@ -124,7 +126,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		if(0 != pageIndex)
 			continue;
 
-		(void) [node.resourceAdapter thumbnail];	//	triggers thumbnail generation
+		(void) node.resourceAdapter.thumbnail;	//	triggers thumbnail generation
 		break;
 	}
 }
@@ -142,11 +144,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 }
 - (PGNode *)sortedViewableNodeFirst:(BOOL)flag matchSearchTerms:(NSArray *)terms stopAtNode:(PGNode *)descendent
 {
-	if(![[self node] isViewable] || [self node] == descendent) return nil;
-	NSInteger const index = [[self dataProvider] pageIndex];
+	if(!self.node.isViewable || self.node == descendent) return nil;
+	NSInteger const index = ((PGPDFPageDataProvider *)self.dataProvider).pageIndex;
 	if(NSNotFound == index) return nil;
 	for(id const term in terms) if(![term isKindOfClass:[NSNumber class]] || [term integerValue] - 1 != index) return nil;
-	return [self node];
+	return self.node;
 }
 
 //	MARK: -
@@ -157,9 +159,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 }
 - (void)read
 {
-	NSPDFImageRep *const rep = [[self dataProvider] mainRep];
-	[rep setCurrentPage:[[self dataProvider] pageIndex]];
-	[[self node] readFinishedWithImageRep:rep];
+	NSPDFImageRep *const rep = ((PGPDFPageDataProvider *)self.dataProvider).mainRep;
+	rep.currentPage = ((PGPDFPageDataProvider *)self.dataProvider).pageIndex;
+	[self.node readFinishedWithImageRep:rep];
 }
 
 //	MARK: -
@@ -174,7 +176,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 //	main image is created in -read so only need to create thumbnail image
 - (void)generateImagesInOperation:(NSOperation *)operation
 					thumbnailSize:(NSSize)size {	//	2023/10/21
-	NSPDFImageRep *const repForThumb = [(PGPDFPageDataProvider *)[self dataProvider] threadRep];
+	NSPDFImageRep *const repForThumb = ((PGPDFPageDataProvider *)self.dataProvider).threadRep;
 	if(!repForThumb)
 		return;
 
@@ -182,8 +184,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	//	because it's a shared variable; not doing so causes the wrong
 	//	thumbnail image to be generated
 	@synchronized(repForThumb) {
-		NSInteger const pageIndex = [[self dataProvider] pageIndex];
-		[repForThumb setCurrentPage:pageIndex];
+		NSInteger const pageIndex = ((PGPDFPageDataProvider *)self.dataProvider).pageIndex;
+		repForThumb.currentPage = pageIndex;
 		//	2023/10/22 if this is the first page in the PDF file, set the
 		//	thumbnail image of the PDF container to the same thumbnail
 		[self _setThumbnailImageInOperation:operation
@@ -207,6 +209,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 @property (nonatomic, strong) NSPDFImageRep *threadRep;
 @property (nonatomic, assign) NSInteger pageIndex;
 
+- (instancetype)init NS_UNAVAILABLE;
+
 @end
 
 #endif
@@ -214,7 +218,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 //	MARK: -
 @implementation PGPDFPageDataProvider
 
-- (id)initWithMainRep:(NSPDFImageRep *)mainRep threadRep:(NSPDFImageRep *)threadRep pageIndex:(NSInteger)page
+- (instancetype)initWithMainRep:(NSPDFImageRep *)mainRep
+					  threadRep:(NSPDFImageRep *)threadRep
+					  pageIndex:(NSInteger)page
 {
 	NSParameterAssert(mainRep);
 	NSParameterAssert(threadRep);
@@ -249,7 +255,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (NSArray *)adapterClassesForNode:(PGNode *)node
 {
-	return [NSArray arrayWithObject:[PGPDFPageAdapter class]];
+	return @[[PGPDFPageAdapter class]];
 }
 
 @end
