@@ -87,10 +87,10 @@ NSString *const PGDOMDocumentKey = @"PGDOMDocument";
 - (void)load
 {
 	NSParameterAssert(!_webView);
-	PGDataProvider *const dp = [self dataProvider];
-	NSData *const data = [dp data];
+	PGDataProvider *const dp = self.dataProvider;
+	NSData *const data = dp.data;
 	if(!data)
-		return [[self node] fallbackFromFailedAdapter:self];
+		return [self.node fallbackFromFailedAdapter:self];
 #if 1
 	{
 		WKPreferences* preferences = [WKPreferences new];
@@ -119,13 +119,13 @@ NSString *const PGDOMDocumentKey = @"PGDOMDocument";
 	}
 	_webView.navigationDelegate = self;
 
-	NSURLResponse *const response = [dp response];
+	NSURLResponse *const response = dp.response;
 	WKNavigation* nav;
 	if(response)
 		nav = [_webView loadData:data
-						MIMEType:[response MIMEType]
-		   characterEncodingName:[response textEncodingName]
-						 baseURL:[response URL]];
+						MIMEType:response.MIMEType
+		   characterEncodingName:response.textEncodingName
+						 baseURL:response.URL];
 	else
 		nav = [_webView loadRequest:[NSURLRequest requestWithURL:dp.identifier.URL]];
 
@@ -184,7 +184,7 @@ NSString *const PGDOMDocumentKey = @"PGDOMDocument";
 	if([keyPath isEqual:@"title"]) {
 		WKWebView* webView = (WKWebView*) object;
 		NSParameterAssert([webView isKindOfClass:[WKWebView class]]);
-		[self.node.identifier setCustomDisplayName:webView.title];
+		(self.node.identifier).customDisplayName = webView.title;
 	}
 }
 
@@ -203,8 +203,8 @@ NSString *const PGDOMDocumentKey = @"PGDOMDocument";
 		return;
 
 	[self _clearWebView];
-	[self setError:error];
-	[[self node] loadFinishedForAdapter:self];
+	self.error = error;
+	[self.node loadFinishedForAdapter:self];
 }
 
 - (void)		webView:(WKWebView *)webView
