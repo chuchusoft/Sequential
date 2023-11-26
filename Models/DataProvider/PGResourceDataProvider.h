@@ -43,7 +43,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 }
 #endif
 
-- (id)initWithResourceIdentifier:(PGResourceIdentifier *)ident displayableName:(NSString *)name;
+- (instancetype)initWithResourceIdentifier:(PGResourceIdentifier *)ident displayableName:(NSString *)name NS_DESIGNATED_INITIALIZER;
+- (instancetype)init NS_UNAVAILABLE;
 //- (id)valueForLSAttributeName:(CFStringRef)name;
 - (id)valueForResourceKey:(NSURLResourceKey)key;
 - (id)valueForFMAttributeName:(NSString *)name;
