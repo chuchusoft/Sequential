@@ -51,7 +51,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 {
 	[super PG_localizeFromTable:tableName];
 	[self setTitle:NSLocalizedStringFromTable([self title], tableName, nil)];
-	[[self contentView] PG_localizeFromTable:tableName];
+	[self.contentView PG_localizeFromTable:tableName];
 }
 
 @end
@@ -62,7 +62,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (void)PG_localizeFromTable:(NSString *)tableName
 {
 	[super PG_localizeFromTable:tableName];
-	[[self subviews] PG_localizeFromTable:tableName];
+	[self.subviews PG_localizeFromTable:tableName];
 }
 
 @end
@@ -73,7 +73,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (void)PG_localizeFromTable:(NSString *)tableName
 {
 	[super PG_localizeFromTable:tableName];
-	[[self cell] PG_localizeFromTable:tableName];
+	[self.cell PG_localizeFromTable:tableName];
 }
 
 @end
@@ -84,7 +84,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (void)PG_localizeFromTable:(NSString *)tableName
 {
 	[super PG_localizeFromTable:tableName];
-	[[self cells] PG_localizeFromTable:tableName];
+	[self.cells PG_localizeFromTable:tableName];
 }
 
 @end
@@ -118,7 +118,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (void)PG_localizeFromTable:(NSString *)tableName
 {
 	// Don't call super because NSPopUpButtonCell doesn't behave like a NSButtonCell.
-	[[self menu] PG_localizeFromTable:tableName];
+	[self.menu PG_localizeFromTable:tableName];
 }
 
 @end
@@ -130,7 +130,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 {
 	[super PG_localizeFromTable:tableName];
 	NSInteger i = 0;
-	for(; i < [self segmentCount]; i++) [self setLabel:NSLocalizedStringFromTable([self labelForSegment:i], tableName, nil) forSegment:i];
+	for(; i < self.segmentCount; i++) [self setLabel:NSLocalizedStringFromTable([self labelForSegment:i], tableName, nil) forSegment:i];
 }
 
 @end
@@ -141,7 +141,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (void)PG_localizeFromTable:(NSString *)tableName
 {
 	[super PG_localizeFromTable:tableName];
-	[[self tableColumns] PG_localizeFromTable:tableName];
+	[self.tableColumns PG_localizeFromTable:tableName];
 }
 
 @end
@@ -152,7 +152,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (void)PG_localizeFromTable:(NSString *)tableName
 {
 	[super PG_localizeFromTable:tableName];
-	[[self headerCell] PG_localizeFromTable:tableName];
+	[self.headerCell PG_localizeFromTable:tableName];
 }
 
 @end
@@ -164,7 +164,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 {
 	[super PG_localizeFromTable:tableName];
 	[self setTitle:NSLocalizedStringFromTable([self title], tableName, nil)];
-	[[self itemArray] PG_localizeFromTable:tableName];
+	[self.itemArray PG_localizeFromTable:tableName];
 }
 
 @end
@@ -176,7 +176,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 {
 	[super PG_localizeFromTable:tableName];
 	[self setTitle:NSLocalizedStringFromTable([self title], tableName, nil)];
-	[[self submenu] PG_localizeFromTable:tableName];
+	[self.submenu PG_localizeFromTable:tableName];
 }
 
 @end
@@ -212,17 +212,17 @@ static BOOL (*PGNSBundleLoadNibFileExternalNameTableWithZone)(id, SEL, NSString 
 
 + (BOOL)loadNibFile:(NSString *)fileName externalNameTable:(NSDictionary *)context withZone:(NSZone *)zone
 {
-	if(![context objectForKey:NSNibTopLevelObjects]) {
+	if(!context[NSNibTopLevelObjects]) {
 #if __has_feature(objc_arc)
 		NSMutableDictionary *const dict = [context mutableCopy];
 #else
 		NSMutableDictionary *const dict = [[context mutableCopy] autorelease];
 #endif
-		[dict setObject:[NSMutableArray array] forKey:NSNibTopLevelObjects];
+		dict[NSNibTopLevelObjects] = [NSMutableArray array];
 		context = dict;
 	}
 	if(!PGNSBundleLoadNibFileExternalNameTableWithZone(self, _cmd, fileName, context, zone)) return NO;
-	[[context objectForKey:NSNibTopLevelObjects] PG_localizeFromTable:[[fileName lastPathComponent] stringByDeletingPathExtension]];
+	[context[NSNibTopLevelObjects] PG_localizeFromTable:fileName.lastPathComponent.stringByDeletingPathExtension];
 	return YES;
 }
 
