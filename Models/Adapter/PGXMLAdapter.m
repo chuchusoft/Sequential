@@ -46,7 +46,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (NSXMLDocument *)XMLDocument
 {
-	if(!_XMLDocument) _XMLDocument = [[NSXMLDocument alloc] initWithData:[self data] options:NSXMLNodeOptionsNone error:NULL];
+	if(!_XMLDocument) _XMLDocument = [[NSXMLDocument alloc] initWithData:self.data options:NSXMLNodeOptionsNone error:NULL];
 #if __has_feature(objc_arc)
 	return _XMLDocument;
 #else
@@ -99,29 +99,29 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (BOOL)_createChildren
 {
-	NSXMLElement *const RSS = [[self XMLDocument] rootElement];
-	if(!PGEqualObjects(@"rss", [RSS name])) return NO;
+	NSXMLElement *const RSS = [self.XMLDocument rootElement];
+	if(!PGEqualObjects(@"rss", RSS.name)) return NO;
 	if(![RSS resolvePrefixForNamespaceURI:@"http://search.yahoo.com/mrss"]) return NO;
-	if(1 != [RSS childCount]) return NO;
-	NSXMLElement *const channel = (NSXMLElement*) [[RSS children] lastObject];	//	2021/07/21 NB: downcast
-	if(!PGEqualObjects(@"channel", [channel name])) return NO;
+	if(1 != RSS.childCount) return NO;
+	NSXMLElement *const channel = (NSXMLElement*) RSS.children.lastObject;	//	2021/07/21 NB: downcast
+	if(!PGEqualObjects(@"channel", channel.name)) return NO;
 	NSArray *const titles = [channel elementsForName:@"title"];
-	if([titles count]) [[[self node] identifier] setCustomDisplayName:[[titles lastObject] stringValue]];
+	if(titles.count) self.node.identifier.customDisplayName = [titles.lastObject stringValue];
 
 	NSMutableArray *const items = [NSMutableArray array];
 	for(NSXMLElement *const item in [channel elementsForName:@"item"]) {
-		NSString *const title = [[[item elementsForName:@"title"] lastObject] stringValue];
-		NSString *const URLString = [[[[item elementsForLocalName:@"content" URI:@"http://search.yahoo.com/mrss"] lastObject] attributeForName:@"url"] stringValue];
+		NSString *const title = [item elementsForName:@"title"].lastObject.stringValue;
+		NSString *const URLString = [[item elementsForLocalName:@"content" URI:@"http://search.yahoo.com/mrss"].lastObject attributeForName:@"url"].stringValue;
 
-		PGDisplayableIdentifier *const ident = [[NSURL URLWithString:URLString] PG_displayableIdentifier];
-		[ident setCustomDisplayName:title];
+		PGDisplayableIdentifier *const ident = [NSURL URLWithString:URLString].PG_displayableIdentifier;
+		ident.customDisplayName = title;
 #if __has_feature(objc_arc)
 		PGNode *const node = [[PGNode alloc] initWithParent:self identifier:ident];
 #else
 		PGNode *const node = [[[PGNode alloc] initWithParent:self identifier:ident] autorelease];
 #endif
 		if(!node) continue;
-		[node setDataProvider:[PGDataProvider providerWithResourceIdentifier:ident]];
+		node.dataProvider = [PGDataProvider providerWithResourceIdentifier:ident];
 		[items addObject:node];
 	}
 	[self setUnsortedChildren:items presortedOrder:PGSortInnateOrder];
@@ -133,8 +133,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (void)load
 {
-	if([self _createChildren]) [[self node] loadFinishedForAdapter:self];
-	else [[self node] fallbackFromFailedAdapter:self];
+	if([self _createChildren]) [self.node loadFinishedForAdapter:self];
+	else [self.node fallbackFromFailedAdapter:self];
 }
 
 @end
