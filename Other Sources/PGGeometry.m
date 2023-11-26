@@ -163,6 +163,7 @@ PGRectEdgeMask PGReadingDirectionAndLocationToRectEdgeMask(PGPageLocation loc, P
 	NSCParameterAssert(PGPreserveLocation != loc);
 	BOOL const ltr = dir == PGReadingDirectionLeftToRight;
 	switch(loc) {
+		case PGPreserveLocation: break;
 		case PGHomeLocation: return PGMaxYEdgeMask | (ltr ? PGMinXEdgeMask : PGMaxXEdgeMask);
 		case PGEndLocation: return PGMinYEdgeMask | (ltr ? PGMaxXEdgeMask : PGMinXEdgeMask);
 		case PGEndTopLocation: return PGMaxYEdgeMask | (ltr ? PGMaxXEdgeMask : PGMinXEdgeMask);
