@@ -58,8 +58,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #else
 	NSMutableParagraphStyle *const style = [[[NSParagraphStyle defaultParagraphStyle] mutableCopy] autorelease];
 #endif
-	[style setAlignment:NSTextAlignmentCenter];
-	[style setLineBreakMode:NSLineBreakByTruncatingMiddle];
+	style.alignment = NSTextAlignmentCenter;
+	style.lineBreakMode = NSLineBreakByTruncatingMiddle;
 #if __has_feature(objc_arc)
 	return [[NSAttributedString alloc] initWithString:self.stringValue attributes:@{
 		NSFontAttributeName: [NSFont labelFontOfSize:0.0f],
@@ -112,9 +112,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (void)setCount:(NSUInteger)anInt
 {
 	if(anInt == _count) return;
-	BOOL const showedProgressBar = [self showsProgressBar];
+	BOOL const showedProgressBar = self.showsProgressBar;
 	_count = anInt;
-	if(!showedProgressBar != ![self showsProgressBar]) [self PG_postNotificationName:PGBezelPanelFrameShouldChangeNotification];
+	if(!showedProgressBar != !self.showsProgressBar) [self PG_postNotificationName:PGBezelPanelFrameShouldChangeNotification];
 	else [self setNeedsDisplay:YES];
 }
 
@@ -133,7 +133,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (BOOL)showsProgressBar
 {
-	return PGGraphicalProgressBarStyle && [self count] > 1;
+	return PGGraphicalProgressBarStyle && self.count > 1;
 }
 
 //	MARK: - NSView
@@ -144,7 +144,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 }
 - (void)drawRect:(NSRect)aRect
 {
-	NSRect const b = [self bounds];
+	NSRect const b = self.bounds;
 
 	//	[1] fill the background region
 	{
@@ -153,12 +153,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		[bezel fill];
 	}
 
-	if([self showsProgressBar]) {
+	if(self.showsProgressBar) {
 		BOOL const canAlignToBackingStore = [self respondsToSelector:@selector(backingAlignedRect:options:)];	//	10.7+
-		CGFloat const origin = [self originCorner] == PGMaxXMinYCorner ?
+		CGFloat const origin = self.originCorner == PGMaxXMinYCorner ?
 								NSMaxX(b) - 1.0f - PGProgressBarBorder : PGProgressBarBorder;
 		NSRect progressBarRect = NSMakeRect(
-			[self originCorner] == PGMinXMinYCorner ? 0.5f + origin : 0.5f + origin - PGProgressBarWidth,
+			self.originCorner == PGMinXMinYCorner ? 0.5f + origin : 0.5f + origin - PGProgressBarWidth,
 			0.5f + PGProgressBarBorder, PGProgressBarWidth, PGProgressBarHeight);
 
 		//	if possible, draw the outline in a backing store aligned rectangle;
@@ -248,7 +248,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 			CGFloat x = round(((CGFloat)MIN(curValue, maxValue) / maxValue) * (PGProgressBarWidth - PGProgressBarHeight) +
 								PGProgressBarHeight / 2.0f);
 	#endif
-			if([self originCorner] == PGMaxXMinYCorner) x = -x + origin;
+			if(self.originCorner == PGMaxXMinYCorner) x = -x + origin;
 			else x = x + origin;
 
 			{
@@ -284,9 +284,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	}
 
 	//	[5] draw name of image file
-	CGFloat const progressBarWidth = [self showsProgressBar] ? PGProgressBarWidth : 0.0f;
-	CGFloat const textOffset = [self originCorner] == PGMinXMinYCorner ? progressBarWidth : 0.0f;
-	[[self attributedStringValue] drawInRect:NSMakeRect(NSMinX(b) + PGPaddingSize + PGTextHorzPadding + textOffset,
+	CGFloat const progressBarWidth = self.showsProgressBar ? PGProgressBarWidth : 0.0f;
+	CGFloat const textOffset = self.originCorner == PGMinXMinYCorner ? progressBarWidth : 0.0f;
+	[self.attributedStringValue drawInRect:NSMakeRect(NSMinX(b) + PGPaddingSize + PGTextHorzPadding + textOffset,
 														NSMinY(b) + PGTextBottomPadding,
 														NSWidth(b) - PGTotalPaddingSize - PGTextTotalHorzPadding - progressBarWidth,
 														NSHeight(b) - PGTextTotalVertPadding)];
@@ -306,8 +306,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (NSRect)bezelPanel:(PGBezelPanel *)sender frameForContentRect:(NSRect)aRect scale:(CGFloat)scaleFactor
 {
-	NSSize const messageSize = [[self attributedStringValue] size];
-	NSSize const progressBarSize = [self showsProgressBar] ? NSMakeSize(PGProgressBarWidth + 1.0f + PGProgressBarMargin * 2.0f, PGProgressBarHeight + 1.0f + PGProgressBarBorder * 2.0f) : NSZeroSize;
+	NSSize const messageSize = [self.attributedStringValue size];
+	NSSize const progressBarSize = self.showsProgressBar ? NSMakeSize(PGProgressBarWidth + 1.0f + PGProgressBarMargin * 2.0f, PGProgressBarHeight + 1.0f + PGProgressBarBorder * 2.0f) : NSZeroSize;
 	CGFloat const scaledMarginSize = PGMarginSize * scaleFactor;
 	NSRect frame = NSIntersectionRect(
 		NSMakeRect(
@@ -317,7 +317,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 			ceilf(MAX(messageSize.height + PGTextTotalVertPadding, progressBarSize.height) * scaleFactor)),
 		NSInsetRect(aRect, scaledMarginSize, scaledMarginSize));
 	frame.size.width = MAX(NSWidth(frame), NSHeight(frame)); // Don't allow the panel to be narrower than it is tall.
-	if([self originCorner] == PGMaxXMinYCorner) frame.origin.x = NSMaxX(aRect) - scaledMarginSize - NSWidth(frame);
+	if(self.originCorner == PGMaxXMinYCorner) frame.origin.x = NSMaxX(aRect) - scaledMarginSize - NSWidth(frame);
 	return frame;
 }
 

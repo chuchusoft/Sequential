@@ -37,15 +37,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 }
 - (void)mouseDown:(NSEvent *)anEvent
 {
-	[[self window] makeKeyAndOrderFront:self];
-	[[self window] makeFirstResponder:[[self window] initialFirstResponder]]; // Fitt's law.
+	[self.window makeKeyAndOrderFront:self];
+	[self.window makeFirstResponder:self.window.initialFirstResponder]; // Fitt's law.
 }
 
 //	MARK: - <PGBezelPanelContentView>
 
 - (NSRect)bezelPanel:(PGBezelPanel *)sender frameForContentRect:(NSRect)aRect scale:(CGFloat)s
 {
-	return (NSRect){aRect.origin, {NSWidth([self frame]) * s, NSHeight([self frame]) * s}};
+	return (NSRect){aRect.origin, {NSWidth(self.frame) * s, NSHeight(self.frame) * s}};
 }
 
 @end

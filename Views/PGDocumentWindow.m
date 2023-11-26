@@ -41,7 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (NSDragOperation)draggingEntered:(id<NSDraggingInfo>)sender
 {
-	NSDragOperation const op = [(id<PGDocumentWindowDelegate>)[self delegate] window:self dragOperationForInfo:sender];
+	NSDragOperation const op = [(id<PGDocumentWindowDelegate>)self.delegate window:self dragOperationForInfo:sender];
 	if(NSDragOperationNone == op) return NSDragOperationNone;
 #if __has_feature(objc_arc)
 	_dragHighlightPanel = [PGDragHighlightView PG_bezelPanel];
@@ -64,7 +64,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (BOOL)performDragOperation:(id<NSDraggingInfo>)sender
 {
 	[self draggingExited:nil];
-	return [(id<PGDocumentWindowDelegate>)[self delegate] window:self performDragOperation:sender];
+	return [(id<PGDocumentWindowDelegate>)self.delegate window:self performDragOperation:sender];
 }
 - (void)concludeDragOperation:(id<NSDraggingInfo>)sender
 {
@@ -76,7 +76,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (void)close
 {
 //	NSDisableScreenUpdates();	2021/07/21 deprecated
-	for(NSWindow *const childWindow in [self childWindows])
+	for(NSWindow *const childWindow in self.childWindows)
 		[childWindow close];
 	[super close];
 //	NSEnableScreenUpdates();	2021/07/21 deprecated
