@@ -22,7 +22,7 @@ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
 ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
-enum {
+typedef NS_OPTIONS(NSUInteger, PGRectEdgeMask) {
 	PGNoEdges       = 0,
 	PGMinXEdgeMask  = 1 << NSMinXEdge,
 	PGMinYEdgeMask  = 1 << NSMinYEdge,
@@ -33,23 +33,20 @@ enum {
 	PGMinEdgesMask  = PGMinXEdgeMask | PGMinYEdgeMask,
 	PGMaxEdgesMask  = PGMaxXEdgeMask | PGMaxYEdgeMask
 };
-typedef NSUInteger PGRectEdgeMask;
 
-enum {
+typedef NS_ENUM(NSInteger, PGReadingDirection) {
 	PGReadingDirectionLeftToRight = 0,
 	PGReadingDirectionRightToLeft = 1
 };
-typedef NSInteger PGReadingDirection;
 
-enum {
+typedef NS_ENUM(NSInteger, PGPageLocation) {
 	PGPreserveLocation = -1,
 	PGHomeLocation = 0,
 	PGEndLocation = 1,
 	PGEndTopLocation = 2
 };
-typedef NSInteger PGPageLocation;
 
-enum {
+typedef NS_OPTIONS(NSUInteger, PGOrientation) {
 	PGUpright      = 0,
 	PGFlippedVert  = 1 << 0,
 	PGFlippedHorz  = 1 << 1,
@@ -57,7 +54,6 @@ enum {
 	PGUpsideDown   = PGFlippedVert | PGFlippedHorz,
 	PGRotated90CW = PGFlippedVert | PGFlippedHorz | PGRotated90CCW
 };
-typedef NSUInteger PGOrientation;
 
 typedef struct {
 	CGFloat minX;
@@ -66,10 +62,9 @@ typedef struct {
 	CGFloat maxY;
 } PGInset;
 
-enum {
+typedef NS_ENUM(NSUInteger, PGRectCorner) {
 	PGMinXMinYCorner = 0,
 	PGMaxXMinYCorner = 1,
 	PGMinXMaxYCorner = 2,
 	PGMaxXMaxYCorner = 3
 };
-typedef NSUInteger PGRectCorner;
