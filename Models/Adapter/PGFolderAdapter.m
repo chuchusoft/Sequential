@@ -69,7 +69,7 @@ static NSArray *PGIgnoredPaths = nil;
 + (void)initialize
 {
 	if([PGFolderAdapter class] != self) return;
-	PGIgnoredPaths = [[NSArray alloc] initWithObjects:@"/net", @"/etc", @"/home", @"/tmp", @"/var", @"/mach_kernel.ctfsys", @"/mach.sym", nil];
+	PGIgnoredPaths = @[@"/net", @"/etc", @"/home", @"/tmp", @"/var", @"/mach_kernel.ctfsys", @"/mach.sym"];
 }
 
 //	MARK: +PGDataProviderCustomizing
@@ -77,9 +77,9 @@ static NSArray *PGIgnoredPaths = nil;
 //	2023/10/22
 + (PGDataProvider *)customDataProviderWithResourceIdentifier:(PGResourceIdentifier *)ident displayableName:(NSString *)name
 {
-	if(![ident isFileIdentifier])
+	if(!ident.isFileIdentifier)
 		return nil;
-	NSURL *const URL = [ident URL];
+	NSURL *const URL = ident.URL;
 	NSError *error = nil;
 	NSURLFileResourceType value = nil;
 	BOOL const b = [URL getResourceValue:&value forKey:NSURLFileResourceTypeKey error:&error];
@@ -128,18 +128,18 @@ IsVisibleInFinder(NSURL* pageURL) {
 
 - (void)createChildren
 {
-	NSURL *const URL = [[(PGDataProvider *)[self dataProvider] identifier] URLByFollowingAliases:YES];
+	NSURL *const URL = [((PGDataProvider *)self.dataProvider).identifier URLByFollowingAliases:YES];
 	if(IsPackage(URL))
 		return;
 
-	[[self document] setProcessingNodes:YES];
+	self.document.processingNodes = YES;
 #if __has_feature(objc_arc)
-	NSMutableArray *const oldPages = [[self unsortedChildren] mutableCopy];
+	NSMutableArray *const oldPages = [self.unsortedChildren mutableCopy];
 #else
 	NSMutableArray *const oldPages = [[[self unsortedChildren] mutableCopy] autorelease];
 #endif
 	NSMutableArray *const newPages = [NSMutableArray array];
-	NSString *const path = [URL path];
+	NSString *const path = URL.path;
 	for(NSString *const pathComponent in [[NSFileManager defaultManager] contentsOfDirectoryAtPath:path error:NULL]) {
 		NSString *const pagePath = [path stringByAppendingPathComponent:pathComponent];
 		if([PGIgnoredPaths containsObject:pagePath]) continue;
@@ -147,7 +147,7 @@ IsVisibleInFinder(NSURL* pageURL) {
 		if(!IsVisibleInFinder(pageURL))
 			continue;
 
-		PGDisplayableIdentifier *const pageIdent = [pageURL PG_displayableIdentifier];
+		PGDisplayableIdentifier *const pageIdent = pageURL.PG_displayableIdentifier;
 		PGNode *node = [self childForIdentifier:pageIdent];
 		if(node) {
 			[oldPages removeObjectIdenticalTo:node];
@@ -158,12 +158,12 @@ IsVisibleInFinder(NSURL* pageURL) {
 #else
 			node = [[[PGNode alloc] initWithParent:self identifier:pageIdent] autorelease];
 #endif
-			[node setDataProvider:[PGDataProvider providerWithResourceIdentifier:pageIdent]];
+			node.dataProvider = [PGDataProvider providerWithResourceIdentifier:pageIdent];
 		}
 		if(node) [newPages addObject:node];
 	}
 	[self setUnsortedChildren:newPages presortedOrder:PGUnsorted];
-	[[self document] setProcessingNodes:NO];
+	self.document.processingNodes = NO;
 }
 
 //	MARK: - PGResourceAdapter
@@ -171,14 +171,14 @@ IsVisibleInFinder(NSURL* pageURL) {
 - (void)load
 {
 	[self createChildren];
-	[[self node] loadFinishedForAdapter:self];
+	[self.node loadFinishedForAdapter:self];
 }
 
 //	MARK: - <PGResourceAdapting>
 
 - (void)noteFileEventDidOccurDirect:(BOOL)flag
 {
-	if(![[(PGDataProvider *)[self dataProvider] identifier] hasTarget]) [[self node] removeFromDocument];
+	if(!((PGDataProvider *)self.dataProvider).identifier.hasTarget) [self.node removeFromDocument];
 	else if(flag) [self createChildren];
 }
 
