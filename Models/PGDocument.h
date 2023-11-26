@@ -79,9 +79,9 @@ extern NSString *const PGDocumentUpdateRecursivelyKey;
 }
 #endif
 
-- (id)initWithIdentifier:(PGDisplayableIdentifier *)ident;
-- (id)initWithURL:(NSURL *)aURL;
-- (id)initWithBookmark:(PGBookmark *)aBookmark;
+- (instancetype)initWithIdentifier:(PGDisplayableIdentifier *)ident;
+- (instancetype)initWithURL:(NSURL *)aURL;
+- (instancetype)initWithBookmark:(PGBookmark *)aBookmark;
 
 #if __has_feature(objc_arc)
 @property (readonly) PGDisplayableIdentifier *rootIdentifier;

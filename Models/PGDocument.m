@@ -58,7 +58,7 @@ NSString *const PGDocumentUpdateRecursivelyKey = @"PGDocumentUpdateRecursively";
 
 #if __has_feature(objc_arc)
 
-@interface PGDocument()
+@interface PGDocument ()
 
 @property (nonatomic, strong) PGSubscription *subscription;
 @property (nonatomic, strong) NSMutableArray<PGNode *> *cachedNodes;
@@ -100,7 +100,7 @@ NSString *const PGDocumentUpdateRecursivelyKey = @"PGDocumentUpdateRecursively";
 //	MARK: -
 @implementation PGDocument
 
-- (id)initWithIdentifier:(PGDisplayableIdentifier *)ident
+- (instancetype)initWithIdentifier:(PGDisplayableIdentifier *)ident
 {
 	if((self = [self init])) {
 #if __has_feature(objc_arc)
@@ -109,7 +109,7 @@ NSString *const PGDocumentUpdateRecursivelyKey = @"PGDocumentUpdateRecursively";
 		_rootIdentifier = [ident retain];
 #endif
 		_node = [[PGNode alloc] initWithParent:self identifier:ident];
-		[_node setDataProvider:[PGDataProvider providerWithResourceIdentifier:ident]];
+		_node.dataProvider = [PGDataProvider providerWithResourceIdentifier:ident];
 		[_rootIdentifier PG_addObserver:self selector:@selector(identifierIconDidChange:) name:PGDisplayableIdentifierIconDidChangeNotification];
 #if __has_feature(objc_arc)
 		_subscription = [_rootIdentifier subscriptionWithDescendents:YES];
@@ -121,13 +121,13 @@ NSString *const PGDocumentUpdateRecursivelyKey = @"PGDocumentUpdateRecursively";
 	}
 	return self;
 }
-- (id)initWithURL:(NSURL *)aURL
+- (instancetype)initWithURL:(NSURL *)aURL
 {
-	return [self initWithIdentifier:[aURL PG_displayableIdentifier]];
+	return [self initWithIdentifier:aURL.PG_displayableIdentifier];
 }
-- (id)initWithBookmark:(PGBookmark *)aBookmark
+- (instancetype)initWithBookmark:(PGBookmark *)aBookmark
 {
-	if((self = [self initWithIdentifier:[aBookmark documentIdentifier]])) {
+	if((self = [self initWithIdentifier:aBookmark.documentIdentifier])) {
 		[self openBookmark:aBookmark];
 	}
 	return self;
@@ -144,7 +144,7 @@ NSString *const PGDocumentUpdateRecursivelyKey = @"PGDocumentUpdateRecursively";
 - (void)setDisplayController:(PGDisplayController *)controller
 {
 	if(controller == _displayController) return;
-	if([_displayController activeDocument] == self)
+	if(_displayController.activeDocument == self)
 		[_displayController setActiveDocument:nil closeIfAppropriate:YES];
 #if __has_feature(objc_arc)
 	_displayController = controller;
@@ -157,7 +157,7 @@ NSString *const PGDocumentUpdateRecursivelyKey = @"PGDocumentUpdateRecursively";
 }
 - (BOOL)isOnline
 {
-	return ![[self rootIdentifier] isFileIdentifier];
+	return !self.rootIdentifier.isFileIdentifier;
 }
 - (NSMenu *)pageMenu
 {
@@ -201,7 +201,7 @@ NSString *const PGDocumentUpdateRecursivelyKey = @"PGDocumentUpdateRecursively";
 #endif
 		_storedQuery = nil;
 	} else {
-		*outNode = [self _initialNode];
+		*outNode = self._initialNode;
 #if __has_feature(objc_arc)
 		*outImageView = [PGImageView new];
 #else
@@ -245,14 +245,14 @@ NSString *const PGDocumentUpdateRecursivelyKey = @"PGDocumentUpdateRecursively";
 
 - (void)createUI
 {
-	BOOL const new = ![self displayController];
-	if(new) [self setDisplayController:[[PGDocumentController sharedDocumentController] displayControllerForNewDocument]];
-	else [[self displayController] setActiveDocument:self closeIfAppropriate:NO];
+	BOOL const new = !self.displayController;
+	if(new) self.displayController = [PGDocumentController sharedDocumentController].displayControllerForNewDocument;
+	else [self.displayController setActiveDocument:self closeIfAppropriate:NO];
 	[[PGDocumentController sharedDocumentController] noteNewRecentDocument:self];
-	[[self displayController] showWindow:self];
+	[self.displayController showWindow:self];
 	if(new && !_openedBookmark) {
-		PGBookmark *const bookmark = [[PGBookmarkController sharedBookmarkController] bookmarkForIdentifier:[self rootIdentifier]];
-		if(bookmark && [[[self node] resourceAdapter] nodeForIdentifier:[bookmark fileIdentifier]]) [[self displayController] offerToOpenBookmark:bookmark];
+		PGBookmark *const bookmark = [[PGBookmarkController sharedBookmarkController] bookmarkForIdentifier:self.rootIdentifier];
+		if(bookmark && [self.node.resourceAdapter nodeForIdentifier:bookmark.fileIdentifier]) [self.displayController offerToOpenBookmark:bookmark];
 	}
 }
 - (void)close
@@ -261,11 +261,11 @@ NSString *const PGDocumentUpdateRecursivelyKey = @"PGDocumentUpdateRecursively";
 }
 - (void)openBookmark:(PGBookmark *)aBookmark
 {
-	[self _setInitialIdentifier:[aBookmark fileIdentifier]];
-	PGNode *const initialNode = [self _initialNode];
-	if(PGEqualObjects([initialNode identifier], [aBookmark fileIdentifier])) {
+	[self _setInitialIdentifier:aBookmark.fileIdentifier];
+	PGNode *const initialNode = self._initialNode;
+	if(PGEqualObjects(initialNode.identifier, aBookmark.fileIdentifier)) {
 		_openedBookmark = YES;
-		[[self displayController] activateNode:initialNode];
+		[self.displayController activateNode:initialNode];
 		[[PGBookmarkController sharedBookmarkController] removeBookmark:aBookmark];
 	} else NSBeep();
 }
@@ -274,8 +274,8 @@ NSString *const PGDocumentUpdateRecursivelyKey = @"PGDocumentUpdateRecursively";
 
 - (void)noteNode:(PGNode *)node willRemoveNodes:(NSArray *)anArray
 {
-	PGNode *newStoredNode = [[_storedNode resourceAdapter] sortedViewableNodeNext:YES afterRemovalOfChildren:anArray fromNode:node];
-	if(!newStoredNode) newStoredNode = [[_storedNode resourceAdapter] sortedViewableNodeNext:NO afterRemovalOfChildren:anArray fromNode:node];
+	PGNode *newStoredNode = [_storedNode.resourceAdapter sortedViewableNodeNext:YES afterRemovalOfChildren:anArray fromNode:node];
+	if(!newStoredNode) newStoredNode = [_storedNode.resourceAdapter sortedViewableNodeNext:NO afterRemovalOfChildren:anArray fromNode:node];
 	if(_storedNode != newStoredNode) {
 #if __has_feature(objc_arc)
 		_storedNode = newStoredNode;
@@ -283,43 +283,43 @@ NSString *const PGDocumentUpdateRecursivelyKey = @"PGDocumentUpdateRecursively";
 		[_storedNode release];
 		_storedNode = [newStoredNode retain];
 #endif
-		_storedOffset = PGRectEdgeMaskToSizeWithMagnitude(PGReadingDirectionAndLocationToRectEdgeMask([self readingDirection], PGHomeLocation), CGFLOAT_MAX);
+		_storedOffset = PGRectEdgeMaskToSizeWithMagnitude(PGReadingDirectionAndLocationToRectEdgeMask(self.readingDirection, PGHomeLocation), CGFLOAT_MAX);
 	}
-	[self PG_postNotificationName:PGDocumentWillRemoveNodesNotification userInfo:[NSDictionary dictionaryWithObjectsAndKeys:node, PGDocumentNodeKey, anArray, PGDocumentRemovedChildrenKey, nil]];
+	[self PG_postNotificationName:PGDocumentWillRemoveNodesNotification userInfo:@{PGDocumentNodeKey: node, PGDocumentRemovedChildrenKey: anArray}];
 }
 - (void)noteSortedChildrenDidChange
 {
-	if([self isProcessingNodes]) {
+	if(self.processingNodes) {
 		_sortedChildrenChanged = YES;
 		return;
 	}
-	NSInteger const numberOfOtherItems = [[[PGDocumentController sharedDocumentController] defaultPageMenu] numberOfItems];
-	while([_pageMenu numberOfItems] > numberOfOtherItems) [_pageMenu removeItemAtIndex:numberOfOtherItems];
-	[[self node] addToMenu:_pageMenu flatten:YES];
-	if([_pageMenu numberOfItems] > numberOfOtherItems) [_pageMenu insertItem:[NSMenuItem separatorItem] atIndex:numberOfOtherItems];
+	NSInteger const numberOfOtherItems = [PGDocumentController sharedDocumentController].defaultPageMenu.numberOfItems;
+	while(_pageMenu.numberOfItems > numberOfOtherItems) [_pageMenu removeItemAtIndex:numberOfOtherItems];
+	[self.node addToMenu:_pageMenu flatten:YES];
+	if(_pageMenu.numberOfItems > numberOfOtherItems) [_pageMenu insertItem:[NSMenuItem separatorItem] atIndex:numberOfOtherItems];
 	[self PG_postNotificationName:PGDocumentSortedNodesDidChangeNotification];
 }
 - (void)noteNodeIsViewableDidChange:(PGNode *)node
 {
-	if(_node) [self PG_postNotificationName:PGDocumentNodeIsViewableDidChangeNotification userInfo:[NSDictionary dictionaryWithObject:node forKey:PGDocumentNodeKey]];
+	if(_node) [self PG_postNotificationName:PGDocumentNodeIsViewableDidChangeNotification userInfo:@{PGDocumentNodeKey: node}];
 }
 - (void)noteNodeThumbnailDidChange:(PGNode *)node recursively:(BOOL)flag
 {
-	if(node) [self PG_postNotificationName:PGDocumentNodeThumbnailDidChangeNotification userInfo:[NSDictionary dictionaryWithObjectsAndKeys:node, PGDocumentNodeKey, [NSNumber numberWithBool:flag], PGDocumentUpdateRecursivelyKey, nil]];
+	if(node) [self PG_postNotificationName:PGDocumentNodeThumbnailDidChangeNotification userInfo:@{PGDocumentNodeKey: node, PGDocumentUpdateRecursivelyKey: @(flag)}];
 }
 - (void)noteNodeDisplayNameDidChange:(PGNode *)node
 {
 	if(!_node) return;
-	if([self node] == node) [[self displayController] synchronizeWindowTitleWithDocumentName];
-	[self PG_postNotificationName:PGDocumentNodeDisplayNameDidChangeNotification userInfo:[NSDictionary dictionaryWithObject:node forKey:PGDocumentNodeKey]];
+	if(self.node == node) [self.displayController synchronizeWindowTitleWithDocumentName];
+	[self PG_postNotificationName:PGDocumentNodeDisplayNameDidChangeNotification userInfo:@{PGDocumentNodeKey: node}];
 }
 - (void)noteNodeDidCache:(PGNode *)node
 {
 	if(!_node) return;
 	[_cachedNodes removeObjectIdenticalTo:node];
 	[_cachedNodes insertObject:node atIndex:0];
-	while([_cachedNodes count] > PGDocumentMaxCachedNodes) {
-		[[[_cachedNodes lastObject] resourceAdapter] clearCache];
+	while(_cachedNodes.count > PGDocumentMaxCachedNodes) {
+		[_cachedNodes.lastObject.resourceAdapter clearCache];
 		[_cachedNodes removeLastObject];
 	}
 }
@@ -332,16 +332,16 @@ NSString *const PGDocumentUpdateRecursivelyKey = @"PGDocumentUpdateRecursively";
 
 - (void)identifierIconDidChange:(NSNotification *)aNotif
 {
-	[[self displayController] synchronizeWindowTitleWithDocumentName];
+	[self.displayController synchronizeWindowTitleWithDocumentName];
 }
 - (void)subscriptionEventDidOccur:(NSNotification *)aNotif
 {
 	NSParameterAssert(aNotif);
-	NSDictionary *const userInfo = [aNotif userInfo];
-	NSString *const path = [userInfo objectForKey:PGSubscriptionPathKey];
-	NSUInteger const flags = [[userInfo objectForKey:PGSubscriptionRootFlagsKey] unsignedIntegerValue];
+	NSDictionary *const userInfo = aNotif.userInfo;
+	NSString *const path = userInfo[PGSubscriptionPathKey];
+	NSUInteger const flags = [userInfo[PGSubscriptionRootFlagsKey] unsignedIntegerValue];
 	BOOL const isDeleteOrRevoke = !!(flags & (NOTE_DELETE | NOTE_REVOKE));
-	PGResourceIdentifier *const ident = isDeleteOrRevoke ? nil : [[path PG_fileURL] PG_resourceIdentifier];
+	PGResourceIdentifier *const ident = isDeleteOrRevoke ? nil : [path PG_fileURL].PG_resourceIdentifier;
 	//	NB: if the identifier is a PGAliasIdentifier instance, the call to
 	//	-isEqual: will update the internal bookmark and trigger the posting
 	//	of a PGDisplayableIdentifierDisplayNameDidChangeNotification to
@@ -365,7 +365,7 @@ NSString *const PGDocumentUpdateRecursivelyKey = @"PGDocumentUpdateRecursively";
 		return;	//	no children need updating so exit now
 	}
 
-	PGNode *const node = [[[self node] resourceAdapter] nodeForIdentifier:ident];
+	PGNode *const node = [self.node.resourceAdapter nodeForIdentifier:ident];
 	if(node)
 		[node noteFileEventDidOccurDirect:YES];
 }
@@ -374,8 +374,8 @@ NSString *const PGDocumentUpdateRecursivelyKey = @"PGDocumentUpdateRecursively";
 
 - (PGNode *)_initialNode
 {
-	PGNode *const node = [[[self node] resourceAdapter] nodeForIdentifier:_initialIdentifier];
-	return node ? node : [[[self node] resourceAdapter] sortedViewableNodeFirst:YES];
+	PGNode *const node = [self.node.resourceAdapter nodeForIdentifier:_initialIdentifier];
+	return node ? node : [self.node.resourceAdapter sortedViewableNodeFirst:YES];
 }
 - (void)_setInitialIdentifier:(PGResourceIdentifier *)ident
 {
@@ -403,22 +403,22 @@ NSString *const PGDocumentUpdateRecursivelyKey = @"PGDocumentUpdateRecursively";
 
 - (void)setShowsInfo:(BOOL)flag
 {
-	[super setShowsInfo:flag];
+	super.showsInfo = flag;
 	[[PGPrefObject globalPrefObject] setShowsInfo:flag];
 }
 - (void)setShowsThumbnails:(BOOL)flag
 {
-	[super setShowsThumbnails:flag];
+	super.showsThumbnails = flag;
 	[[PGPrefObject globalPrefObject] setShowsThumbnails:flag];
 }
 - (void)setReadingDirection:(PGReadingDirection)aDirection
 {
-	[super setReadingDirection:aDirection];
+	super.readingDirection = aDirection;
 	[[PGPrefObject globalPrefObject] setReadingDirection:aDirection];
 }
 - (void)setImageScaleMode:(PGImageScaleMode)aMode
 {
-	[super setImageScaleMode:aMode];
+	super.imageScaleMode = aMode;
 	[[PGPrefObject globalPrefObject] setImageScaleMode:aMode];
 }
 - (void)setImageScaleFactor:(CGFloat)factor animate:(BOOL)flag
@@ -428,48 +428,48 @@ NSString *const PGDocumentUpdateRecursivelyKey = @"PGDocumentUpdateRecursively";
 }
 - (void)setAnimatesImages:(BOOL)flag
 {
-	[super setAnimatesImages:flag];
+	super.animatesImages = flag;
 	[[PGPrefObject globalPrefObject] setAnimatesImages:flag];
 }
 - (void)setSortOrder:(PGSortOrder)anOrder
 {
-	if([self sortOrder] != anOrder) {
-		[super setSortOrder:anOrder];
-		[[self node] noteSortOrderDidChange];
+	if(self.sortOrder != anOrder) {
+		super.sortOrder = anOrder;
+		[self.node noteSortOrderDidChange];
 		[self noteSortedChildrenDidChange];
 	}
 	[[PGPrefObject globalPrefObject] setSortOrder:anOrder];
 }
 - (void)setTimerInterval:(NSTimeInterval)interval
 {
-	[super setTimerInterval:interval];
+	super.timerInterval = interval;
 	[[PGPrefObject globalPrefObject] setTimerInterval:interval];
 }
 - (void)setBaseOrientation:(PGOrientation)anOrientation
 {
-	[super setBaseOrientation:anOrientation];
+	super.baseOrientation = anOrientation;
 	[[PGPrefObject globalPrefObject] setBaseOrientation:anOrientation];
 }
 
 //	MARK: - NSObject
 
-- (id)init
+- (instancetype)init
 {
 	if((self = [super init])) {
-		_pageMenu = [[[PGDocumentController sharedDocumentController] defaultPageMenu] copy];
+		_pageMenu = [[PGDocumentController sharedDocumentController].defaultPageMenu copy];
 		[_pageMenu addItem:[NSMenuItem separatorItem]];
 		_cachedNodes = [NSMutableArray new];
 		_operationQueue = [[NSOperationQueue alloc] init];
-		[_operationQueue setMaxConcurrentOperationCount:2]; // Our operations (thumbnail generation) are usually IO-bound, so too much concurrency is detrimental to performance.
+		_operationQueue.maxConcurrentOperationCount = 2; // Our operations (thumbnail generation) are usually IO-bound, so too much concurrency is detrimental to performance.
 		_activity = [[PGActivity alloc] initWithOwner:self];
-		[_activity setParentActivity:[PGActivity applicationActivity]];
+		_activity.parentActivity = [PGActivity applicationActivity];
 	}
 	return self;
 }
 - (void)dealloc
 {
 	[self PG_removeObserver];
-	[[[_node resourceAdapter] activity] cancel:self];
+	[_node.resourceAdapter.activity cancel:self];
 	[_node detachFromTree];
 	[_operationQueue cancelAllOperations];
 	[_activity invalidate];
@@ -503,7 +503,7 @@ NSString *const PGDocumentUpdateRecursivelyKey = @"PGDocumentUpdateRecursively";
 }
 - (NSString *)descriptionForActivity:(PGActivity *)activity
 {
-	return [[[self node] identifier] displayName];
+	return self.node.identifier.displayName;
 }
 
 //	MARK: - <PGNodeParent>
