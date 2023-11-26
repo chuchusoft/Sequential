@@ -16,7 +16,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (instancetype)initWithWindow:(NSWindow *)window NS_DESIGNATED_INITIALIZER;
 - (instancetype)init NS_UNAVAILABLE;
 
-- (void)toggleFullSizeContent;
+- (void)toggleFullSizeContentWithAnimation:(BOOL)animate;
 
 @property (readonly, nullable) NSTextField *accessoryTextField;
 
