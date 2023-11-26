@@ -70,7 +70,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 //	MARK: +PGFullscreenController
 
-+ (id)sharedFullscreenController
++ (PGFullscreenController*)sharedFullscreenController
 {
 	static PGFullscreenController *sharedFullscreenController = nil;
 	if(!sharedFullscreenController) sharedFullscreenController = [[self alloc] init];
@@ -88,8 +88,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (void)displayScreenDidChange:(NSNotification *)aNotif
 {
 	NSScreen *const screen = [[PGPreferenceWindowController sharedPrefController] displayScreen];
-	[(PGFullscreenWindow *)[self window] moveToScreen:screen];
-	if(![[self window] isKeyWindow]) return;
+	[(PGFullscreenWindow *)self.window moveToScreen:screen];
+	if(!self.window.keyWindow) return;
 	[self _setMenuBarHidden:[NSScreen PG_mainScreen] == screen delayed:YES];
 }
 
@@ -134,14 +134,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (BOOL)setActiveDocument:(PGDocument *)document closeIfAppropriate:(BOOL)flag
 {
 	if(document || _isExitingFullscreen) return [super setActiveDocument:document closeIfAppropriate:NO];
-	if(![self activeDocument]) return NO;
+	if(!self.activeDocument) return NO;
 #if __has_feature(objc_arc)
-	NSMutableArray *const docs = [[[PGDocumentController sharedDocumentController] documents] mutableCopy];
+	NSMutableArray *const docs = [[PGDocumentController sharedDocumentController].documents mutableCopy];
 #else
 	NSMutableArray *const docs = [[[[PGDocumentController sharedDocumentController] documents] mutableCopy] autorelease];
 #endif
-	PGDocument *const nextDoc = [[PGDocumentController sharedDocumentController] next:YES documentBeyond:[self activeDocument]];
-	[docs removeObjectIdenticalTo:[self activeDocument]];
+	PGDocument *const nextDoc = [[PGDocumentController sharedDocumentController] next:YES documentBeyond:self.activeDocument];
+	[docs removeObjectIdenticalTo:self.activeDocument];
 	[super setActiveDocument:nextDoc closeIfAppropriate:NO]; // PGDocumentController knows when to close us, so don't close ourselves.
 	return NO;
 }
@@ -176,24 +176,24 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	NSWindow *const window = [[[PGFullscreenWindow alloc] initWithScreen:[[PGPreferenceWindowController sharedPrefController] displayScreen]] autorelease];
 	NSView *const content = [[[[self window] contentView] retain] autorelease];
 #endif
-	[[self window] setContentView:nil];
-	[window setContentView:content];
-	[window setDelegate:[[self window] delegate]];
-	[window setHidesOnDeactivate:[[self window] hidesOnDeactivate]];
+	[self.window setContentView:nil];
+	window.contentView = content;
+	window.delegate = self.window.delegate;
+	window.hidesOnDeactivate = self.window.hidesOnDeactivate;
 //	[window registerForDraggedTypes:[NSArray arrayWithObjects:NSFilenamesPboardType, NSPasteboardTypeURL, nil]];
 	[window registerForDraggedTypes:@[NSPasteboardTypeFileURL, NSPasteboardTypeURL]];
-	[self setWindow:window];
+	self.window = window;
 
 	[super windowDidLoad];
 }
 - (void)close
 {
-	if(!_isExitingFullscreen) for(PGDocument *const doc in [[PGDocumentController sharedDocumentController] documents]) [doc close];
+	if(!_isExitingFullscreen) for(PGDocument *const doc in [PGDocumentController sharedDocumentController].documents) [doc close];
 }
 
 //	MARK: - NSObject
 
-- (id)init
+- (instancetype)init
 {
 	if((self = [super init])) {
 		[[PGPreferenceWindowController sharedPrefController] PG_addObserver:self selector:@selector(displayScreenDidChange:) name:PGPreferenceWindowControllerDisplayScreenDidChangeNotification];
@@ -239,7 +239,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	for(NSScreen *const screen in [NSScreen screens]) {
 		if(displayScreen == screen) continue;
 #if __has_feature(objc_arc)
-		NSWindow *const w = [[NSWindow alloc] initWithContentRect:[screen frame]
+		NSWindow *const w = [[NSWindow alloc] initWithContentRect:screen.frame
 		// Use borderless windows instead of CGSetDisplayTransferByFormula() so that
 		// 1. the menu bar remains visible (if it's on a different screen), and
 		// 2. the user can't click on things that can't be seen.
@@ -250,9 +250,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		NSWindow *const w = [[[NSWindow alloc] initWithContentRect:[screen frame] styleMask:NSWindowStyleMaskBorderless backing:NSBackingStoreBuffered defer:YES] autorelease]; // Use borderless windows instead of CGSetDisplayTransferByFormula() so that 1. the menu bar remains visible (if it's on a different screen), and 2. the user can't click on things that can't be seen.
 #endif
 		[w setReleasedWhenClosed:NO];
-		[w setBackgroundColor:[NSColor blackColor]];
+		w.backgroundColor = [NSColor blackColor];
 		[w setHasShadow:NO];
-		[w setLevel:NSFloatingWindowLevel - 1];
+		w.level = NSFloatingWindowLevel - 1;
 		[w orderFront:self];
 		[_shieldWindows addObject:w];
 	}
@@ -273,9 +273,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (NSDragOperation)window:(PGDocumentWindow *)window dragOperationForInfo:(id<NSDraggingInfo>)info
 {
-	if(!([info draggingSourceOperationMask] & NSDragOperationGeneric)) return NSDragOperationNone;
-	NSPasteboard *const pboard = [info draggingPasteboard];
-	NSArray *const types = [pboard types];
+	if(!(info.draggingSourceOperationMask & NSDragOperationGeneric)) return NSDragOperationNone;
+	NSPasteboard *const pboard = info.draggingPasteboard;
+	NSArray *const types = pboard.types;
 #if 1
 	if([types containsObject:NSPasteboardTypeFileURL]) {
 		return NSDragOperationGeneric;	//	2023/08/16 bugfix: no complex testing is now done
@@ -294,8 +294,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 }
 - (BOOL)window:(PGDocumentWindow *)window performDragOperation:(id<NSDraggingInfo>)info
 {
-	NSPasteboard *const pboard = [info draggingPasteboard];
-	NSArray *const types = [pboard types];
+	NSPasteboard *const pboard = info.draggingPasteboard;
+	NSArray *const types = pboard.types;
 #if 1
 	if([types containsObject:NSPasteboardTypeFileURL])
 		return !![[PGDocumentController sharedDocumentController] openDocumentWithContentsOfURL:[[[pboard propertyListForType:NSPasteboardTypeFileURL] lastObject] PG_fileURL] display:YES];
@@ -314,7 +314,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (void)closeWindowContent:(PGFullscreenWindow *)sender
 {
-	[[self activeDocument] close];
+	[self.activeDocument close];
 }
 
 @end

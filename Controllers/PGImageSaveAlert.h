@@ -44,7 +44,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 }
 #endif
 
-- (id)initWithRoot:(PGNode *)root initialSelection:(NSSet *)aSet;
+- (instancetype)initWithRoot:(PGNode *)root initialSelection:(NSSet *)aSet;
 - (void)beginSheetForWindow:(NSWindow *)window; // If 'window' is nil, uses a modal alert instead of a sheet.
 - (void)openPanelDidEnd:(NSOpenPanel *)panel returnCode:(NSInteger)returnCode contextInfo:(void *)contextInfo;
 

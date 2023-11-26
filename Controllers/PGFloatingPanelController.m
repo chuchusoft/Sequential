@@ -59,7 +59,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (void)_updateWithDisplayController:(PGDisplayController *)controller
 {
-	PGDisplayController *const c = controller ? controller : [[NSApp mainWindow] windowController];
+	PGDisplayController *const c = controller ? controller : NSApp.mainWindow.windowController;
 	[self setDisplayControllerReturningWasChanged:[c isKindOfClass:[PGDisplayController class]] ? c : nil];
 }
 
@@ -76,9 +76,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	} else {
 		[pr windowWillClose];
 		if(forFullScreenTransition)
-			[[self window] orderOut:self];
+			[self.window orderOut:self];
 		else
-			[[self window] performClose:self];
+			[self.window performClose:self];
 	}
 }
 #if !__has_feature(objc_arc)
@@ -88,7 +88,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 }
 #endif
 - (void)toggleShown {
-	[self setShown:![self isShown] forFullScreenTransition:NO];
+	[self setShown:!self.shown forFullScreenTransition:NO];
 }
 - (void)toggleShownUsing:(PGFloatingPanelToggleInstruction)i
 {
@@ -97,7 +97,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		@"");
 	if(PGFloatingPanelToggleInstructionShowAtStatusWindowLevel == i)
 		self.window.level = NSStatusWindowLevel;
-	[self setShown:![self isShown] forFullScreenTransition:YES];
+	[self setShown:!self.shown forFullScreenTransition:YES];
 }
 
 //	MARK: -
@@ -153,7 +153,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 {
 	[super windowDidLoad];
 	[self windowDidBecomeMain:nil];
-	[(NSPanel *)[self window] setBecomesKeyOnlyIfNeeded:YES];
+	[(NSPanel *)self.window setBecomesKeyOnlyIfNeeded:YES];
 #if 1	//	2022/02/15
 	[self.window setFrameUsingName:self.windowFrameAutosaveName];
 #else
@@ -188,7 +188,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 //	MARK: - NSObject
 
-- (id)init
+- (instancetype)init
 {
 	return [self initWithWindowNibName:[self nibName]];
 }
@@ -225,7 +225,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 }
 - (void)windowDidBecomeMain:(NSNotification *)aNotif
 {
-	[self _updateWithDisplayController:aNotif ? [[aNotif object] windowController] : [[NSApp mainWindow] windowController]];
+	[self _updateWithDisplayController:aNotif ? [aNotif.object windowController] : NSApp.mainWindow.windowController];
 }
 - (void)windowDidResignMain:(NSNotification *)aNotif
 {
