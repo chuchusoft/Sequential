@@ -41,17 +41,17 @@ extern NSString *const PGBezelPanelFrameDidChangeNotification;
 }
 #endif
 
-- (id)initWithContentView:(NSView *)aView;
+- (instancetype)initWithContentView:(NSView *)aView NS_DESIGNATED_INITIALIZER;
+- (instancetype)initWithContentRect:(NSRect)contentRect styleMask:(NSWindowStyleMask)style backing:(NSBackingStoreType)backingStoreType defer:(BOOL)flag NS_UNAVAILABLE;
+
 - (void)displayOverWindow:(NSWindow *)aWindow;
 
 - (id)content; // Returns the content view, but as type id so you don't have to cast it.
 
-- (BOOL)acceptsEvents;
-- (void)setAcceptsEvents:(BOOL)flag;
+@property (nonatomic, assign) BOOL acceptsEvents;
 - (void)setCanBecomeKey:(BOOL)flag;
 
-- (PGInset)frameInset;
-- (void)setFrameInset:(PGInset)inset;
+@property (nonatomic, assign) PGInset frameInset;
 
 - (void)updateFrameDisplay:(BOOL)flag;
 
