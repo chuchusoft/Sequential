@@ -61,7 +61,7 @@ StringForDisplay(NSUInteger imageCount, uint64_t byteSizeTotal) {
 //	MARK: -
 @implementation PGThumbnailInfoView
 
-- (id)initWithFrame:(NSRect)frameRect {
+- (instancetype)initWithFrame:(NSRect)frameRect {
 	if((self = [super initWithFrame:frameRect])) {
 		NSUserDefaults *sud = NSUserDefaults.standardUserDefaults;
 		[sud addObserver:self
@@ -79,8 +79,8 @@ StringForDisplay(NSUInteger imageCount, uint64_t byteSizeTotal) {
 #else
 	NSMutableParagraphStyle *const style = [[[NSParagraphStyle defaultParagraphStyle] mutableCopy] autorelease];
 #endif
-	[style setAlignment:NSTextAlignmentCenter];
-	[style setLineBreakMode:NSLineBreakByTruncatingMiddle];
+	style.alignment = NSTextAlignmentCenter;
+	style.lineBreakMode = NSLineBreakByTruncatingMiddle;
 #if __has_feature(objc_arc)
 	return [[NSAttributedString alloc] initWithString:StringForDisplay(_imageCount, _byteSizeTotal)
 										   attributes:@{
@@ -121,13 +121,13 @@ StringForDisplay(NSUInteger imageCount, uint64_t byteSizeTotal) {
 
 - (void)drawRect:(NSRect)aRect
 {
-	NSRect const b = [self bounds];
+	NSRect const b = self.bounds;
 
 	[[NSColor PG_bezelBackgroundColor] set];
 	[[NSBezierPath bezierPathWithRect:b] fill];
 
 	[[NSColor PG_bezelForegroundColor] set];
-	[[self attributedStringValue] drawInRect:NSMakeRect(NSMinX(b) + PGPaddingSize + PGTextHorzPadding,
+	[self.attributedStringValue drawInRect:NSMakeRect(NSMinX(b) + PGPaddingSize + PGTextHorzPadding,
 														NSMinY(b) + PGTextBottomPadding,
 														NSWidth(b) - PGTotalPaddingSize - PGTextTotalHorzPadding,
 														NSHeight(b) - PGTextTotalVertPadding)];
@@ -165,7 +165,7 @@ StringForDisplay(NSUInteger imageCount, uint64_t byteSizeTotal) {
 
 - (NSRect)bezelPanel:(PGBezelPanel *)sender frameForContentRect:(NSRect)aRect scale:(CGFloat)scaleFactor
 {
-	NSSize const messageSize = [[self attributedStringValue] size];
+	NSSize const messageSize = [self.attributedStringValue size];
 	CGFloat const scaledMarginSize = PGMarginSize * scaleFactor;
 	NSRect const frame = NSIntersectionRect(
 		NSMakeRect(

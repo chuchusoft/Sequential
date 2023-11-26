@@ -69,7 +69,7 @@ GetThumbnailSizeFormat(void) {
 #define PGInnerTotalWidth (PGThumbnailSize + PGThumbnailMarginWidth * 2.0f)
 #define PGOuterTotalWidth (PGInnerTotalWidth + 2.0f)
 
-typedef enum {
+typedef NS_ENUM(unsigned int, PGBackgroundType) {
 #if 1
 	PGBackground_NotSelected,
 
@@ -85,7 +85,7 @@ typedef enum {
 	PGBackgroundSelectedInactive,
 #endif
 	PGBackgroundCount,
-} PGBackgroundType;
+};
 static NSColor *PGBackgroundColors[PGBackgroundCount];
 
 #if __has_feature(objc_arc)
@@ -182,7 +182,7 @@ static void PGDrawGradient(void)
 		CFRelease(function);
 		CFRelease(colorSpace);
 	}
-	CGContextDrawShading([[NSGraphicsContext currentContext] CGContext], shade);
+	CGContextDrawShading([NSGraphicsContext currentContext].CGContext, shade);
 }
 
 typedef struct MeasuredText {
@@ -466,7 +466,7 @@ StringForByteSizeAsBytes(uint64_t bytes) {
 			groupCount	=	0;
 		}
 	}
-	return [NSString stringWithUTF8String:s+i];
+	return @(s+i);
 }
 
 typedef enum SizeFormat { SizeFormatNone, SizeFormatBase10, SizeFormatBase2, SizeFormatBytes } SizeFormat;
@@ -946,7 +946,7 @@ SetEqualsSet(NSSet *const nsSet1, NSSet *const nsSet2) {
 
 @implementation PGThumbnailView
 
-- (id)initWithFrame:(NSRect)aRect
+- (instancetype)initWithFrame:(NSRect)aRect
 {
 	if((self = [super initWithFrame:aRect])) {
 #if __has_feature(objc_arc) && defined(SELECTION_IVAR_ORIGINAL_NSMUTABLESET)	//	[1]
@@ -1157,7 +1157,7 @@ SetEqualsSet(NSSet *const nsSet1, NSSet *const nsSet2) {
 		self.needsDisplay = YES;
 	}
 
-	[[self delegate] thumbnailViewSelectionDidChange:self];
+	[self.delegate thumbnailViewSelectionDidChange:self];
 #else
 #endif
 }
@@ -1172,7 +1172,7 @@ SetEqualsSet(NSSet *const nsSet1, NSSet *const nsSet2) {
 	if(byteSizeAndFolderAndImageCount != ULONG_MAX && byteSizeAndFolderAndImageCount != 0) {
 		//	this is a container of some kind: tell thumbnail browser to select all direct
 		//	children of item (which are shown in the next column to the right of this column)
-		[[self delegate] thumbnailView:self selectAllDirectChildrenOf:item];
+		[self.delegate thumbnailView:self selectAllDirectChildrenOf:item];
 	//	[self selectItemsFrom:si to:i];
 	/*	uint64_t	byteSize;
 		NSUInteger	folderCount = 0, imageCount = 0;
@@ -1259,14 +1259,14 @@ SetEqualsSet(NSSet *const nsSet1, NSSet *const nsSet2) {
 	[self _selectItems:items];
 	[self _validateSelection];
 	[self _scrollToSelectionAnchor:scrollToRect];
-	[[self delegate] thumbnailViewSelectionDidChange:self];
+	[self.delegate thumbnailViewSelectionDidChange:self];
 }
 - (void)selectItem:(id)item byExtendingSelection:(BOOL)flag
 {
 	if(!item) return;
-	BOOL const can = [[self dataSource] thumbnailView:self canSelectItem:item];
+	BOOL const can = [self.dataSource thumbnailView:self canSelectItem:item];
 	if(!can) {
-		if(!flag) [self setSelection:[NSSet set]];
+		if(!flag) self.selection = [NSSet set];
 		return;
 	}
 
@@ -1307,7 +1307,7 @@ SetEqualsSet(NSSet *const nsSet1, NSSet *const nsSet2) {
 	NSRect const itemFrame = [self frameOfItemAtIndex:[_items indexOfObjectIdenticalTo:item] withMargin:YES];
 	if(flag) [self setNeedsDisplayInRect:itemFrame];
 	[self PG_scrollRectToVisible:itemFrame type:PGScrollLeastToRect];
-	[[self delegate] thumbnailViewSelectionDidChange:self];
+	[self.delegate thumbnailViewSelectionDidChange:self];
 }
 - (void)deselectItem:(id)item
 {
@@ -1315,7 +1315,7 @@ SetEqualsSet(NSSet *const nsSet1, NSSet *const nsSet2) {
 	[self _deselectItem:item];
 	if(item == _selectionAnchor) [self _validateSelection];
 	[self setNeedsDisplayInRect:[self frameOfItemAtIndex:[_items indexOfObjectIdenticalTo:item] withMargin:YES]];
-	[[self delegate] thumbnailViewSelectionDidChange:self];
+	[self.delegate thumbnailViewSelectionDidChange:self];
 }
 - (void)toggleSelectionOfItem:(id)item
 {
@@ -1324,14 +1324,14 @@ SetEqualsSet(NSSet *const nsSet1, NSSet *const nsSet2) {
 }
 - (void)moveUp:(BOOL)up byExtendingSelection:(BOOL)ext
 {
-	NSUInteger const count = [_items count];
+	NSUInteger const count = _items.count;
 	if(!count) return;
-	if(!_selectionAnchor) return [self selectItem:up ? [_items lastObject] : [_items objectAtIndex:0] byExtendingSelection:NO];
+	if(!_selectionAnchor) return [self selectItem:up ? _items.lastObject : _items[0] byExtendingSelection:NO];
 	NSUInteger const i = [_items indexOfObjectIdenticalTo:_selectionAnchor];
 	NSAssert(NSNotFound != i, @"i");
 	NSArray *const items = [_items subarrayWithRange:up ? NSMakeRange(0, i) : NSMakeRange(i + 1, count - i - 1)];
 	for(id const item in up ? (id<NSFastEnumeration>)[items reverseObjectEnumerator] : (id<NSFastEnumeration>)items) {
-		if(![[self dataSource] thumbnailView:self canSelectItem:item]) continue;
+		if(![self.dataSource thumbnailView:self canSelectItem:item]) continue;
 		if([self _isItemSelected:item]) [self deselectItem:_selectionAnchor];
 		[self selectItem:item byExtendingSelection:ext];
 		break;
@@ -1397,7 +1397,7 @@ SetEqualsSet(NSSet *const nsSet1, NSSet *const nsSet2) {
 - (void)reloadData
 {
 	BOOL const hadSelection = 0 != [self _selectionCount];
-	NSArray *items = [[self dataSource] itemsForThumbnailView:self];
+	NSArray *items = [self.dataSource itemsForThumbnailView:self];
 	if(![_items isEqualToArray:items]) {
 #if !__has_feature(objc_arc)
 		[_items release];
@@ -1408,12 +1408,12 @@ SetEqualsSet(NSSet *const nsSet1, NSSet *const nsSet2) {
 	[self sizeToFit];
 	[self _scrollToSelectionAnchor:PGScrollCenterToRect];
 	[self setNeedsDisplay:YES];
-	if(hadSelection) [[self delegate] thumbnailViewSelectionDidChange:self];
+	if(hadSelection) [self.delegate thumbnailViewSelectionDidChange:self];
 }
 
 - (void)sizeToFit
 {
-	CGFloat const height = [self superview] ? NSHeight([[self superview] bounds]) : 0.0f;
+	CGFloat const height = self.superview ? NSHeight(self.superview.bounds) : 0.0f;
 	[super setFrameSize:NSMakeSize(PGOuterTotalWidth, MAX(height, [_items count] * PGThumbnailTotalHeight))];
 }
 
@@ -1505,10 +1505,10 @@ SetEqualsSet(NSSet *const nsSet1, NSSet *const nsSet2) {
 #else
 	NSShadow *const shadow = [[[NSShadow alloc] init] autorelease];
 #endif
-	[shadow setShadowOffset:NSMakeSize(0.0f, -2.0f)];
-	[shadow setShadowBlurRadius:4.0f];
+	shadow.shadowOffset = NSMakeSize(0.0f, -2.0f);
+	shadow.shadowBlurRadius = 4.0f;
 	[shadow set];
-	CGContextRef const imageContext = [[NSGraphicsContext currentContext] CGContext];
+	CGContextRef const imageContext = [NSGraphicsContext currentContext].CGContext;
 	CGContextBeginTransparencyLayerWithRect(imageContext, CGRectMake(0, 0, PGOuterTotalWidth, PGBackgroundHeight), NULL);
 	NSRect const r = NSMakeRect(0.0f, 0.0f, PGInnerTotalWidth, PGBackgroundHeight);
 	PGDrawGradient();
@@ -1562,7 +1562,7 @@ SetEqualsSet(NSSet *const nsSet1, NSSet *const nsSet2) {
 
 #if 1
 	[NSGraphicsContext saveGraphicsState];
-	[[NSGraphicsContext currentContext] setCompositingOperation:NSCompositingOperationCopy];
+	[NSGraphicsContext currentContext].compositingOperation = NSCompositingOperationCopy;
 	[[NSBezierPath PG_bezierPathWithRoundRect:NSOffsetRect(leftHoleRect, 0.0f, 1.0f) cornerRadius:2.0f] fill];
 	[[NSBezierPath PG_bezierPathWithRoundRect:NSOffsetRect(rightHoleRect, 0.0f, 1.0f) cornerRadius:2.0f] fill];
 	[NSGraphicsContext restoreGraphicsState];
@@ -1584,7 +1584,7 @@ SetEqualsSet(NSSet *const nsSet1, NSSet *const nsSet2) {
 
 - (BOOL)_isDisplayControllerTheMainWindow 
 {
-	NSWindow *const tvw = [self window];	//	tvw = thumbnail view window
+	NSWindow *const tvw = self.window;	//	tvw = thumbnail view window
 	//	2023/11/23 bugfix: the key window will be the display controller's window and
 	//	not the thumbnail view's window; the original code was testing the thumbnail
 	//	view's window instead of the display controller's window
@@ -1604,7 +1604,7 @@ NSLog(@"view %p [%@], has window: %p [%@] \"%@\", is key %c, is 1st responder %c
  */
 	//	2023/11/12 replaced with is-main-window test
 //	return [tvw isKeyWindow] && [tvw firstResponder] == self;
-	return [dcw isMainWindow];
+	return dcw.mainWindow;
 }
 
 //	MARK: - NSView
@@ -1619,9 +1619,9 @@ NSLog(@"view %p [%@], has window: %p [%@] \"%@\", is key %c, is 1st responder %c
 }
 - (void)drawRect:(NSRect)aRect
 {
-	CGContextRef const context = [[NSGraphicsContext currentContext] CGContext];
+	CGContextRef const context = [NSGraphicsContext currentContext].CGContext;
 
-	NSRect const patternRect = [self convertRect:[self bounds] toView:nil];
+	NSRect const patternRect = [self convertRect:self.bounds toView:nil];
 	CGContextSetPatternPhase(context, CGSizeMake(NSMinX(patternRect), floor(NSMaxY(patternRect) - PGBackgroundHoleHeight / 2.0f)));
 
 	NSInteger count = 0;
@@ -1646,8 +1646,8 @@ NSLog(@"view %p [%@], has window: %p [%@] \"%@\", is key %c, is 1st responder %c
 #else
 	NSShadow *const shadow = [[[NSShadow alloc] init] autorelease];
 #endif
-	[shadow setShadowOffset:NSMakeSize(0.0f, -2.0f)];
-	[shadow setShadowBlurRadius:4.0f];
+	shadow.shadowOffset = NSMakeSize(0.0f, -2.0f);
+	shadow.shadowBlurRadius = 4.0f;
 	[shadow set];
 
 	NSUserDefaults *sud = NSUserDefaults.standardUserDefaults;
@@ -1665,10 +1665,10 @@ NSLog(@"view %p [%@], has window: %p [%@] \"%@\", is key %c, is 1st responder %c
 NSMutableString *logStr = [NSMutableString stringWithFormat:@"self %p activeNode %p sel.count %lu",
 (__bridge const void *)self, (__bridge const void *)activeNode, [self _selectionCount]];
 #endif	//	debugging
-	for(; i < [_items count]; i++) {
+	for(; i < _items.count; i++) {
 		NSRect const frameWithMargin = [self frameOfItemAtIndex:i withMargin:YES];
 		if(!PGIntersectsRectList(frameWithMargin, rects, count)) continue;
-		id const item = [_items objectAtIndex:i];
+		id const item = _items[i];
 		if([self _isItemSelected:item]) {
 			[nilShadow set];
 #if 1
@@ -1708,19 +1708,19 @@ if(activeNode == item)
 	[logStr appendFormat:@" [%lu]%p!", i, (__bridge const void *)item];
 }
 #endif	//	debugging
-		NSImage *const thumb = [[self dataSource] thumbnailView:self thumbnailForItem:item];
+		NSImage *const thumb = [self.dataSource thumbnailView:self thumbnailForItem:item];
 		if(!thumb) {
 			[NSBezierPath PG_drawSpinnerInRect:NSInsetRect([self frameOfItemAtIndex:i withMargin:NO], 20.0f, 20.0f)
 								  startAtPetal:-1];
 			continue;
 		}
-		NSSize originalSize = [thumb size];
+		NSSize originalSize = thumb.size;
 		if(PGRotated90CCW & _thumbnailOrientation) originalSize = NSMakeSize(originalSize.height, originalSize.width);
 		NSRect const frame = [self frameOfItemAtIndex:i withMargin:NO];
 		NSRect const thumbnailRect = PGIntegralRect(PGCenteredSizeInRect(PGScaleSizeByFloat(originalSize, MIN(1, MIN(NSWidth(frame) / originalSize.width, NSHeight(frame) / originalSize.height))), frame));
-		BOOL const enabled = [[self dataSource] thumbnailView:self canSelectItem:item];
+		BOOL const enabled = [self.dataSource thumbnailView:self canSelectItem:item];
 
-		NSRect const highlight = [self dataSource] ? [[self dataSource] thumbnailView:self highlightRectForItem:item] : NSZeroRect;
+		NSRect const highlight = self.dataSource ? [self.dataSource thumbnailView:self highlightRectForItem:item] : NSZeroRect;
 		BOOL const entirelyHighlighted = NSEqualRects(highlight, NSMakeRect(0.0f, 0.0f, 1.0f, 1.0f));
 		if(!entirelyHighlighted) {
 			CGContextBeginTransparencyLayerWithRect(context, NSRectToCGRect(thumbnailRect), NULL);
@@ -1763,15 +1763,15 @@ if(activeNode == item)
 #else
 				NSMutableParagraphStyle *const style = [[[NSParagraphStyle defaultParagraphStyle] mutableCopy] autorelease];
 #endif
-				[style setLineBreakMode:NSLineBreakByWordWrapping];
-				[style setAlignment:NSTextAlignmentCenter];
+				style.lineBreakMode = NSLineBreakByWordWrapping;
+				style.alignment = NSTextAlignmentCenter;
 #if __has_feature(objc_arc)
 				NSShadow *const textShadow = [NSShadow new];
 #else
 				NSShadow *const textShadow = [[[NSShadow alloc] init] autorelease];
 #endif
-				[textShadow setShadowBlurRadius:2.0f];
-				[textShadow setShadowOffset:NSMakeSize(0.0f, -1.0f)];
+				textShadow.shadowBlurRadius = 2.0f;
+				textShadow.shadowOffset = NSMakeSize(0.0f, -1.0f);
 				NSFont *font = [NSFont systemFontOfSize:11];
 				attributes = [[NSMutableDictionary alloc] initWithObjectsAndKeys:textShadow, NSShadowAttributeName,
 							  font, NSFontAttributeName, style, NSParagraphStyleAttributeName, nil];
@@ -1805,16 +1805,16 @@ if(activeNode == item)
 				[layoutManager addTextContainer:[textContainer autorelease]];
 				[textStorage addLayoutManager:[layoutManager autorelease]];
 #endif
-				[textContainer setLineFragmentPadding:0];
+				textContainer.lineFragmentPadding = 0;
 			}
 
 #if 1	//	v5: 2 bubbles, no need for localized strings, can work on 10.14 (does not rely on 11.x APIs),
 		//	and supports text bubble fitting into the smallest rectangle possible
-			NSColor *const labelColor = [[self dataSource] thumbnailView:self labelColorForItem:item];
+			NSColor *const labelColor = [self.dataSource thumbnailView:self labelColorForItem:item];
 			if(!isContainer /* || hasRealThumbnail */) {
 				NSAssert(showThumbnailImageName || showThumbnailImageSize, @"");
 				NSString *const label = showThumbnailImageName ?
-										[[self dataSource] thumbnailView:self labelForItem:item] : nil;
+										[self.dataSource thumbnailView:self labelForItem:item] : nil;
 				uint64_t const byteSize = showThumbnailImageSize ?
 											[self.dataSource thumbnailView:self byteSizeOf:item] : 0ull;
 				//	image or non-container non-image (in a folder, archive, etc.)
@@ -1842,13 +1842,13 @@ if(activeNode == item)
 				//	folders/containers which only show a name
 				NSAssert(showThumbnailContainerName && !showThumbnailContainerChildCount &&
 						!showThumbnailContainerChildSizeTotal, @"name-only");
-				NSString *const	label = [[self dataSource] thumbnailView:self labelForItem:item];
+				NSString *const	label = [self.dataSource thumbnailView:self labelForItem:item];
 				DrawSingleTextLabelIn(!hasRealThumbnail, label, labelColor, attributes, enabled, frame,
 										frameWithMargin, textStorage, layoutManager, textContainer);
 			} else {
 				//	folders/containers which show an image count and/or size (and maybe a name)
 				NSString *const	label = showThumbnailContainerName ?
-										[[self dataSource] thumbnailView:self labelForItem:item] : nil;
+										[self.dataSource thumbnailView:self labelForItem:item] : nil;
 				SizeFormat const	sizeFormat = showThumbnailContainerChildSizeTotal ?
 													(SizeFormat) (1 + thumbnailSizeFormat) : SizeFormatNone;
 				uint64_t const	byteSizeAndFolderAndImageCount = [self.dataSource thumbnailView:self
@@ -1961,7 +1961,7 @@ if(activeNode == item)
 #endif
 			[shadow set];
 		} else {
-			NSColor *const labelColor = [[self dataSource] thumbnailView:self labelColorForItem:item];
+			NSColor *const labelColor = [self.dataSource thumbnailView:self labelColorForItem:item];
 			if(labelColor) {
 				NSRect const labelRect = NSMakeRect(NSMaxX(frame) - 16.0f, round(MAX(NSMaxY(thumbnailRect) - 16.0f, NSMidY(thumbnailRect) - 6.0f)), 12.0f, 12.0f);
 				[NSGraphicsContext saveGraphicsState];
@@ -1970,7 +1970,7 @@ if(activeNode == item)
 				[labelColor set];
 				[labelDot fill];
 				[[NSColor whiteColor] set];
-				[labelDot setLineWidth:2.0f];
+				labelDot.lineWidth = 2.0f;
 				[labelDot stroke];
 				CGContextEndTransparencyLayer(context);
 				[NSGraphicsContext restoreGraphicsState];
@@ -1991,8 +1991,8 @@ NSLog(@"%@", logStr);
 }
 - (void)viewWillMoveToWindow:(NSWindow *)aWindow
 {
-	[[self window] PG_removeObserver:self name:NSWindowDidBecomeKeyNotification];
-	[[self window] PG_removeObserver:self name:NSWindowDidResignKeyNotification];
+	[self.window PG_removeObserver:self name:NSWindowDidBecomeKeyNotification];
+	[self.window PG_removeObserver:self name:NSWindowDidResignKeyNotification];
 	[aWindow PG_addObserver:self selector:@selector(windowDidChangeKey:) name:NSWindowDidBecomeKeyNotification];
 	[aWindow PG_addObserver:self selector:@selector(windowDidChangeKey:) name:NSWindowDidResignKeyNotification];
 }
@@ -2026,7 +2026,7 @@ NSLog(@"%@", logStr);
 {
 #if 1
 	//	2023/09/18 optimized version
-	NSUInteger const count = [_items count];
+	NSUInteger const count = _items.count;
 	if(0 == count)
 		return;
 
@@ -2064,7 +2064,7 @@ NSLog(@"%@", logStr);
 	NSPoint const p = [anEvent PG_locationInView:self];
 	NSUInteger const i = [self indexOfItemAtPoint:p];
 	BOOL const validItemHit = i < _items.count;
-	id const item = ([self mouse:p inRect:[self bounds]] && validItemHit) ? [_items objectAtIndex:i] : nil;
+	id const item = ([self mouse:p inRect:self.bounds] && validItemHit) ? _items[i] : nil;
 
 	//	2023/09/06 shift-clicking now extends the selection;
 	//	cmd-clicking still adds/removes a single item to/from the selection
@@ -2091,8 +2091,8 @@ NSLog(@"%@", logStr);
 }
 - (void)keyDown:(NSEvent *)anEvent
 {
-	if([anEvent modifierFlags] & NSEventModifierFlagCommand) return [super keyDown:anEvent];
-	if(![[NSApp mainMenu] performKeyEquivalent:anEvent]) [self interpretKeyEvents:[NSArray arrayWithObject:anEvent]];
+	if(anEvent.modifierFlags & NSEventModifierFlagCommand) return [super keyDown:anEvent];
+	if(![NSApp.mainMenu performKeyEquivalent:anEvent]) [self interpretKeyEvents:@[anEvent]];
 }
 
 //	MARK: - NSObject

@@ -47,11 +47,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (NSUInteger)numberOfColumns
 {
-	return [_views count];
+	return _views.count;
 }
 - (id)lastView
 {
-	return [_views lastObject];
+	return _views.lastObject;
 }
 - (void)setColumnWidth:(CGFloat)width
 {
@@ -63,14 +63,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (id)viewAtIndex:(NSUInteger)index
 {
-	return [_views objectAtIndex:index];
+	return _views[index];
 }
 
 //	MARK: -
 
 - (void)addColumnWithView:(NSView *)aView
 {
-	[self insertColumnWithView:aView atIndex:[_views count]];
+	[self insertColumnWithView:aView atIndex:_views.count];
 }
 - (void)insertColumnWithView:(NSView *)aView atIndex:(NSUInteger)index
 {
@@ -84,22 +84,22 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[_clipViews insertObject:clip atIndex:index];
 	[_views insertObject:aView atIndex:index];
 	[_view addSubview:clip];
-	[clip setDelegate:self];
+	clip.delegate = self;
 	[clip setBackgroundColor:nil];
 	[clip setShowsBorder:NO];
-	[clip setDocumentView:aView];
+	clip.documentView = aView;
 	[self layout];
-	[aView setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
-	[aView setFrameSize:NSMakeSize(NSWidth([clip bounds]), NSHeight([aView frame]))];
+	aView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+	[aView setFrameSize:NSMakeSize(NSWidth(clip.bounds), NSHeight(aView.frame))];
 	[self scrollToTopOfColumnWithView:aView];
 }
 - (void)removeColumnsAfterView:(NSView *)aView
 {
 	NSUInteger const i = aView ? [_views indexOfObject:aView] : 0;
 	NSParameterAssert(NSNotFound != i);
-	if([_views count] <= i + 1) return;
-	while([_views count] > i + 1) {
-		PGClipView *const clip = [_clipViews lastObject];
+	if(_views.count <= i + 1) return;
+	while(_views.count > i + 1) {
+		PGClipView *const clip = _clipViews.lastObject;
 		[clip setDocumentView:nil];
 		[clip removeFromSuperview];
 		[_clipViews removeLastObject];
@@ -113,7 +113,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (void)scrollToTopOfColumnWithView:(NSView *)aView
 {
-	[[_clipViews objectAtIndex:[_views indexOfObjectIdenticalTo:aView]]  scrollToEdge:PGMaxYEdgeMask animation:PGAllowAnimation];
+	[_clipViews[[_views indexOfObjectIdenticalTo:aView]]  scrollToEdge:PGMaxYEdgeMask animation:PGAllowAnimation];
 }
 - (void)scrollToLastColumnAnimate:(BOOL)flag
 {
@@ -124,27 +124,27 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (void)layout
 {
-	NSRect const b = [self bounds];
+	NSRect const b = self.bounds;
 	[_view setFrameSize:NSMakeSize(MAX(_columnWidth * [_views count], NSWidth(b)), NSHeight(b))];
-	NSRect const vb = [_view bounds];
+	NSRect const vb = _view.bounds;
 	NSUInteger i = 0;
-	NSUInteger const count = [_clipViews count];
-	for(; i < count; i++) [(NSView *)[_clipViews objectAtIndex:i] setFrame:NSMakeRect(NSMinX(vb) + _columnWidth * i, NSMinY(vb), _columnWidth, NSHeight(vb))];
+	NSUInteger const count = _clipViews.count;
+	for(; i < count; i++) ((NSView *)_clipViews[i]).frame = NSMakeRect(NSMinX(vb) + _columnWidth * i, NSMinY(vb), _columnWidth, NSHeight(vb));
 	[self setNeedsDisplay:YES];
 }
 
 //	MARK: - NSView
 
-- (id)initWithFrame:(NSRect)aRect
+- (instancetype)initWithFrame:(NSRect)aRect
 {
 	if((self = [super initWithFrame:aRect])) {
-		_clipView = [[PGClipView alloc] initWithFrame:[self bounds]];
+		_clipView = [[PGClipView alloc] initWithFrame:self.bounds];
 		[_clipView setBackgroundColor:nil];
 		[_clipView setShowsBorder:NO];
-		[_clipView setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
+		_clipView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
 		[self addSubview:_clipView];
 		_view = [[NSView alloc] initWithFrame:NSZeroRect];
-		[_clipView setDocumentView:_view];
+		_clipView.documentView = _view;
 		_clipViews = [NSMutableArray new];
 		_views = [NSMutableArray new];
 		_columnWidth = 128.0f + 12.0f;
@@ -153,14 +153,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 }
 - (void)setFrameSize:(NSSize)aSize
 {
-	if(NSEqualSizes([self frame].size, aSize)) return;
+	if(NSEqualSizes(self.frame.size, aSize)) return;
 	[super setFrameSize:aSize];
 	[self layout];
 }
 
 //	MARK: - NSObject
 
-- (id)init
+- (instancetype)init
 {
 	return [self initWithFrame:NSZeroRect];
 }
@@ -181,7 +181,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 {
 	NSUInteger const i = [_clipViews indexOfObjectIdenticalTo:sender];
 	if(NSNotFound == i) return NO;
-	[[_views objectAtIndex:i] mouseDown:anEvent];
+	[_views[i] mouseDown:anEvent];
 	return YES;
 }
 - (PGRectEdgeMask)clipView:(PGClipView *)sender directionFor:(PGPageLocation)pageLocation
