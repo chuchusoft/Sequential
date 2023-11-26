@@ -118,7 +118,7 @@ static PGPreferenceWindowController *PGSharedPrefController = nil;
 
 - (IBAction)changeDisplayScreen:(id)sender
 {
-	[self setDisplayScreen:[(NSMenuItem *)sender representedObject]];
+	self.displayScreen = ((NSMenuItem *)sender).representedObject;
 }
 - (IBAction)showPrefsHelp:(id)sender
 {
@@ -126,7 +126,7 @@ static PGPreferenceWindowController *PGSharedPrefController = nil;
 }
 - (IBAction)changePane:(NSToolbarItem *)sender
 {
-	[self _setCurrentPane:[sender itemIdentifier]];
+	[self _setCurrentPane:sender.itemIdentifier];
 }
 
 //	MARK: -
@@ -182,7 +182,7 @@ PreferenceIsCustomColor(void) {
 	[_displayScreen autorelease];
 	_displayScreen = [aScreen retain];
 #endif
-	[[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithUnsignedInteger:[[NSScreen screens] indexOfObjectIdenticalTo:aScreen]] forKey:PGDisplayScreenIndexKey];
+	[[NSUserDefaults standardUserDefaults] setObject:@([[NSScreen screens] indexOfObjectIdenticalTo:aScreen]) forKey:PGDisplayScreenIndexKey];
 	[self PG_postNotificationName:PGPreferenceWindowControllerDisplayScreenDidChangeNotification];
 }
 
@@ -209,11 +209,11 @@ PreferenceIsCustomColor(void) {
 	else if(PGEqualObjects(identifier, PGNavigationPaneIdentifier)) newView = navigationView;
 #endif
 	NSAssert(newView, @"Invalid identifier.");
-	NSWindow *const w = [self window];
-	[w setTitle:[self _titleForPane:identifier]];
-	[[w toolbar] setSelectedItemIdentifier:identifier];
-	NSView *const container = [w contentView];
-	NSView *const oldView = [[container subviews] lastObject];
+	NSWindow *const w = self.window;
+	w.title = [self _titleForPane:identifier];
+	w.toolbar.selectedItemIdentifier = identifier;
+	NSView *const container = w.contentView;
+	NSView *const oldView = container.subviews.lastObject;
 	if(oldView != newView) {
 		if(oldView) {
 			[oldView removeFromSuperview]; // We don't let oldView fade out because CoreAnimation insists on pinning it to the bottom of the resizing window (regardless of its autoresizing mask), which looks awful.
@@ -221,14 +221,14 @@ PreferenceIsCustomColor(void) {
 		}
 
 		[NSAnimationContext beginGrouping];
-		if([[NSApp currentEvent] modifierFlags] & NSEventModifierFlagShift) [[NSAnimationContext currentContext] setDuration:1.0f];
+		if(NSApp.currentEvent.modifierFlags & NSEventModifierFlagShift) [NSAnimationContext currentContext].duration = 1.0f;
 
-		NSRect const b = [container bounds];
-		[newView setFrameOrigin:NSMakePoint(NSMinX(b), NSHeight(b) - NSHeight([newView frame]))];
+		NSRect const b = container.bounds;
+		[newView setFrameOrigin:NSMakePoint(NSMinX(b), NSHeight(b) - NSHeight(newView.frame))];
 		[oldView ? [container animator] : container addSubview:newView];
 
-		NSRect r = [w contentRectForFrameRect:[w frame]];
-		CGFloat const h = NSHeight([newView frame]);
+		NSRect r = [w contentRectForFrameRect:w.frame];
+		CGFloat const h = NSHeight(newView.frame);
 		r.origin.y += NSHeight(r) - h;
 		r.size.height = h;
 		[oldView ? [w animator] : w setFrame:[w frameRectForContentRect:r] display:YES];
@@ -259,37 +259,37 @@ PreferenceIsCustomColor(void) {
 #else
 	[screensPopUp removeAllItems];
 #endif
-	BOOL const hasScreens = [screens count] != 0;
+	BOOL const hasScreens = screens.count != 0;
 #if __has_feature(objc_arc)
-	[_screensPopUp setEnabled:hasScreens];
+	_screensPopUp.enabled = hasScreens;
 #else
 	[screensPopUp setEnabled:hasScreens];
 #endif
 	if(!hasScreens) return [self setDisplayScreen:nil];
 
-	NSScreen *const currentScreen = [self displayScreen];
+	NSScreen *const currentScreen = self.displayScreen;
 	NSUInteger i = [screens indexOfObjectIdenticalTo:currentScreen];
 	if(NSNotFound == i) {
 		i = [screens indexOfObject:currentScreen];
-		[self setDisplayScreen:[screens objectAtIndex:NSNotFound == i ? 0 : i]];
-	} else [self setDisplayScreen:[self displayScreen]]; // Post PGPreferenceWindowControllerDisplayScreenDidChangeNotification.
+		self.displayScreen = screens[NSNotFound == i ? 0 : i];
+	} else self.displayScreen = self.displayScreen; // Post PGPreferenceWindowControllerDisplayScreenDidChangeNotification.
 
 #if __has_feature(objc_arc)
-	NSMenu *const screensMenu = [_screensPopUp menu];
+	NSMenu *const screensMenu = _screensPopUp.menu;
 #else
 	NSMenu *const screensMenu = [screensPopUp menu];
 #endif
-	for(i = 0; i < [screens count]; i++) {
-		NSScreen *const screen = [screens objectAtIndex:i];
+	for(i = 0; i < screens.count; i++) {
+		NSScreen *const screen = screens[i];
 #if __has_feature(objc_arc)
-		NSMenuItem *const item = [[NSMenuItem alloc] initWithTitle:[NSString stringWithFormat:@"%@ (%lux%lu)", (i ? [NSString stringWithFormat:NSLocalizedString(@"Screen %lu", @"Non-primary screens. %lu is replaced with the screen number."), (unsigned long)i + 1] : NSLocalizedString(@"Main Screen", @"The primary screen.")), (unsigned long)NSWidth([screen frame]), (unsigned long)NSHeight([screen frame])] action:@selector(changeDisplayScreen:) keyEquivalent:@""];
+		NSMenuItem *const item = [[NSMenuItem alloc] initWithTitle:[NSString stringWithFormat:@"%@ (%lux%lu)", (i ? [NSString stringWithFormat:NSLocalizedString(@"Screen %lu", @"Non-primary screens. %lu is replaced with the screen number."), (unsigned long)i + 1] : NSLocalizedString(@"Main Screen", @"The primary screen.")), (unsigned long)NSWidth(screen.frame), (unsigned long)NSHeight(screen.frame)] action:@selector(changeDisplayScreen:) keyEquivalent:@""];
 #else
 		NSMenuItem *const item = [[[NSMenuItem alloc] initWithTitle:[NSString stringWithFormat:@"%@ (%lux%lu)", (i ? [NSString stringWithFormat:NSLocalizedString(@"Screen %lu", @"Non-primary screens. %lu is replaced with the screen number."), (unsigned long)i + 1] : NSLocalizedString(@"Main Screen", @"The primary screen.")), (unsigned long)NSWidth([screen frame]), (unsigned long)NSHeight([screen frame])] action:@selector(changeDisplayScreen:) keyEquivalent:@""] autorelease];
 #endif
-		[item setRepresentedObject:screen];
-		[item setTarget:self];
+		item.representedObject = screen;
+		item.target = self;
 		[screensMenu addItem:item];
-		if([self displayScreen] == screen)
+		if(self.displayScreen == screen)
 #if __has_feature(objc_arc)
 			[_screensPopUp selectItem:item];
 #else
@@ -303,7 +303,7 @@ PreferenceIsCustomColor(void) {
 - (void)windowDidLoad
 {
 	[super windowDidLoad];
-	NSWindow *const w = [self window];
+	NSWindow *const w = self.window;
 
 #if __has_feature(objc_arc)
 	NSToolbar *const toolbar = [[NSToolbar alloc] initWithIdentifier:@"PGPreferenceWindowControllerToolbar"];
@@ -311,8 +311,8 @@ PreferenceIsCustomColor(void) {
 	//	TODO: why is there a cast here? Not sure what its purpose is...
 	NSToolbar *const toolbar = [[(NSToolbar *)[NSToolbar alloc] initWithIdentifier:@"PGPreferenceWindowControllerToolbar"] autorelease];
 #endif
-	[toolbar setDelegate:self];
-	[w setToolbar:toolbar];
+	toolbar.delegate = self;
+	w.toolbar = toolbar;
 
 	[self _setCurrentPane:PGGeneralPaneIdentifier];
 	[w center];
@@ -323,7 +323,7 @@ PreferenceIsCustomColor(void) {
 
 //	MARK: - NSObject
 
-- (id)init
+- (instancetype)init
 {
 	if((self = [super initWithWindowNibName:@"PGPreference"])) {
 		if(PGSharedPrefController) {
@@ -348,7 +348,7 @@ PreferenceIsCustomColor(void) {
 
 		NSArray *const screens = [NSScreen screens];
 		NSUInteger const screenIndex = [[[NSUserDefaults standardUserDefaults] objectForKey:PGDisplayScreenIndexKey] unsignedIntegerValue];
-		[self setDisplayScreen:screenIndex >= [screens count] ? [NSScreen PG_mainScreen] : [screens objectAtIndex:screenIndex]];
+		self.displayScreen = screenIndex >= screens.count ? [NSScreen PG_mainScreen] : screens[screenIndex];
 
 		[NSApp PG_addObserver:self selector:@selector(applicationDidChangeScreenParameters:) name:NSApplicationDidChangeScreenParametersNotification];
 #if __has_feature(objc_arc)
@@ -430,14 +430,14 @@ PreferenceIsCustomColor(void) {
 #else
 	NSToolbarItem *const item = [[[NSToolbarItem alloc] initWithItemIdentifier:ident] autorelease];
 #endif
-	[item setTarget:self];
-	[item setAction:@selector(changePane:)];
-	[item setLabel:[self _titleForPane:ident]];
+	item.target = self;
+	item.action = @selector(changePane:);
+	item.label = [self _titleForPane:ident];
 
 	for(size_t i=0; i < NUMELEMS(PGPanes); ++i)
 		if(PGEqualObjects(ident, PGPanes[i].identifier)) {
 			NSAssert(PGPanes[i].iconImageName, @"iconImageName is nil");
-			[item setImage:[NSImage imageNamed:PGPanes[i].iconImageName]];
+			item.image = [NSImage imageNamed:PGPanes[i].iconImageName];
 			return item;
 		}
 	NSAssert(FALSE, @"unknown identifier; could not make toolbar item");

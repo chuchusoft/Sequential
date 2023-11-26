@@ -95,11 +95,11 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 
 + (BOOL)canShowThumbnailsForDocument:(PGDocument *)aDoc
 {
-	return [[[aDoc node] resourceAdapter] hasViewableNodeCountGreaterThan:1];
+	return [aDoc.node.resourceAdapter hasViewableNodeCountGreaterThan:1];
 }
 + (BOOL)shouldShowThumbnailsForDocument:(PGDocument *)aDoc
 {
-	return [aDoc showsThumbnails] && [self canShowThumbnailsForDocument:aDoc];
+	return aDoc.showsThumbnails && [self canShowThumbnailsForDocument:aDoc];
 }
 
 //	MARK: - PGThumbnailController
@@ -110,22 +110,22 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 - (void)setDisplayController:(PGDisplayController *)aController
 {
 	if(aController == _displayController) return;
-	[[_window parentWindow] removeChildWindow:_window];
+	[_window.parentWindow removeChildWindow:_window];
 	[_displayController PG_removeObserver:self name:PGDisplayControllerActiveNodeDidChangeNotification];
 	[_displayController PG_removeObserver:self name:PGDisplayControllerActiveNodeWasReadNotification];
-	[[_displayController clipView] PG_removeObserver:self name:PGClipViewBoundsDidChangeNotification];
-	[[_displayController window] PG_removeObserver:self name:NSWindowDidResizeNotification];
-	[[_displayController windowForSheet] PG_removeObserver:self name:NSWindowWillBeginSheetNotification];
-	[[_displayController windowForSheet] PG_removeObserver:self name:NSWindowDidEndSheetNotification];
+	[_displayController.clipView PG_removeObserver:self name:PGClipViewBoundsDidChangeNotification];
+	[_displayController.window PG_removeObserver:self name:NSWindowDidResizeNotification];
+	[_displayController.windowForSheet PG_removeObserver:self name:NSWindowWillBeginSheetNotification];
+	[_displayController.windowForSheet PG_removeObserver:self name:NSWindowDidEndSheetNotification];
 	_displayController = aController;
 	[_displayController PG_addObserver:self selector:@selector(displayControllerActiveNodeDidChange:) name:PGDisplayControllerActiveNodeDidChangeNotification];
 	[_displayController PG_addObserver:self selector:@selector(displayControllerActiveNodeWasRead:) name:PGDisplayControllerActiveNodeWasReadNotification];
-	[[_displayController clipView] PG_addObserver:self selector:@selector(clipViewBoundsDidChange:) name:PGClipViewBoundsDidChangeNotification];
-	[[_displayController window] PG_addObserver:self selector:@selector(parentWindowDidResize:) name:NSWindowDidResizeNotification];
-	[[_displayController windowForSheet] PG_addObserver:self selector:@selector(parentWindowWillBeginSheet:) name:NSWindowWillBeginSheetNotification];
-	[[_displayController windowForSheet] PG_addObserver:self selector:@selector(parentWindowDidEndSheet:) name:NSWindowDidEndSheetNotification];
-	[_window setIgnoresMouseEvents:!![[_displayController windowForSheet] attachedSheet]];
-	[self setDocument:[_displayController activeDocument]];
+	[_displayController.clipView PG_addObserver:self selector:@selector(clipViewBoundsDidChange:) name:PGClipViewBoundsDidChangeNotification];
+	[_displayController.window PG_addObserver:self selector:@selector(parentWindowDidResize:) name:NSWindowDidResizeNotification];
+	[_displayController.windowForSheet PG_addObserver:self selector:@selector(parentWindowWillBeginSheet:) name:NSWindowWillBeginSheetNotification];
+	[_displayController.windowForSheet PG_addObserver:self selector:@selector(parentWindowDidEndSheet:) name:NSWindowDidEndSheetNotification];
+	_window.ignoresMouseEvents = !!_displayController.windowForSheet.attachedSheet;
+	self.document = _displayController.activeDocument;
 	[self display];
 }
 #if !__has_feature(objc_arc)
@@ -155,7 +155,7 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 }
 - (NSSet *)selectedNodes
 {
-	return [_browser selection];
+	return _browser.selection;
 }
 - (void)setSelectedNodes:(NSSet *)selectedNodes {	//	2023/10/02 was readonly
 	_browser.selection = selectedNodes;
@@ -173,7 +173,7 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 	_selfRetained = NO;
 #endif
 
-	[[[self displayController] window] addChildWindow:_window ordered:NSWindowAbove];
+	[self.displayController.window addChildWindow:_window ordered:NSWindowAbove];
 	[self _updateWindowFrame];
 
 	[_window removeChildWindow:_infoWindow];
@@ -202,14 +202,14 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 	//	this stops the app from crashing when the thumbnail view is shown/hidden
 	//	while in fullscreen with more than 1 document opened.
 	if(aNotif) {
-		if([aNotif.userInfo objectForKey:@"PGDocument"] != _document)
+		if((aNotif.userInfo)[@"PGDocument"] != _document)
 			return;
 
-		PGNode *const node = [aNotif.userInfo objectForKey:@"PGNode"];
+		PGNode *const node = (aNotif.userInfo)[@"PGNode"];
 		NSAssert(node, @"node");
-		[_browser setSelection:node ? [NSSet setWithObject:node] : nil];
+		_browser.selection = node ? [NSSet setWithObject:node] : nil;
 	} else
-		[_browser setSelection:[[self displayController] selectedNodes]];
+		_browser.selection = self.displayController.selectedNodes;
 }
 - (void)displayControllerActiveNodeWasRead:(NSNotification *)aNotif
 {
@@ -217,7 +217,7 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 }
 - (void)clipViewBoundsDidChange:(NSNotification *)aNotif
 {
-	[_browser redisplayItem:[[self displayController] activeNode] recursively:NO];
+	[_browser redisplayItem:self.displayController.activeNode recursively:NO];
 
 //	[self _updateInfoWindowFrame];	//	2023/10/14
 }
@@ -257,19 +257,19 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 
 - (void)documentNodeThumbnailDidChange:(NSNotification *)aNotif
 {
-	[_browser redisplayItem:[[aNotif userInfo] objectForKey:PGDocumentNodeKey] recursively:[[[aNotif userInfo] objectForKey:PGDocumentUpdateRecursivelyKey] boolValue]];
+	[_browser redisplayItem:aNotif.userInfo[PGDocumentNodeKey] recursively:[aNotif.userInfo[PGDocumentUpdateRecursivelyKey] boolValue]];
 }
 - (void)documentBaseOrientationDidChange:(NSNotification *)aNotif
 {
-	[_browser setThumbnailOrientation:[[self document] baseOrientation]];
+	_browser.thumbnailOrientation = self.document.baseOrientation;
 }
 - (void)documentSortedNodesDidChange:(NSNotification *)aNotif
 {
-	[_browser setSelection:[_browser selection]];
+	_browser.selection = _browser.selection;
 }
 - (void)documentNodeIsViewableDidChange:(NSNotification *)aNotif
 {
-	[_browser redisplayItem:[[aNotif userInfo] objectForKey:PGDocumentNodeKey] recursively:NO];
+	[_browser redisplayItem:aNotif.userInfo[PGDocumentNodeKey] recursively:NO];
 }
 
 //	MARK: - PGThumbnailController(Private)
@@ -394,7 +394,7 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 #else
 	if(_parentWindowIsAnimating) return;
 #endif
-	NSWindow *const p = [_displayController window];
+	NSWindow *const p = _displayController.window;
 	if(!p) return;
 	NSRect r = [p PG_contentRect];
 #if FULL_HEIGHT_BROWSER_IN_FULLSIZE_CONTENT_MODE
@@ -425,7 +425,7 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 
 //	MARK: - NSObject
 
-- (id)init
+- (instancetype)init
 {
 	if((self = [super init])) {
 #if __has_feature(objc_arc)
@@ -433,24 +433,24 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 #else
 		_window = [[PGThumbnailBrowser PG_bezelPanel] retain];
 #endif
-		[_window setAutorecalculatesKeyViewLoop:YES];
-		[_window setReleasedWhenClosed:NO];
-		[_window setDelegate:self];
-		[_window setAcceptsEvents:YES];
+		_window.autorecalculatesKeyViewLoop = YES;
+		_window.releasedWhenClosed = NO;
+		_window.delegate = self;
+		_window.acceptsEvents = YES;
 
-		_browser = [_window content];
+		_browser = _window.contentView;
 		NSParameterAssert(nil != _browser && [_browser isKindOfClass:[PGThumbnailBrowser class]]);
-		[_browser setDelegate:self];
-		[_browser setDataSource:self];
+		_browser.delegate = self;
+		_browser.dataSource = self;
 
 #if __has_feature(objc_arc)
 		_infoWindow = [PGThumbnailInfoView PG_bezelPanel];	//	2023/10/02 added
 #else
 		_infoWindow = [[PGThumbnailInfoView PG_bezelPanel] retain];	//	2023/10/02 added
 #endif
-		[_infoWindow setAutorecalculatesKeyViewLoop:NO];
-		[_infoWindow setReleasedWhenClosed:NO];
-		_infoView = [_infoWindow content];	//	2023/10/02 added
+		_infoWindow.autorecalculatesKeyViewLoop = NO;
+		_infoWindow.releasedWhenClosed = NO;
+		_infoView = _infoWindow.contentView;	//	2023/10/02 added
 		_infoView.hidden = YES;
 	}
 	return self;
@@ -490,11 +490,11 @@ NSString *const PGThumbnailControllerContentInsetDidChangeNotification = @"PGThu
 
 - (void)windowDidBecomeKey:(NSNotification *)aNotif
 {
-	[[self displayController] thumbnailPanelDidBecomeKey:aNotif];
+	[self.displayController thumbnailPanelDidBecomeKey:aNotif];
 }
 - (void)windowDidResignKey:(NSNotification *)aNotif
 {
-	[[self displayController] thumbnailPanelDidResignKey:aNotif];
+	[self.displayController thumbnailPanelDidResignKey:aNotif];
 }
 - (void)windowWillClose:(NSNotification *)aNotif
 {
@@ -551,22 +551,22 @@ NSLog(@"-mouseMoved:");
 
 - (id)thumbnailBrowser:(PGThumbnailBrowser *)sender parentOfItem:(id)item
 {
-	PGNode *const parent = [(PGNode *)item parentNode];
-	return [[self document] node] == parent && ![parent isViewable] ? nil : parent;
+	PGNode *const parent = ((PGNode *)item).parentNode;
+	return self.document.node == parent && !parent.isViewable ? nil : parent;
 }
 - (BOOL)thumbnailBrowser:(PGThumbnailBrowser *)sender itemCanHaveChildren:(id)item
 {
-	return [[item resourceAdapter] isContainer];
+	return [item resourceAdapter].isContainer;
 }
 
 //	MARK: - <PGThumbnailBrowserDelegate>
 
 - (void)thumbnailBrowserSelectionDidChange:(PGThumbnailBrowser *)sender
 {
-	NSSet *const selection = [sender selection];
+	NSSet *const selection = sender.selection;
 	PGNode *const item = [selection anyObject];
-	NSUInteger const count = [selection count];
-	(void)[self.displayController tryToSetActiveNode:[(count == 1 ? item : [(PGNode *)item parentNode]) viewableAncestor]
+	NSUInteger const count = selection.count;
+	(void)[self.displayController tryToSetActiveNode:(count == 1 ? item : ((PGNode *)item).parentNode).viewableAncestor
 											 forward:YES];
 
 	//	2023/10/02 when > 1 node is selected, show and update the Info window
@@ -611,25 +611,25 @@ NSLog(@"-mouseMoved:");
 
 - (NSArray *)itemsForThumbnailView:(PGThumbnailView *)sender
 {
-	PGNode *const item = [sender representedObject];
+	PGNode *const item = sender.representedObject;
 	if(item)
-		return [[item resourceAdapter] isContainer] ?
-				[(PGContainerAdapter *)[item resourceAdapter] sortedChildren] : nil;
+		return item.resourceAdapter.isContainer ?
+				((PGContainerAdapter *)item.resourceAdapter).sortedChildren : nil;
 
-	PGNode *const root = [[self document] node];
-	if([root isViewable])
+	PGNode *const root = self.document.node;
+	if(root.isViewable)
 		return [root PG_asArray];
 
-	return [[root resourceAdapter] isContainer] ?
-			[(PGContainerAdapter *)[root resourceAdapter] sortedChildren] : nil;
+	return root.resourceAdapter.isContainer ?
+			((PGContainerAdapter *)root.resourceAdapter).sortedChildren : nil;
 }
 - (NSImage *)thumbnailView:(PGThumbnailView *)sender thumbnailForItem:(id)item
 {
-	return [[item resourceAdapter] thumbnail];
+	return [item resourceAdapter].thumbnail;
 }
 - (NSString *)thumbnailView:(PGThumbnailView *)sender labelForItem:(id)item
 {
-	return [[(PGNode *)item identifier] displayName];
+	return ((PGNode *)item).identifier.displayName;
 }
 - (BOOL)thumbnailView:(PGThumbnailView *)sender canSelectItem:(id)item;
 {
@@ -637,20 +637,20 @@ NSLog(@"-mouseMoved:");
 }
 - (BOOL)thumbnailView:(PGThumbnailView *)sender isContainerItem:(id)item
 {
-	return [[item resourceAdapter] isContainer];
+	return [item resourceAdapter].isContainer;
 }
 - (OSType)thumbnailView:(PGThumbnailView *)sender typeCodeForItem:(id)item {
-	return [[(PGNode *)item dataProvider] typeCode];	//	2023/10/22
+	return ((PGNode *)item).dataProvider.typeCode;	//	2023/10/22
 }
 - (NSURL *)thumbnailView:(PGThumbnailView *)sender urlForItem:(id)item
 {
 	NSAssert([item isKindOfClass:[PGNode class]], @"item is PGNode*");
-	return [[(PGNode *)item identifier] URL];
+	return ((PGNode *)item).identifier.URL;
 }
 - (NSColor *)thumbnailView:(PGThumbnailView *)sender labelColorForItem:(id)item
 {
 #if 1
-	return [[(PGNode *)item identifier] labelColor];
+	return ((PGNode *)item).identifier.labelColor;
 #else
 	switch([[(PGNode *)item identifier] labelColor]) {
 		case PGLabelRed: return [NSColor redColor];
@@ -666,22 +666,22 @@ NSLog(@"-mouseMoved:");
 }
 - (NSRect)thumbnailView:(PGThumbnailView *)sender highlightRectForItem:(id)item
 {
-	PGDisplayController *const d = [self displayController];
+	PGDisplayController *const d = self.displayController;
 	NSRect const fullHighlight = NSMakeRect(0.0f, 0.0f, 1.0f, 1.0f);
-	if([d activeNode] != item || ![d isDisplayingImage]) return fullHighlight;
-	if([d isReading]) return NSZeroRect;
-	PGClipView *const clipView = [d clipView];
+	if(d.activeNode != item || !d.displayingImage) return fullHighlight;
+	if(d.reading) return NSZeroRect;
+	PGClipView *const clipView = d.clipView;
 	NSRect const scrollableRect = [clipView scrollableRectWithBorder:NO];
 	if(NSWidth(scrollableRect) <= 0.0001f && NSHeight(scrollableRect) <= 0.0001f) return fullHighlight; // We can't use NSIsEmptyRect() because it can be 0 in one direction but not the other.
-	NSRect const f = [clipView documentFrame];
-	NSRect r = PGScaleRect(NSOffsetRect(NSIntersectionRect(f, [clipView insetBounds]), -NSMinX(f), -NSMinY(f)), 1.0f / NSWidth(f), 1.0f / NSHeight(f));
+	NSRect const f = clipView.documentFrame;
+	NSRect r = PGScaleRect(NSOffsetRect(NSIntersectionRect(f, clipView.insetBounds), -NSMinX(f), -NSMinY(f)), 1.0f / NSWidth(f), 1.0f / NSHeight(f));
 	r.origin.y = 1.0f - NSMaxY(r);
 	return r;
 }
 
 - (BOOL)thumbnailView:(PGThumbnailView *)sender hasRealThumbnailForItem:(id)item
 {
-	return [[item resourceAdapter] hasRealThumbnail];
+	return [item resourceAdapter].hasRealThumbnail;
 }
 
 /* - (NSInteger)thumbnailView:(PGThumbnailView *)sender directChildrenCountForItem:(id)item
