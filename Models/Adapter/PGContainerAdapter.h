@@ -42,12 +42,14 @@ extern NSString *const PGMaxDepthKey;
 }
 #endif
 
-@property(readonly) PGRecursionPolicy descendantRecursionPolicy;
+@property (readonly) PGRecursionPolicy descendantRecursionPolicy;
 
-@property(readonly) NSArray<PGNode*> *sortedChildren;
-@property(readonly) NSArray<PGNode*> *unsortedChildren;
+@property (readonly) NSArray<PGNode*> *sortedChildren;
+@property (readonly) NSArray<PGNode*> *unsortedChildren;
 - (void)setUnsortedChildren:(NSArray<PGNode*> *)anArray presortedOrder:(PGSortOrder)order;
 - (void)removeChild:(PGNode *)child;
+
+@property (readonly) uint64_t byteSizeOfAllChildren;
 
 - (PGNode *)childForIdentifier:(PGResourceIdentifier *)anIdent;
 - (NSUInteger)viewableIndexOfChild:(PGNode *)aNode;
@@ -63,8 +65,6 @@ extern NSString *const PGMaxDepthKey;
 - (PGNode *)selectorForward:(BOOL)flag withContext:(id)context ignored:(id)nil1; */
 
 - (void)noteChildValueForCurrentSortOrderDidChange:(PGNode *)child;
-
-- (uint64_t)byteSizeOfAllChildren;
 
 @end
 
