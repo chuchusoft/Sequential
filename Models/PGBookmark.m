@@ -51,11 +51,11 @@ NSString *const PGBookmarkDidUpdateNotification = @"PGBookmarkDidUpdate";
 
 + (BOOL)supportsSecureCoding { return YES; }
 
-- (id)initWithNode:(PGNode *)aNode
+- (instancetype)initWithNode:(PGNode *)aNode
 {
-	return [self initWithDocumentIdentifier:[[aNode document] rootIdentifier] fileIdentifier:[aNode identifier] displayName:nil];
+	return [self initWithDocumentIdentifier:aNode.document.rootIdentifier fileIdentifier:aNode.identifier displayName:nil];
 }
-- (id)initWithDocumentIdentifier:(PGDisplayableIdentifier *)docIdent fileIdentifier:(PGDisplayableIdentifier *)fileIdent displayName:(NSString *)aString
+- (instancetype)initWithDocumentIdentifier:(PGDisplayableIdentifier *)docIdent fileIdentifier:(PGDisplayableIdentifier *)fileIdent displayName:(NSString *)aString
 {
 	if((self = [super init])) {
 #if __has_feature(objc_arc)
@@ -90,7 +90,7 @@ NSString *const PGBookmarkDidUpdateNotification = @"PGBookmarkDidUpdate";
 #endif
 		//	TODO: check whether removeObserver: should be called in -dealloc
 		[_fileSubscription PG_addObserver:self selector:@selector(eventDidOccur:) name:PGSubscriptionEventDidOccurNotification];
-		if(aString) [_fileIdentifier setNaturalDisplayName:aString];
+		if(aString) _fileIdentifier.naturalDisplayName = aString;
 	}
 	return self;
 }
@@ -125,8 +125,8 @@ NSString *const PGBookmarkDidUpdateNotification = @"PGBookmarkDidUpdate";
 - (void)eventDidOccur:(NSNotification *)aNotif
 {
 	NSParameterAssert(aNotif);
-	if([aNotif object] == _documentSubscription) [_documentIdentifier noteNaturalDisplayNameDidChange];
-	else if([aNotif object] == _fileSubscription) [_fileIdentifier noteNaturalDisplayNameDidChange];
+	if(aNotif.object == _documentSubscription) [_documentIdentifier noteNaturalDisplayNameDidChange];
+	else if(aNotif.object == _fileSubscription) [_fileIdentifier noteNaturalDisplayNameDidChange];
 	[self PG_postNotificationName:PGBookmarkDidUpdateNotification];
 }
 - (void)identifierDidChange:(NSNotification *)aNotif
@@ -136,7 +136,7 @@ NSString *const PGBookmarkDidUpdateNotification = @"PGBookmarkDidUpdate";
 
 //	MARK: - <NSCoding>
 
-- (id)initWithCoder:(NSCoder *)aCoder
+- (instancetype)initWithCoder:(NSCoder *)aCoder
 {
 //	NSSet* classes = [NSSet setWithArray:@[PGDisplayableIdentifier.class, PGResourceIdentifier.class]];
 	NSSet* classes = [NSSet setWithArray:@[NSData.class, PGDisplayableIdentifier.class, PGResourceIdentifier.class]];
@@ -149,18 +149,18 @@ NSString *const PGBookmarkDidUpdateNotification = @"PGBookmarkDidUpdate";
 {
 	[aCoder encodeObject:_documentIdentifier forKey:@"DocumentIdentifier"];
 	[aCoder encodeObject:_fileIdentifier forKey:@"FileIdentifier"];
-	[aCoder encodeObject:[_fileIdentifier naturalDisplayName] forKey:@"BackupDisplayName"];
+	[aCoder encodeObject:_fileIdentifier.naturalDisplayName forKey:@"BackupDisplayName"];
 }
 
 //	MARK: - <NSObject>
 
 - (NSUInteger)hash
 {
-	return [[self class] hash] ^ [_documentIdentifier hash] ^ [_fileIdentifier hash];
+	return [[self class] hash] ^ _documentIdentifier.hash ^ _fileIdentifier.hash;
 }
 - (BOOL)isEqual:(id)anObject
 {
-	return [anObject isMemberOfClass:[self class]] && PGEqualObjects([self documentIdentifier], [anObject documentIdentifier]) && PGEqualObjects([self fileIdentifier], [anObject fileIdentifier]);
+	return [anObject isMemberOfClass:[self class]] && PGEqualObjects(self.documentIdentifier, [anObject documentIdentifier]) && PGEqualObjects(self.fileIdentifier, [anObject fileIdentifier]);
 }
 
 //	MARK: - NSObject

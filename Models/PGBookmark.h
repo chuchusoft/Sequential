@@ -42,10 +42,11 @@ extern NSString *const PGBookmarkDidUpdateNotification;
 }
 #endif
 
-- (id)initWithNode:(PGNode *)aNode;
-- (id)initWithDocumentIdentifier:(PGDisplayableIdentifier *)docIdent
+- (instancetype)initWithNode:(PGNode *)aNode;
+- (instancetype)initWithDocumentIdentifier:(PGDisplayableIdentifier *)docIdent
 				  fileIdentifier:(PGDisplayableIdentifier *)fileIdent
-					 displayName:(NSString *)aString; // For backward compatibility.
+					 displayName:(NSString *)aString NS_DESIGNATED_INITIALIZER; // For backward compatibility.
+- (instancetype)init NS_UNAVAILABLE;
 
 #if __has_feature(objc_arc)
 @property (readonly, strong) PGDisplayableIdentifier *documentIdentifier;
