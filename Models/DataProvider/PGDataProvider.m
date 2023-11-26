@@ -43,7 +43,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 }
 #endif
 
-- (id)initWithURLResponse:(NSURLResponse *)response data:(NSData *)data;
+- (instancetype)initWithURLResponse:(NSURLResponse *)response data:(NSData *)data NS_DESIGNATED_INITIALIZER;
+- (instancetype)init NS_UNAVAILABLE;
 
 @end
 
@@ -52,9 +53,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 //	MARK: +PGDataProvider(PGDataProviderCreation)
 
-+ (id)providerWithResourceIdentifier:(PGResourceIdentifier *)ident displayableName:(NSString *)name
++ (instancetype)providerWithResourceIdentifier:(PGResourceIdentifier *)ident displayableName:(NSString *)name
 {
-	for(NSString *const classString in [[[NSBundle bundleForClass:self] infoDictionary] objectForKey:@"PGDataProviderCustomizers"]) {
+	for(NSString *const classString in [NSBundle bundleForClass:self].infoDictionary[@"PGDataProviderCustomizers"]) {
 		Class const class = NSClassFromString(classString);
 		if(![class respondsToSelector:@selector(customDataProviderWithResourceIdentifier:displayableName:)]) continue;
 		PGDataProvider *const provider = [class customDataProviderWithResourceIdentifier:ident displayableName:name];
@@ -66,13 +67,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	return [[[PGResourceDataProvider alloc] initWithResourceIdentifier:ident displayableName:name] autorelease];
 #endif
 }
-+ (id)providerWithResourceIdentifier:(PGResourceIdentifier *)ident
++ (instancetype)providerWithResourceIdentifier:(PGResourceIdentifier *)ident
 {
 	return [self providerWithResourceIdentifier:ident displayableName:nil];
 }
-+ (id)providerWithURLResponse:(NSURLResponse *)response data:(NSData *)data
++ (instancetype)providerWithURLResponse:(NSURLResponse *)response data:(NSData *)data
 {
-	for(NSString *const classString in [[[NSBundle bundleForClass:self] infoDictionary] objectForKey:@"PGDataProviderCustomizers"]) {
+	for(NSString *const classString in [NSBundle bundleForClass:self].infoDictionary[@"PGDataProviderCustomizers"]) {
 		Class const class = NSClassFromString(classString);
 		if(![class respondsToSelector:@selector(customDataProviderWithURLResponse:data:)]) continue;
 		PGDataProvider *const provider = [class customDataProviderWithURLResponse:response data:data];
@@ -105,10 +106,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (uint64_t)dataByteSize
 {
 	@autoreleasepool {
-		NSData *const fullData = [self data];
+		NSData *const fullData = self.data;
 		if(!fullData)
 			return 0;
-		return (uint64_t) [fullData length];	//	widening cast so OK
+		return (uint64_t) fullData.length;	//	widening cast so OK
 	}
 }
 - (NSDate *)dateModified
@@ -144,7 +145,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (BOOL)hasData
 {
 	@autoreleasepool {
-		return !![self data];
+		return !!self.data;
 	}
 }
 /*	2023/09/17 deprecated
@@ -160,9 +161,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 {
 	NSData *fourCCData;
 	@autoreleasepool {
-		NSData *const fullData = [self data];
+		NSData *const fullData = self.data;
 #if __has_feature(objc_arc)
-		fourCCData = [fullData length] > 4 ? [fullData subdataWithRange:NSMakeRange(0, 4)] : nil;
+		fourCCData = fullData.length > 4 ? [fullData subdataWithRange:NSMakeRange(0, 4)] : nil;
 #else
 		fourCCData = [fullData length] > 4 ? [[fullData subdataWithRange:NSMakeRange(0, 4)] retain] : nil;
 #endif
@@ -175,8 +176,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 }
 - (NSImage *)icon
 {
-	NSString *const MIMEType = [self MIMEType];
-	OSType typeCode = [self typeCode];
+	NSString *const MIMEType = self.MIMEType;
+	OSType typeCode = self.typeCode;
 	if(MIMEType || typeCode) {
 		IconRef iconRef = NULL;
 
@@ -198,13 +199,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		}
 #endif
 	}
-	NSString *const extension = [self extension];
+	NSString *const extension = self.extension;
 	if(extension) return [NSWorkspace.sharedWorkspace iconForFileType:extension];
 	return nil;
 }
 - (NSString *)kindString
 {
-	NSString *const utiType = [self UTIType];
+	NSString *const utiType = self.UTIType;
 	NSString *kind = utiType ? [NSWorkspace.sharedWorkspace localizedDescriptionForType:utiType] : nil; // Ugly ("Portable Network Graphics image"), but more accurate than file extensions.
 	if(kind) return kind;
 #if 1
@@ -222,7 +223,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	#endif
 	}
 
-	NSString *const mimeType = [self MIMEType];
+	NSString *const mimeType = self.MIMEType;
 	if(mimeType) {
 		if (@available(macOS 11.0, *))
 			return [UTType typeWithMIMEType:mimeType].localizedDescription;
@@ -241,7 +242,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		}
 	}
 
-	NSString *const extension = [self extension];
+	NSString *const extension = self.extension;
 	if(extension) {
 		if (@available(macOS 11.0, *))
 			return [UTType typeWithFilenameExtension:extension].localizedDescription;
@@ -287,7 +288,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 @synthesize data = _data;
 #endif
 
-- (id)initWithURLResponse:(NSURLResponse *)response data:(NSData *)data
+- (instancetype)initWithURLResponse:(NSURLResponse *)response data:(NSData *)data
 {
 	if((self = [super init])) {
 		_response = [response copy];
@@ -300,7 +301,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (PGResourceIdentifier *)identifier
 {
-	return [[_response URL] PG_resourceIdentifier];
+	return _response.URL.PG_resourceIdentifier;
 }
 #if !__has_feature(objc_arc)
 - (NSURLResponse *)response
@@ -327,18 +328,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		return [UTType typeWithMIMEType:self.MIMEType].identifier;
 
 	return (NSString *)CFBridgingRelease(UTTypeCreatePreferredIdentifierForTag(kUTTagClassMIMEType,
-													   (__bridge CFStringRef)[self MIMEType], NULL));
+													   (__bridge CFStringRef)self.MIMEType, NULL));
 #else
 	return [(NSString *)UTTypeCreatePreferredIdentifierForTag(kUTTagClassMIMEType, (CFStringRef)[self MIMEType], NULL) autorelease];
 #endif
 }
 - (NSString *)MIMEType
 {
-	return [_response MIMEType];
+	return _response.MIMEType;
 }
 - (NSString *)extension
 {
-	return [[[_response suggestedFilename] pathExtension] lowercaseString];
+	return _response.suggestedFilename.pathExtension.lowercaseString;
 }
 
 //	MARK: - NSObject
