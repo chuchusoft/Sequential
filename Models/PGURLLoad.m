@@ -42,13 +42,13 @@ static NSUInteger PGSimultaneousConnections = 0;
 
 @interface PGURLLoad()
 
-@property(nonatomic, assign) BOOL loaded;
-@property(nonatomic, weak) NSObject<PGURLLoadDelegate> *delegate;
-@property(nonatomic, strong) NSURLConnection *connection;
-@property(nonatomic, strong) NSURLRequest *request;
-@property(nonatomic, strong) NSURLResponse *response;
-@property(nonatomic, strong) NSMutableData *data;
-@property(nonatomic, strong) PGActivity *activity;
+@property (nonatomic, assign) BOOL loaded;
+@property (nonatomic, weak) NSObject<PGURLLoadDelegate> *delegate;
+@property (nonatomic, strong) NSURLConnection *connection;
+@property (nonatomic, strong) NSURLRequest *request;
+@property (nonatomic, strong) NSURLResponse *response;
+@property (nonatomic, strong) NSMutableData *data;
+@property (nonatomic, strong) PGActivity *activity;
 
 - (BOOL)_start;
 - (void)_stop;
@@ -89,7 +89,7 @@ static NSUInteger PGSimultaneousConnections = 0;
 
 //	MARK: - PGURLLoad
 
-- (id)initWithRequest:(NSURLRequest *)aRequest parent:(id<PGActivityOwner>)parent delegate:(NSObject<PGURLLoadDelegate> *)delegate
+- (instancetype)initWithRequest:(NSURLRequest *)aRequest parent:(id<PGActivityOwner>)parent delegate:(NSObject<PGURLLoadDelegate> *)delegate
 {
 	if((self = [super init])) {
 		_delegate = delegate;
@@ -97,7 +97,7 @@ static NSUInteger PGSimultaneousConnections = 0;
 		_request = [aRequest copy];
 		_data = [[NSMutableData alloc] init];
 		_activity = [[PGActivity alloc] initWithOwner:self];
-		[_activity setParentActivity:[parent activity]];
+		_activity.parentActivity = parent.activity;
 		[[PGActivity applicationActivity] PG_startNextURLLoad];
 	}
 	return self;
@@ -138,18 +138,18 @@ static NSUInteger PGSimultaneousConnections = 0;
 
 - (void)cancelAndNotify:(BOOL)notify
 {
-	if([self loaded]) return;
+	if(self.loaded) return;
 	[self _stop];
 #if !__has_feature(objc_arc)
 	[_data release];
 #endif
 	_data = nil;
-	if(notify) [[self delegate] loadDidCancel:self];
+	if(notify) [self.delegate loadDidCancel:self];
 }
-- (BOOL)loaded
+/* - (BOOL)loaded
 {
 	return _loaded;
-}
+} */
 
 //	MARK: - PGURLLoad(Private)
 
@@ -205,13 +205,13 @@ static NSUInteger PGSimultaneousConnections = 0;
 	[_response autorelease];
 #endif
 	_response = [response copy];
-	[[self delegate] loadDidReceiveResponse:self];
+	[self.delegate loadDidReceiveResponse:self];
 }
 - (void)connection:(NSURLConnection *)connection didReceiveData:(NSData *)data
 {
 	NSParameterAssert(connection == _connection);
 	[_data appendData:data];
-	[[self delegate] loadLoadingDidProgress:self];
+	[self.delegate loadLoadingDidProgress:self];
 }
 - (void)connection:(NSURLConnection *)connection didFailWithError:(NSError *)error
 {
@@ -221,14 +221,14 @@ static NSUInteger PGSimultaneousConnections = 0;
 	[_data release];
 #endif
 	_data = nil;
-	[[self delegate] loadDidFail:self];
+	[self.delegate loadDidFail:self];
 }
 - (void)connectionDidFinishLoading:(NSURLConnection *)connection
 {
 	NSParameterAssert(connection == _connection);
 	_loaded = YES;
 	[self _stop];
-	[[self delegate] loadDidSucceed:self];
+	[self.delegate loadDidSucceed:self];
 }
 
 //	MARK: - <PGActivityOwner>
@@ -239,15 +239,15 @@ static NSUInteger PGSimultaneousConnections = 0;
 
 - (NSString *)descriptionForActivity:(PGActivity *)activity
 {
-	return [[_request URL] absoluteString];
+	return _request.URL.absoluteString;
 }
 - (CGFloat)progressForActivity:(PGActivity *)activity
 {
-	if([self loaded]) return 1.0f;
+	if(self.loaded) return 1.0f;
 	if(!_response) return 0.0f;
-	long long const expectedLength = [_response expectedContentLength];
+	long long const expectedLength = _response.expectedContentLength;
 	if(NSURLResponseUnknownLength == expectedLength) return 0.0f;
-	return (CGFloat)[_data length] / (CGFloat)expectedLength;
+	return (CGFloat)_data.length / (CGFloat)expectedLength;
 }
 - (void)cancelActivity:(PGActivity *)activity
 {
@@ -272,7 +272,7 @@ static NSUInteger PGSimultaneousConnections = 0;
 {
 	if(PGSimultaneousConnections >= PGMaxSimultaneousConnections) return YES;
 	for(PGActivity *const activity in [self childActivities:NO]) {
-		if([[activity owner] isKindOfClass:[PGURLLoad class]] && [(PGURLLoad *)[activity owner] _start]) return YES;
+		if([activity.owner isKindOfClass:[PGURLLoad class]] && [(PGURLLoad *)activity.owner _start]) return YES;
 		if([activity PG_startNextURLLoad]) return YES;
 	}
 	return NO;
