@@ -50,12 +50,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 {
 	if(!_highlightPath) {
 #if __has_feature(objc_arc)
-		_highlightPath = [NSBezierPath bezierPathWithRect:NSInsetRect([self bounds], 2.0f, 2.0f)];
+		_highlightPath = [NSBezierPath bezierPathWithRect:NSInsetRect(self.bounds, 2.0f, 2.0f)];
 #else
 		_highlightPath = [[NSBezierPath bezierPathWithRect:NSInsetRect([self bounds], 2.0f, 2.0f)] retain];
 #endif
-		[_highlightPath setLineWidth:4];
-		[_highlightPath setLineJoinStyle:NSRoundLineJoinStyle];
+		_highlightPath.lineWidth = 4;
+		_highlightPath.lineJoinStyle = NSRoundLineJoinStyle;
 	}
 
 	NSInteger i;

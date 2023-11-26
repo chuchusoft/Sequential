@@ -49,10 +49,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[super drawInteriorWithFrame:[self titleRectForBounds:aRect] inView:aView];
 
 	[NSGraphicsContext saveGraphicsState];
-	[[NSGraphicsContext currentContext] setImageInterpolation:NSImageInterpolationHigh];
+	[NSGraphicsContext currentContext].imageInterpolation = NSImageInterpolationHigh;
 	NSRect r = NSMakeRect(NSMinX(aRect) + PGIconSpacingLeft, NSMinY(aRect), PGIconSize, PGIconSize);
 	[[NSAffineTransform PG_counterflipWithRect:&r] concat];
-	[[self icon] drawInRect:r fromRect:NSZeroRect operation:NSCompositingOperationSourceOver fraction:[self isEnabled] ? 1.0f : 0.66f];
+	[self.icon drawInRect:r fromRect:NSZeroRect operation:NSCompositingOperationSourceOver fraction:self.enabled ? 1.0f : 0.66f];
 	[NSGraphicsContext restoreGraphicsState];
 }
 - (void)editWithFrame:(NSRect)aRect inView:(NSView *)aView editor:(NSText *)textObj delegate:(id)anObject event:(NSEvent *)anEvent

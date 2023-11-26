@@ -41,20 +41,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (AEIconType)iconType
 {
-	return [[self cell] iconType];
+	return ((PGTimerButtonCell *)self.cell).iconType;
 }
 - (void)setIconType:(AEIconType)state
 {
-	[[self cell] setIconType:state];
+	((PGTimerButtonCell *)self.cell).iconType = state;
 	[self setNeedsDisplay:YES];
 }
 - (CGFloat)progress
 {
-	return [(PGTimerButtonCell*) [self cell] progress];	//	2021/07/21
+	return ((PGTimerButtonCell*) self.cell).progress;	//	2021/07/21
 }
 - (void)setProgress:(CGFloat)aFloat
 {
-	[[self cell] setProgress:aFloat];
+	((PGTimerButtonCell *)self.cell).progress = aFloat;
 	[self setNeedsDisplay:YES];
 }
 
@@ -77,12 +77,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 }
 - (void)drawInteriorWithFrame:(NSRect)b inView:(NSView *)v
 {
-	if([self progress] > 0.001f) {
+	if(self.progress > 0.001f) {
 		[NSGraphicsContext saveGraphicsState];
 		NSBezierPath *path = [NSBezierPath bezierPath];
 		NSPoint const center = NSMakePoint(NSMidX(b), NSMidY(b));
 		[path moveToPoint:center];
-		[path appendBezierPathWithArcWithCenter:center radius:NSWidth(b) / 2.0f - 2.0f startAngle:270.0f endAngle:[self progress] * 360.0f + 270.0f clockwise:NO];
+		[path appendBezierPathWithArcWithCenter:center radius:NSWidth(b) / 2.0f - 2.0f startAngle:270.0f endAngle:self.progress * 360.0f + 270.0f clockwise:NO];
 		[path addClip];
 
 		[[NSColor colorWithDeviceWhite:0.85f alpha:0.8f] set];
@@ -94,17 +94,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	}
 
 	if(AENoIcon != _iconType) {
-		BOOL const e = [self isEnabled];
-		NSColor *const color = [self isHighlighted] ? [NSColor colorWithDeviceWhite:0.8f alpha:0.9f] : [NSColor whiteColor];
+		BOOL const e = self.isEnabled;
+		NSColor *const color = self.highlighted ? [NSColor colorWithDeviceWhite:0.8f alpha:0.9f] : [NSColor whiteColor];
 		[(e ? color : [color colorWithAlphaComponent:0.33f]) set];
 #if __has_feature(objc_arc)
 		NSShadow *const shadow = [NSShadow new];
 #else
 		NSShadow *const shadow = [[[NSShadow alloc] init] autorelease];
 #endif
-		[shadow setShadowOffset:NSMakeSize(0.0f, -1.0f)];
-		[shadow setShadowBlurRadius:2.0f];
-		[shadow setShadowColor:[NSColor colorWithDeviceWhite:0.0f alpha:e ? 1.0f : 0.33f]];
+		shadow.shadowOffset = NSMakeSize(0.0f, -1.0f);
+		shadow.shadowBlurRadius = 2.0f;
+		shadow.shadowColor = [NSColor colorWithDeviceWhite:0.0f alpha:e ? 1.0f : 0.33f];
 		[shadow set];
 		[NSBezierPath PG_drawIcon:_iconType inRect:PGCenteredSizeInRect(NSMakeSize(20.0f, 20.0f), b)];
 		[shadow setShadowColor:nil];

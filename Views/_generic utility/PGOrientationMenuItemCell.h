@@ -25,7 +25,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 // Other Sources
 #import "PGAttachments.h"
 
-@interface PGOrientationMenuIconCell : PGIconAttachmentCell
+@interface PGOrientationMenuIconCell : PGIconAttachmentCell 
 #if !__has_feature(objc_arc)
 {
 	@private
@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 + (void)addOrientationMenuIconCellToMenuItem:(NSMenuItem *)anItem;
 
-- (id)initWithMenuItem:(NSMenuItem *)anItem;
+- (instancetype)initWithMenuItem:(NSMenuItem *)anItem NS_DESIGNATED_INITIALIZER;
 - (NSImage *)iconForOrientation:(inout PGOrientation *)orientation highlighted:(BOOL)flag;
 
 @end

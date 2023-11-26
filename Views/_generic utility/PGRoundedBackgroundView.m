@@ -38,14 +38,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (void)drawRect:(NSRect)aRect
 {
 	[[NSColor windowBackgroundColor] set];
-	[[NSBezierPath PG_bezierPathWithRoundRect:NSInsetRect([self bounds], 1.0f, 1.0f) cornerRadius:20.0f] fill];
+	[[NSBezierPath PG_bezierPathWithRoundRect:NSInsetRect(self.bounds, 1.0f, 1.0f) cornerRadius:20.0f] fill];
 }
 
 //	MARK: - NSResponder
 
 - (void)mouseDown:(NSEvent *)anEvent
 {
-	[[self window] makeFirstResponder:[self superview]];
+	[self.window makeFirstResponder:self.superview];
 }
 - (void)rightMouseDown:(NSEvent *)anEvent {}
 

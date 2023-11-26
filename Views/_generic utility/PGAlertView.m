@@ -81,9 +81,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		[_graphicStack insertObject:aGraphic atIndex:0];
 		[self _updateCurrentGraphic];
 	}
-	NSTimeInterval const fadeOutDelay = [_currentGraphic fadeOutDelay];
+	NSTimeInterval const fadeOutDelay = _currentGraphic.fadeOutDelay;
 	if(fadeOutDelay >= 0.01f) [self PG_performSelector:@selector(popGraphicIdenticalTo:) withObject:_currentGraphic fireDate:nil interval:fadeOutDelay options:PGCompareArgumentPointer];
-	if(window && [[self window] respondsToSelector:@selector(displayOverWindow:)]) [(PGBezelPanel *)[self window] displayOverWindow:window];
+	if(window && [self.window respondsToSelector:@selector(displayOverWindow:)]) [(PGBezelPanel *)self.window displayOverWindow:window];
 }
 - (void)popGraphic:(PGAlertGraphic *)aGraphic
 {
@@ -108,7 +108,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #else
 	for(PGAlertGraphic *const graphic in [[_graphicStack copy] autorelease])
 #endif
-		if([graphic graphicType] == type)
+		if(graphic.graphicType == type)
 			[_graphicStack removeObjectIdenticalTo:graphic];
 	[self _updateCurrentGraphic];
 }
@@ -126,13 +126,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (void)_updateCurrentGraphic
 {
-	if(![_graphicStack count]) {
-		if([_currentGraphic fadeOutDelay]) [(PGBezelPanel *)[self window] fadeOut];
-		else [[self window] close];
+	if(!_graphicStack.count) {
+		if(_currentGraphic.fadeOutDelay) [(PGBezelPanel *)self.window fadeOut];
+		else [self.window close];
 		return;
 	}
 #if __has_feature(objc_arc)
-	_currentGraphic = [_graphicStack objectAtIndex:0];
+	_currentGraphic = _graphicStack[0];
 #else
 	[_currentGraphic release];
 	_currentGraphic = [[_graphicStack objectAtIndex:0] retain];
@@ -153,7 +153,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 //	MARK: - NSView
 
-- (id)initWithFrame:(NSRect)aRect
+- (instancetype)initWithFrame:(NSRect)aRect
 {
 	if((self = [super initWithFrame:aRect])) {
 		_graphicStack = [[NSMutableArray alloc] init];
@@ -172,7 +172,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (void)viewWillMoveToWindow:(NSWindow *)aWindow
 {
-	[[self window] PG_removeObserver:self name:NSWindowWillCloseNotification];
+	[self.window PG_removeObserver:self name:NSWindowWillCloseNotification];
 	if(aWindow) [aWindow PG_addObserver:self selector:@selector(windowWillClose:) name:NSWindowWillCloseNotification];
 	else [self prepareForWindowClosing];	//	[self windowWillClose:nil];	2021/07/21
 }
@@ -319,9 +319,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #else
 	NSShadow *const shadow = [[[NSShadow alloc] init] autorelease];
 #endif
-	[shadow setShadowBlurRadius:4.0f];
-	[shadow setShadowOffset:NSMakeSize(0.0f, -1.0f)];
-	[shadow setShadowColor:[NSColor blackColor]];
+	shadow.shadowBlurRadius = 4.0f;
+	shadow.shadowOffset = NSMakeSize(0.0f, -1.0f);
+	shadow.shadowColor = [NSColor blackColor];
 	[shadow set];
 }
 - (void)flipHorizontally
@@ -380,8 +380,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	[arrow fill];
 
 	NSBezierPath *const wall = [NSBezierPath bezierPath];
-	[wall setLineWidth:20.0f * f];
-	[wall setLineCapStyle:NSRoundLineCapStyle];
+	wall.lineWidth = 20.0f * f;
+	wall.lineCapStyle = NSRoundLineCapStyle;
 	[wall moveToPoint:NSMakePoint(210.0f * f, 220.0f * f)];
 	[wall lineToPoint:NSMakePoint(210.0f * f,  80.0f * f)];
 	[wall stroke];
@@ -461,7 +461,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 //	MARK: +PGLoadingGraphic
 
-+ (id)loadingGraphic
++ (instancetype)loadingGraphic
 {
 #if __has_feature(objc_arc)
 	return [PGLoadingGraphic new];
@@ -506,7 +506,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		[[NSColor PG_bezelForegroundColor] set];
 		[progressPath fill];
 	} else {
-		[NSBezierPath PG_drawSpinnerInRect:NSMakeRect(40.0f * f, 40.0f * f, 220.0f * f, 220.0f * f) startAtPetal:[anAlertView frameCount]];
+		[NSBezierPath PG_drawSpinnerInRect:NSMakeRect(40.0f * f, 40.0f * f, 220.0f * f, 220.0f * f) startAtPetal:anAlertView.frameCount];
 	}
 }
 
@@ -538,7 +538,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 //	MARK: +PGBezierPathIconGraphic
 
-+ (id)graphicWithIconType:(AEIconType)type
++ (instancetype)graphicWithIconType:(AEIconType)type
 {
 #if __has_feature(objc_arc)
 	return [[self alloc] initWithIconType:type];
@@ -549,7 +549,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 //	MARK: - PGBezierPathIconGraphic
 
-- (id)initWithIconType:(AEIconType)type
+- (instancetype)initWithIconType:(AEIconType)type
 {
 	if((self = [super init])) {
 		_iconType = type;
@@ -569,7 +569,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (void)drawInView:(PGAlertView *)anAlertView
 {
 	[super drawInView:anAlertView];
-	NSRect const b = [anAlertView bounds];
+	NSRect const b = anAlertView.bounds;
 	[[NSColor PG_bezelForegroundColor] set];
 	[NSBezierPath PG_drawIcon:_iconType inRect:PGCenteredSizeInRect(NSMakeSize(PGAlertViewSize / 2.0f, PGAlertViewSize / 2.0f), b)];
 }

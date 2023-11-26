@@ -27,14 +27,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 // Other Sources
 #import "PGAppKitAdditions.h"
+#import "PGBezelPanel.h"
 
-enum {
+typedef NS_ENUM(NSUInteger, PGAlertGraphicType) {
 	PGSingleImageGraphic,
 	PGInterImageGraphic
 };
-typedef NSUInteger PGAlertGraphicType;
 
-@interface PGAlertView : NSView<NSWindowDelegate>
+@interface PGAlertView : NSView<NSWindowDelegate, PGBezelPanelContentView>
 #if !__has_feature(objc_arc)
 {
 	@private
@@ -82,7 +82,7 @@ typedef NSUInteger PGAlertGraphicType;
 	CGFloat _progress;
 }
 
-+ (id)loadingGraphic;
++ (instancetype)loadingGraphic;
 
 @property(assign, nonatomic) CGFloat progress;
 
@@ -94,7 +94,8 @@ typedef NSUInteger PGAlertGraphicType;
 	AEIconType _iconType;
 }
 
-+ (id)graphicWithIconType:(AEIconType)type;
-- (id)initWithIconType:(AEIconType)type;
++ (instancetype)graphicWithIconType:(AEIconType)type;
+- (instancetype)initWithIconType:(AEIconType)type NS_DESIGNATED_INITIALIZER;
+- (instancetype)init NS_UNAVAILABLE;
 
 @end

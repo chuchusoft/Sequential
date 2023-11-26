@@ -46,7 +46,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (void)viewWillMoveToWindow:(NSWindow *)aWindow
 {
-	[[self window] PG_removeObserver:self name:NSWindowWillCloseNotification];
+	[self.window PG_removeObserver:self name:NSWindowWillCloseNotification];
 	[super viewWillMoveToWindow:aWindow];
 	[aWindow PG_addObserver:self selector:@selector(PG_windowWillClose:) name:NSWindowWillCloseNotification];
 }

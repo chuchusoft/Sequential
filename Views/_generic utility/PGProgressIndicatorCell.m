@@ -34,7 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (void)drawWithFrame:(NSRect)aRect inView:(NSView *)aView
 {
-	if([self hidden]) return;
+	if(self.hidden) return;
 
 	[[NSColor colorWithDeviceWhite:0.9f alpha:0.8f] set];
 	[[NSBezierPath PG_bezierPathWithRoundRect:NSInsetRect(aRect, 0.5f, 0.5f) cornerRadius:(NSHeight(aRect) - 1.0f) / 2.0f] stroke];

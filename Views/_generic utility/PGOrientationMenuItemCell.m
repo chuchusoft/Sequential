@@ -33,6 +33,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 @property (nonatomic, weak) NSMenuItem *item;
 
+- (instancetype)init NS_UNAVAILABLE;
+- (instancetype)initTextCell:(NSString *)string NS_UNAVAILABLE;
+- (instancetype)initImageCell:(nullable NSImage *)image NS_UNAVAILABLE;
+- (instancetype)initWithCoder:(NSCoder *)coder NS_UNAVAILABLE;
+
 @end
 
 #endif
@@ -44,7 +49,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 + (void)addOrientationMenuIconCellToMenuItem:(NSMenuItem *)anItem
 {
-	if(![anItem isSeparatorItem])
+	if(!anItem.separatorItem)
 #if __has_feature(objc_arc)
 		anItem.attributedTitle = [NSAttributedString PG_attributedStringWithAttachmentCell:[[self alloc] initWithMenuItem:anItem]
 																					 label:anItem.title];
@@ -55,7 +60,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 //	MARK: - PGOrientationMenuIconCell
 
-- (id)initWithMenuItem:(NSMenuItem *)anItem
+- (instancetype)initWithMenuItem:(NSMenuItem *)anItem
 {
 	if((self = [super init])) {
 		_item = anItem;
@@ -80,11 +85,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (void)drawWithFrame:(NSRect)aRect inView:(NSView *)aView
 {
 	[NSGraphicsContext saveGraphicsState];
-	PGOrientation orientation = [_item tag];
-	NSImage *const icon = [self iconForOrientation:&orientation highlighted:[_item isHighlighted]];
+	PGOrientation orientation = _item.tag;
+	NSImage *const icon = [self iconForOrientation:&orientation highlighted:_item.highlighted];
 	NSRect r = aRect;
-	[[NSAffineTransform PG_transformWithRect:&r orientation:PGAddOrientation(orientation, [[NSGraphicsContext currentContext] isFlipped] ? PGFlippedVert : PGUpright)] concat];
-	[icon drawInRect:r fromRect:NSZeroRect operation:NSCompositingOperationSourceOver fraction:!_item || [_item isEnabled] ? 1.0f : 0.5f];
+	[[NSAffineTransform PG_transformWithRect:&r orientation:PGAddOrientation(orientation, [NSGraphicsContext currentContext].flipped ? PGFlippedVert : PGUpright)] concat];
+	[icon drawInRect:r fromRect:NSZeroRect operation:NSCompositingOperationSourceOver fraction:!_item || _item.enabled ? 1.0f : 0.5f];
 	[NSGraphicsContext restoreGraphicsState];
 }
 
