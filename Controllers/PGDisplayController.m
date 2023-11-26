@@ -1070,7 +1070,7 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 - (void)documentShowsInfoDidChange:(NSNotification *)aNotif
 {
 	if(self.shouldShowInfo) {
-		_infoPanel.contentView.count = self.activeDocument.node.resourceAdapter.viewableNodeCount;
+		((PGInfoView *)_infoPanel.contentView).count = self.activeDocument.node.resourceAdapter.viewableNodeCount;
 		[_infoPanel displayOverWindow:self.window];
 	} else [_infoPanel fadeOut];
 }
