@@ -80,14 +80,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 {
 	NSMutableDictionary *const matchingProperties = [NSMutableDictionary dictionary];
 #if __has_feature(objc_arc)
-	NSArray *const terms = [[_searchField stringValue] PG_searchTerms];
+	NSArray *const terms = [_searchField.stringValue PG_searchTerms];
 #else
 	NSArray *const terms = [[searchField stringValue] PG_searchTerms];
 #endif
 	for(NSString *const label in _properties) {
-		NSString *const value = [_properties objectForKey:label];
-		if([label PG_matchesSearchTerms:terms] || [[value description] PG_matchesSearchTerms:terms]) {
-			[matchingProperties setObject:value forKey:label];
+		NSString *const value = _properties[label];
+		if([label PG_matchesSearchTerms:terms] || [value.description PG_matchesSearchTerms:terms]) {
+			matchingProperties[label] = value;
 		}
 	}
 #if !__has_feature(objc_arc)
@@ -97,7 +97,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #if !__has_feature(objc_arc)
 	[_matchingLabels release];
 #endif
-	_matchingLabels = [[[matchingProperties allKeys] sortedArrayUsingSelector:@selector(compare:)] copy];
+	_matchingLabels = [[matchingProperties.allKeys sortedArrayUsingSelector:@selector(compare:)] copy];
 #if __has_feature(objc_arc)
 	[_propertiesTable reloadData];
 #else
@@ -109,17 +109,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 {
 	NSMutableString *const string = [NSMutableString string];
 #if __has_feature(objc_arc)
-	NSIndexSet *const indexes = [_propertiesTable selectedRowIndexes];
+	NSIndexSet *const indexes = _propertiesTable.selectedRowIndexes;
 #else
 	NSIndexSet *const indexes = [propertiesTable selectedRowIndexes];
 #endif
-	NSUInteger i = [indexes firstIndex];
+	NSUInteger i = indexes.firstIndex;
 	for(; NSNotFound != i; i = [indexes indexGreaterThanIndex:i]) {
-		NSString *const label = [_matchingLabels objectAtIndex:i];
-		[string appendFormat:@"%@: %@\n", label, [_matchingProperties objectForKey:label]];
+		NSString *const label = _matchingLabels[i];
+		[string appendFormat:@"%@: %@\n", label, _matchingProperties[label]];
 	}
 	NSPasteboard *const pboard = [NSPasteboard generalPasteboard];
-	[pboard declareTypes:[NSArray arrayWithObject:NSPasteboardTypeString] owner:nil];
+	[pboard declareTypes:@[NSPasteboardTypeString] owner:nil];
 	[pboard setString:string forType:NSPasteboardTypeString];
 }
 
@@ -456,7 +456,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 			if([obj isKindOfClass:NSArray.class]) {
 				NSString* value = [[[obj description] stringByReplacingOccurrencesOfString:@"\n" withString:@""]
 					stringByTrimmingCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@"() "]];
-				[replacements setObject:value forKey:key];
+				replacements[key] = value;
 			}
 		}];
 
@@ -488,46 +488,43 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	}
 #endif
 
-	NSNumber *const depth = [dict objectForKey:(NSString *)kCGImagePropertyDepth];
+	NSNumber *const depth = dict[(NSString *)kCGImagePropertyDepth];
 	if(depth)
-		[properties setObject:[NSString stringWithFormat:@"%lu bits per sample", depth.unsignedLongValue]
-					   forKey:@"Depth"];
+		properties[@"Depth"] = [NSString stringWithFormat:@"%lu bits per sample", depth.unsignedLongValue];
 
-	NSNumber *const pixelWidth = [dict objectForKey:(NSString *)kCGImagePropertyPixelWidth];
-	NSNumber *const pixelHeight = [dict objectForKey:(NSString *)kCGImagePropertyPixelHeight];
+	NSNumber *const pixelWidth = dict[(NSString *)kCGImagePropertyPixelWidth];
+	NSNumber *const pixelHeight = dict[(NSString *)kCGImagePropertyPixelHeight];
 	if(pixelWidth && pixelHeight)
-		[properties setObject:[NSString stringWithFormat:@"%lu x %lu",
-									pixelWidth.unsignedLongValue, pixelHeight.unsignedLongValue]
-					   forKey:@"Pixel Width x Height"];
+		properties[@"Pixel Width x Height"] = [NSString stringWithFormat:@"%lu x %lu",
+									pixelWidth.unsignedLongValue, pixelHeight.unsignedLongValue];
 
-	NSNumber *const densityWidth = [dict objectForKey:(NSString *)kCGImagePropertyDPIWidth];
-	NSNumber *const densityHeight = [dict objectForKey:(NSString *)kCGImagePropertyDPIHeight];
+	NSNumber *const densityWidth = dict[(NSString *)kCGImagePropertyDPIWidth];
+	NSNumber *const densityHeight = dict[(NSString *)kCGImagePropertyDPIHeight];
 	if(densityWidth || densityHeight)
-		[properties setObject:[NSString stringWithFormat:@"%lu x %lu",
+		properties[@"DPI Width x Height"] = [NSString stringWithFormat:@"%lu x %lu",
 									(unsigned long) round(densityWidth.doubleValue),
-									(unsigned long) round(densityHeight.doubleValue)]
-					   forKey:@"DPI Width x Height"];
+									(unsigned long) round(densityHeight.doubleValue)];
 
-	if([[dict objectForKey:(NSString *)kCGImagePropertyHasAlpha] boolValue])
-		[properties setObject:@"Yes" forKey:@"Alpha"];
+	if([dict[(NSString *)kCGImagePropertyHasAlpha] boolValue])
+		properties[@"Alpha"] = @"Yes";
 
-	PGOrientation const orientation = PGOrientationWithTIFFOrientation([[dict objectForKey:(NSString *)kCGImagePropertyOrientation] unsignedIntegerValue]);
-	if(PGUpright != orientation) [properties setObject:PGLocalizedStringWithOrientation(orientation) forKey:@"Orientation"];
+	PGOrientation const orientation = PGOrientationWithTIFFOrientation([dict[(NSString *)kCGImagePropertyOrientation] unsignedIntegerValue]);
+	if(PGUpright != orientation) properties[@"Orientation"] = PGLocalizedStringWithOrientation(orientation);
 
-	NSDictionary *const TIFFDict = [dict objectForKey:(NSString *)kCGImagePropertyTIFFDictionary];
-	NSDictionary *const exifDict = [dict objectForKey:(NSString *)kCGImagePropertyExifDictionary];
+	NSDictionary *const TIFFDict = dict[(NSString *)kCGImagePropertyTIFFDictionary];
+	NSDictionary *const exifDict = dict[(NSString *)kCGImagePropertyExifDictionary];
 
-	NSString *const dateTime = [self _stringWithDateTime:[TIFFDict objectForKey:(NSString *)kCGImagePropertyTIFFDateTime] subsecTime:[exifDict objectForKey:(NSString *)kCGImagePropertyExifSubsecTime]];
+	NSString *const dateTime = [self _stringWithDateTime:TIFFDict[(NSString *)kCGImagePropertyTIFFDateTime] subsecTime:exifDict[(NSString *)kCGImagePropertyExifSubsecTime]];
 	[properties PG_setObject:dateTime forKey:@"Date/Time (Created)"];
 
 #if 1
-	NSString *const dateTimeOriginal = [self _stringWithDateTime:[exifDict objectForKey:(NSString *)kCGImagePropertyExifDateTimeOriginal] subsecTime:[exifDict objectForKey:(NSString *)kCGImagePropertyExifSubsecTimeOriginal]];
+	NSString *const dateTimeOriginal = [self _stringWithDateTime:exifDict[(NSString *)kCGImagePropertyExifDateTimeOriginal] subsecTime:exifDict[(NSString *)kCGImagePropertyExifSubsecTimeOriginal]];
 #else
 	NSString *const dateTimeOriginal = [self _stringWithDateTime:[exifDict objectForKey:(NSString *)kCGImagePropertyExifDateTimeOriginal] subsecTime:[exifDict objectForKey:(NSString *)kCGImagePropertyExifSubsecTimeOrginal]];
 #endif
 	if(!PGEqualObjects(dateTime, dateTimeOriginal)) [properties PG_setObject:dateTimeOriginal forKey:@"Date/Time (Original)"];
 
-	NSString *const dateTimeDigitized = [self _stringWithDateTime:[exifDict objectForKey:(NSString *)kCGImagePropertyExifDateTimeDigitized] subsecTime:[exifDict objectForKey:(NSString *)kCGImagePropertyExifSubsecTimeDigitized]];
+	NSString *const dateTimeDigitized = [self _stringWithDateTime:exifDict[(NSString *)kCGImagePropertyExifDateTimeDigitized] subsecTime:exifDict[(NSString *)kCGImagePropertyExifSubsecTimeDigitized]];
 	if(!PGEqualObjects(dateTime, dateTimeDigitized)) [properties PG_setObject:dateTimeDigitized forKey:@"Date/Time (Digitized)"];
 
 	return properties;
@@ -565,10 +562,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (BOOL)setDisplayControllerReturningWasChanged:(PGDisplayController *)controller
 //- (BOOL)setDisplayController:(PGDisplayController *)controller
 {
-	PGDisplayController *const oldController = [self displayController];
+	PGDisplayController *const oldController = self.displayController;
 	if(![super setDisplayControllerReturningWasChanged:controller]) return NO;
 	[oldController PG_removeObserver:self name:PGDisplayControllerActiveNodeWasReadNotification];
-	[[self displayController] PG_addObserver:self selector:@selector(displayControllerActiveNodeWasRead:) name:PGDisplayControllerActiveNodeWasReadNotification];
+	[self.displayController PG_addObserver:self selector:@selector(displayControllerActiveNodeWasRead:) name:PGDisplayControllerActiveNodeWasReadNotification];
 	[self displayControllerActiveNodeWasRead:nil];
 	return YES;
 }
@@ -602,9 +599,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (BOOL)validateMenuItem:(NSMenuItem *)anItem
 {
-	SEL const action = [anItem action];
+	SEL const action = anItem.action;
 #if __has_feature(objc_arc)
-	if(@selector(copy:) == action && ![[_propertiesTable selectedRowIndexes] count]) return NO;
+	if(@selector(copy:) == action && !_propertiesTable.selectedRowIndexes.count) return NO;
 #else
 	if(@selector(copy:) == action && ![[propertiesTable selectedRowIndexes] count]) return NO;
 #endif
@@ -615,7 +612,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (NSInteger)numberOfRowsInTableView:(NSTableView *)tableView
 {
-	return [_matchingLabels count];
+	return _matchingLabels.count;
 }
 
 /* This method is required for the "Cell Based" TableView, and is optional for the "View Based" TableView. If implemented in the latter case, the value will be set to the view at a given row/column if the view responds to -setObjectValue: (such as NSControl and NSTableCellView). Note that NSTableCellView does not actually display the objectValue, and its value is to be used for bindings. See NSTableCellView.h for more information.
@@ -626,13 +623,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	NSParameterAssert(tableColumn == _labelColumn);
 	return _matchingLabels[row];
 #else
-	NSString *const label = [_matchingLabels objectAtIndex:row];
+	NSString *const label = _matchingLabels[row];
 //printf("%p\n", tableColumn);
 	#if __has_feature(objc_arc)
 	if(tableColumn == _labelColumn) {
 		return label;
 	} else if(tableColumn == _valueColumn) {
-		return [_matchingProperties objectForKey:label];
+		return _matchingProperties[label];
 	}
 	#else
 	if(tableColumn == labelColumn) {
@@ -733,9 +730,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 {
 	NSMutableDictionary *const results = [NSMutableDictionary dictionary];
 	for(id const key in self) {
-		id const obj = [self objectForKey:key];
+		id const obj = self[key];
 		if([obj isKindOfClass:[NSDictionary class]]) [results addEntriesFromDictionary:obj];
-		else [results setObject:obj forKey:key];
+		else results[key] = obj;
 	}
 	return results;
 }
@@ -752,14 +749,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 	NSMutableDictionary *const result = [NSMutableDictionary dictionary];
 	for(id const key in self) {
 		id replacementKey = key;
-		id const replacementObj = [[self objectForKey:key] PG_replacementUsingObject:[(NSDictionary *)replacement objectForKey:key] preserveUnknown:preserve getTopLevelKey:&replacementKey];
+		id const replacementObj = [self[key] PG_replacementUsingObject:((NSDictionary *)replacement)[key] preserveUnknown:preserve getTopLevelKey:&replacementKey];
 
 		if(replacementObj)
-			[result setObject:replacementObj forKey:replacementKey];
+			result[replacementKey] = replacementObj;
 	}
 
 	if(outKey)
-		*outKey = [(NSDictionary *)replacement objectForKey:@"."];
+		*outKey = ((NSDictionary *)replacement)[@"."];
 
 	return result;
 }

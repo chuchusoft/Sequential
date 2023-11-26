@@ -69,12 +69,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (IBAction)toggleTimer:(id)sender
 {
-	[[self displayController] setTimerRunning:![self displayController].timerRunning];
+	self.displayController.timerRunning = !self.displayController.timerRunning;
 }
 - (IBAction)changeTimerInterval:(id)sender
 {
 	NSTimeInterval const interval = round([sender doubleValue]);
-	[[self _currentPrefObject] setTimerInterval:interval];
+	[self _currentPrefObject].timerInterval = interval;
 	[self _updateOnTimer:nil];
 }
 
@@ -89,14 +89,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (PGPrefObject *)_currentPrefObject
 {
-	PGDocument *const doc = [[self displayController] activeDocument];
+	PGDocument *const doc = self.displayController.activeDocument;
 	return doc ? doc : [PGPrefObject globalPrefObject];
 }
 - (void)_update
 {
-	PGDisplayController *const d = [self displayController];
+	PGDisplayController *const d = self.displayController;
 	BOOL const run = d.timerRunning;
-	if(![self isShown] || !run) {
+	if(!self.shown || !run) {
 		[_updateTimer invalidate];
 #if !__has_feature(objc_arc)
 		[_updateTimer release];
@@ -118,8 +118,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #endif
 	}
 #if __has_feature(objc_arc)
-	[_timerButton setEnabled:!!d];
-	[_timerButton setIconType:run ? AEStopIcon : AEPlayIcon];
+	_timerButton.enabled = !!d;
+	_timerButton.iconType = run ? AEStopIcon : AEPlayIcon;
 #else
 	[timerButton setEnabled:!!d];
 	[timerButton setIconType:run ? AEStopIcon : AEPlayIcon];
@@ -128,20 +128,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 }
 - (void)_updateOnTimer:(NSTimer *)timer
 {
-	NSTimeInterval const interval = [[self _currentPrefObject] timerInterval];
-	BOOL const running = [self displayController].timerRunning;
+	NSTimeInterval const interval = [self _currentPrefObject].timerInterval;
+	BOOL const running = self.displayController.timerRunning;
 	NSTimeInterval timeRemaining = interval;
 	if(running) {
-		NSDate *const fireDate = [[self displayController] nextTimerFireDate];
+		NSDate *const fireDate = self.displayController.nextTimerFireDate;
 		timeRemaining = MAX(0.0f, fireDate ? [fireDate timeIntervalSinceNow] : 0.0f);
 	}
 #if __has_feature(objc_arc)
-	[_timerButton setProgress:running ? (CGFloat)((interval - timeRemaining) / interval) : 0.0f];
-	[_remainingField setStringValue:[NSString localizedStringWithFormat:NSLocalizedString(@"%.1f seconds", @"Display string for timer intervals. %.1f is replaced with the remaining seconds and tenths of seconds."), timeRemaining]];
+	_timerButton.progress = running ? (CGFloat)((interval - timeRemaining) / interval) : 0.0f;
+	_remainingField.stringValue = [NSString localizedStringWithFormat:NSLocalizedString(@"%.1f seconds", @"Display string for timer intervals. %.1f is replaced with the remaining seconds and tenths of seconds."), timeRemaining];
 	if(!timer) {
-		[_totalField setStringValue:[NSString localizedStringWithFormat:NSLocalizedString(@"%.1f seconds", @"Display string for timer intervals. %.1f is replaced with the remaining seconds and tenths of seconds."), interval]];
-		[_intervalSlider setDoubleValue:interval];
-		[_intervalSlider setEnabled:!![self displayController]];
+		_totalField.stringValue = [NSString localizedStringWithFormat:NSLocalizedString(@"%.1f seconds", @"Display string for timer intervals. %.1f is replaced with the remaining seconds and tenths of seconds."), interval];
+		_intervalSlider.doubleValue = interval;
+		_intervalSlider.enabled = !!self.displayController;
 	}
 #else
 	[timerButton setProgress:running ? (CGFloat)((interval - timeRemaining) / interval) : 0.0f];
@@ -158,7 +158,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (void)setShown:(BOOL)flag
 {
-	[super setShown:flag];
+	super.shown = flag;
 	[self _update];
 }
 
@@ -169,10 +169,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (BOOL)setDisplayControllerReturningWasChanged:(PGDisplayController *)controller
 //- (BOOL)setDisplayController:(PGDisplayController *)controller
 {
-	PGDisplayController *const oldController = [self displayController];
+	PGDisplayController *const oldController = self.displayController;
 	if(![super setDisplayControllerReturningWasChanged:controller]) return NO;
 	[oldController PG_removeObserver:self name:PGDisplayControllerTimerDidChangeNotification];
-	PGDisplayController *const newController = [self displayController];
+	PGDisplayController *const newController = self.displayController;
 	[newController PG_addObserver:self selector:@selector(displayControllerTimerDidChange:) name:PGDisplayControllerTimerDidChangeNotification];
 	[self _update];
 	return YES;
@@ -188,7 +188,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 //	MARK: - NSObject
 
-- (id)init
+- (instancetype)init
 {
 	return [self initWithWindowNibName:@"PGTimer"];
 }

@@ -57,13 +57,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (NSURL *)runModal
 {
-	BOOL const canceled = [NSApp runModalForWindow:[self window]] == NSAlertSecondButtonReturn;
-	[[self window] close];
+	BOOL const canceled = [NSApp runModalForWindow:self.window] == NSAlertSecondButtonReturn;
+	[self.window close];
 	if(canceled) return nil;
 #if __has_feature(objc_arc)
-	return [NSURL PG_URLWithString:[_URLField stringValue]];
+	return [NSURL PG_URLWithString:_URLField.stringValue];
 #else
-	return [NSURL PG_URLWithString:[URLField stringValue]];
+	return [NSURL PG_URLWithString:URLField.stringValue];
 #endif
 }
 
@@ -72,7 +72,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (void)enableOKButton
 {
 #if __has_feature(objc_arc)
-	[_OKButton setEnabled:[NSURL PG_URLWithString:[_URLField stringValue]] != nil];
+	_OKButton.enabled = [NSURL PG_URLWithString:_URLField.stringValue] != nil;
 #else
 	[OKButton setEnabled:[NSURL PG_URLWithString:[URLField stringValue]] != nil];
 #endif
@@ -86,7 +86,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 //	MARK: - NSObject
 
-- (id)init
+- (instancetype)init
 {
 	return [self initWithWindowNibName:@"PGURL"];
 }

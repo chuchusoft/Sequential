@@ -60,20 +60,20 @@ static NSString *const PGMainWindowFrameKey = @"PGMainWindowFrame";
 
 - (BOOL)canShowInfo
 {
-	return [self activeNode] != [[self activeDocument] node];
+	return self.activeNode != self.activeDocument.node;
 }
 
 //	MARK: -
 
 - (BOOL)setActiveDocument:(PGDocument *)document closeIfAppropriate:(BOOL)flag
 {
-	[[self activeDocument] storeWindowFrame:[[self window] PG_contentRect]];
+	[self.activeDocument storeWindowFrame:[self.window PG_contentRect]];
 	if([super setActiveDocument:document closeIfAppropriate:flag])
 		return YES;
 
 	NSRect frame;
-	if([[self activeDocument] getStoredWindowFrame:&frame]) {
-		[[self window] PG_setContentRect:frame];
+	if([self.activeDocument getStoredWindowFrame:&frame]) {
+		[self.window PG_setContentRect:frame];
 		_shouldZoomOnNextImageLoad = NO;
 	}
 	return NO;
@@ -81,7 +81,7 @@ static NSString *const PGMainWindowFrameKey = @"PGMainWindowFrame";
 - (void)activateDocument:(PGDocument *)document
 {
 	NSParameterAssert([self activeDocument] == document);
-	[[self window] makeKeyAndOrderFront:self];
+	[self.window makeKeyAndOrderFront:self];
 }
 
 //	MARK: -
@@ -90,15 +90,15 @@ static NSString *const PGMainWindowFrameKey = @"PGMainWindowFrame";
 {
 	[super nodeReadyForViewing:aNotif];
 	if(!_shouldZoomOnNextImageLoad) return;
-	if([[[[self activeDocument] node] resourceAdapter] viewableNodeCount] != 1) {
+	if(self.activeDocument.node.resourceAdapter.viewableNodeCount != 1) {
 		_shouldZoomOnNextImageLoad = NO;
 		return;
 	}
-	if(![[aNotif userInfo] objectForKey:PGImageRepKey]) return;
+	if(!aNotif.userInfo[PGImageRepKey]) return;
 	_shouldSaveFrame = NO;
-	[[self window] setFrame:[[self window] PG_zoomedFrame] display:YES]; // Don't just send -zoom: because that will use the user size if the window is already the system size.
+	[self.window setFrame:[self.window PG_zoomedFrame] display:YES]; // Don't just send -zoom: because that will use the user size if the window is already the system size.
 	_shouldSaveFrame = YES;
-	[[self clipView] scrollToLocation:[self initialLocation] animation:PGNoAnimation];
+	[self.clipView scrollToLocation:self.initialLocation animation:PGNoAnimation];
 	_shouldZoomOnNextImageLoad = NO;
 }
 
@@ -107,7 +107,7 @@ static NSString *const PGMainWindowFrameKey = @"PGMainWindowFrame";
 - (void)windowDidLoad
 {
 	[super windowDidLoad];
-	NSWindow *const window = [self window];
+	NSWindow *const window = self.window;
 	NSString *const savedFrame = [[NSUserDefaults standardUserDefaults] objectForKey:PGMainWindowFrameKey];
 	if(savedFrame) [window setFrameFromString:savedFrame];
 	else {
