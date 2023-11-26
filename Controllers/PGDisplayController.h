@@ -160,6 +160,8 @@ extern NSString *const PGDisplayControllerTimerDidChangeNotification;
 @property (nonatomic, assign) BOOL findPanelShown;
 @property (readonly) NSDate *nextTimerFireDate;
 @property (nonatomic, assign) BOOL timerRunning;
+@property (nonatomic, assign, getter=isInFullSizeContentModeForNonFullScreenMode)
+					BOOL inFullSizeContentModeForNonFullScreenMode;
 #else
 @property(readonly) PGDocument *activeDocument;
 @property(readonly) PGNode *activeNode;
@@ -176,6 +178,8 @@ extern NSString *const PGDisplayControllerTimerDidChangeNotification;
 @property(assign) BOOL findPanelShown;
 @property(readonly) NSDate *nextTimerFireDate;
 @property(assign) BOOL timerRunning;
+@property(assign, getter = isInFullSizeContentModeForNonFullScreenMode)
+					BOOL inFullSizeContentModeForNonFullScreenMode;
 #endif
 
 - (BOOL)setActiveDocument:(PGDocument *)document closeIfAppropriate:(BOOL)flag; // Returns YES if the window was closed.
