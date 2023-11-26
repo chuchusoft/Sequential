@@ -32,7 +32,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 }
 #endif
 
-- (id)initWithScreen:(NSScreen *)anObject;
+- (instancetype)initWithScreen:(NSScreen *)anObject NS_DESIGNATED_INITIALIZER;
+- (instancetype)initWithContentRect:(NSRect)contentRect styleMask:(NSWindowStyleMask)style backing:(NSBackingStoreType)backingStoreType defer:(BOOL)flag NS_UNAVAILABLE;
 - (void)moveToScreen:(NSScreen *)anObject;
 - (void)resizeToUseEntireScreen;	//	2023/08/14 added
 

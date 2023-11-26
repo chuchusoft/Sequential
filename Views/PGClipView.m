@@ -49,12 +49,11 @@ NSString *const PGClipViewBoundsDidChangeNotification = @"PGClipViewBoundsDidCha
 #define PGMouseWheelZoomFactor 20.0f
 #define PGAnimationDuration ((NSTimeInterval)0.2f)
 
-enum {
+typedef NS_ENUM(NSUInteger, PGDragMode) {
 	PGNotDragging,
 	PGPreliminaryDragging,
 	PGDragging
 };
-typedef NSUInteger PGDragMode;
 
 static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 {
@@ -146,15 +145,15 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 }
 - (void)setBoundsInset:(PGInset)inset
 {
-	NSPoint const p = [self position];
+	NSPoint const p = self.position;
 	_boundsInset = inset;
 	[self scrollTo:p animation:PGAllowAnimation];
-	[[self window] invalidateCursorRectsForView:self];
+	[self.window invalidateCursorRectsForView:self];
 	[self PG_postNotificationName:PGClipViewBoundsDidChangeNotification];
 }
 - (NSRect)insetBounds
 {
-	return PGInsetRect([self bounds], _boundsInset);
+	return PGInsetRect(self.bounds, _boundsInset);
 }
 - (void)setBackgroundColor:(NSColor *)aColor
 {
@@ -166,10 +165,10 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 	_backgroundIsComplex = !_backgroundColor ||
 	//	PGEqualObjects([_backgroundColor colorSpaceName], NSPatternColorSpace);
 		NSColorTypeComponentBased != _backgroundColor.type;
-	if([[self documentView] isOpaque]) {
+	if(self.documentView.opaque) {
 		NSUInteger i;
 		NSRect rects[4];
-		PGGetRectDifference(rects, &i, [self bounds], _documentFrame);
+		PGGetRectDifference(rects, &i, self.bounds, _documentFrame);
 		while(i--) [self setNeedsDisplayInRect:rects[i]];
 	} else [self setNeedsDisplay:YES];
 }
@@ -182,7 +181,7 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 	[_cursor release];
 	_cursor = [cursor retain];
 #endif
-	[[self window] invalidateCursorRectsForView:self];
+	[self.window invalidateCursorRectsForView:self];
 }
 - (BOOL)isScrolling
 {
@@ -192,10 +191,10 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 {
 	if(flag) {
 		if(!_scrollCount++) [self PG_viewWillScrollInClipView:self];
-		[self PG_enclosingClipView].scrolling = YES;
+		self.PG_enclosingClipView.scrolling = YES;
 	} else {
 		NSParameterAssert(_scrollCount);
-		[self PG_enclosingClipView].scrolling = NO;
+		self.PG_enclosingClipView.scrolling = NO;
 		if(!--_scrollCount) [self PG_viewDidScrollInClipView:self];
 	}
 }
@@ -208,23 +207,23 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 }
 - (NSPoint)center
 {
-	NSRect const b = [self insetBounds];
-	PGInset const inset = [self boundsInset];
-	return PGOffsetPointByXY([self position], inset.minX + NSWidth(b) / 2.0f, inset.minY + NSHeight(b) / 2.0f);
+	NSRect const b = self.insetBounds;
+	PGInset const inset = self.boundsInset;
+	return PGOffsetPointByXY(self.position, inset.minX + NSWidth(b) / 2.0f, inset.minY + NSHeight(b) / 2.0f);
 }
 - (NSPoint)relativeCenter
 {
-	NSPoint const p = [self center];
+	NSPoint const p = self.center;
 	return NSMakePoint((p.x - NSMinX(_documentFrame)) / NSWidth(_documentFrame), (p.y - NSMinY(_documentFrame)) / NSHeight(_documentFrame));
 }
 - (NSSize)pinLocationOffset
 {
 	NSRect const r = [self documentFrameWithBorder:YES];
 	if(NSIsEmptyRect(r)) return NSZeroSize;
-	NSRect const b = [self insetBounds];
-	PGRectEdgeMask const pin = [[self delegate] clipView:self directionFor:PGHomeLocation];
+	NSRect const b = self.insetBounds;
+	PGRectEdgeMask const pin = [self.delegate clipView:self directionFor:PGHomeLocation];
 	NSSize const diff = PGPointDiff(PGPointOfPartOfRect(b, pin), PGPointOfPartOfRect(r, pin));
-	if(![[self documentView] PG_scalesContentWithFrameSizeInClipView:self]) return diff;
+	if(![self.documentView PG_scalesContentWithFrameSizeInClipView:self]) return diff;
 	return NSMakeSize(diff.width * 2.0f / NSWidth(r), diff.height * 2.0f / NSHeight(r));
 }
 
@@ -232,12 +231,12 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 
 - (BOOL)scrollTo:(NSPoint)aPoint animation:(PGAnimationType)type
 {
-	if(PGPreferAnimation != type || ![self allowsAnimation]) {
+	if(PGPreferAnimation != type || !self.allowsAnimation) {
 		if(PGNoAnimation == type) [self stopAnimatedScrolling];
 		if(!_animationTimer) return [self _scrollTo:aPoint];
 	}
 	NSPoint const newTargetPosition = PGPointInRect(aPoint, [self scrollableRectWithBorder:YES]);
-	if(NSEqualPoints(newTargetPosition, [self position])) return NO;
+	if(NSEqualPoints(newTargetPosition, self.position)) return NO;
 	_startPosition = _position;
 	_targetPosition = newTargetPosition;
 	_animationProgress = 0.0f;
@@ -257,7 +256,7 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 }
 - (BOOL)scrollBy:(NSSize)aSize animation:(PGAnimationType)type
 {
-	return [self scrollTo:PGOffsetPointBySize([self position], aSize) animation:type];
+	return [self scrollTo:PGOffsetPointBySize(self.position, aSize) animation:type];
 }
 - (BOOL)scrollToEdge:(PGRectEdgeMask)mask animation:(PGAnimationType)type
 {
@@ -267,12 +266,12 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 - (BOOL)scrollToLocation:(PGPageLocation)location animation:(PGAnimationType)type
 {
 	NSParameterAssert(PGPreserveLocation != location);
-	return [self scrollToEdge:[[self delegate] clipView:self directionFor:location] animation:type];
+	return [self scrollToEdge:[self.delegate clipView:self directionFor:location] animation:type];
 }
 - (BOOL)scrollCenterTo:(NSPoint)aPoint animation:(PGAnimationType)type
 {
-	NSRect const b = [self insetBounds];
-	PGInset const inset = [self boundsInset];
+	NSRect const b = self.insetBounds;
+	PGInset const inset = self.boundsInset;
 	return [self scrollTo:PGOffsetPointByXY(aPoint, -inset.minX - NSWidth(b) / 2.0f, -inset.minY - NSHeight(b) / 2.0f) animation:type];
 }
 - (BOOL)scrollRelativeCenterTo:(NSPoint)aPoint animation:(PGAnimationType)type
@@ -282,10 +281,10 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 - (BOOL)scrollPinLocationToOffset:(NSSize)aSize animation:(PGAnimationType)type
 {
 	NSSize o = aSize;
-	NSRect const b = [self insetBounds];
+	NSRect const b = self.insetBounds;
 	NSRect const r = [self documentFrameWithBorder:YES];
-	PGRectEdgeMask const pin = [[self delegate] clipView:self directionFor:PGHomeLocation];
-	if([[self documentView] PG_scalesContentWithFrameSizeInClipView:self]) o = NSMakeSize(o.width * NSWidth(r) * 0.5f, o.height * NSHeight(r) * 0.5f);
+	PGRectEdgeMask const pin = [self.delegate clipView:self directionFor:PGHomeLocation];
+	if([self.documentView PG_scalesContentWithFrameSizeInClipView:self]) o = NSMakeSize(o.width * NSWidth(r) * 0.5f, o.height * NSHeight(r) * 0.5f);
 	return [self scrollBy:PGPointDiff(PGOffsetPointBySize(PGPointOfPartOfRect(r, pin), o), PGPointOfPartOfRect(b, pin)) animation:type];
 }
 
@@ -307,23 +306,23 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 - (NSRect)documentFrameWithBorder:(BOOL)flag
 {
 	if(!flag || !_showsBorder) return _documentFrame;
-	NSSize const boundsSize = [self insetBounds].size;
+	NSSize const boundsSize = self.insetBounds.size;
 	return NSInsetRect(_documentFrame, NSWidth(_documentFrame) > boundsSize.width ? -PGBorderPadding : 0.0f, NSHeight(_documentFrame) > boundsSize.height ? -PGBorderPadding : 0.0f);
 }
 - (NSRect)scrollableRectWithBorder:(BOOL)flag
 {
-	NSSize const boundsSize = [self insetBounds].size;
+	NSSize const boundsSize = self.insetBounds.size;
 	NSRect const documentFrame = [self documentFrameWithBorder:flag];
 	NSSize const margin = NSMakeSize(MAX(0.0f, boundsSize.width - NSWidth(documentFrame)), MAX(0.0f, boundsSize.height - NSHeight(documentFrame)));
 	NSRect r = NSInsetRect(documentFrame, margin.width / -2.0f, margin.height / -2.0f);
 	r.size.width -= boundsSize.width;
 	r.size.height -= boundsSize.height;
-	PGInset const inset = [self boundsInset];
+	PGInset const inset = self.boundsInset;
 	return NSOffsetRect(r, -inset.minX, -inset.minY);
 }
 - (NSSize)distanceInDirection:(PGRectEdgeMask)direction forScrollType:(PGScrollType)scrollType
 {
-	return [self distanceInDirection:direction forScrollType:scrollType fromPosition:[self position]];
+	return [self distanceInDirection:direction forScrollType:scrollType fromPosition:self.position];
 }
 - (NSSize)distanceInDirection:(PGRectEdgeMask)direction forScrollType:(PGScrollType)scrollType fromPosition:(NSPoint)position
 {
@@ -356,7 +355,7 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 {
 	switch(scrollType) {
 		case PGScrollByLine: return NSMakeSize(PGLineScrollDistance, PGLineScrollDistance);
-		case PGScrollByPage: return NSMakeSize(NSWidth([self insetBounds]) - PGPageScrollMargin, NSHeight([self insetBounds]) - PGPageScrollMargin);
+		case PGScrollByPage: return NSMakeSize(NSWidth(self.insetBounds) - PGPageScrollMargin, NSHeight(self.insetBounds) - PGPageScrollMargin);
 		default: return NSZeroSize;
 	}
 }
@@ -377,14 +376,14 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 - (BOOL)handleMouseDown:(NSEvent *)firstEvent
 {
 	NSParameterAssert(firstEvent);
-	NSView *const clickedView = [self PG_deepestViewAtPoint:[firstEvent PG_locationInView:[self superview]]];
-	if(!([clickedView acceptsFirstResponder] && [[self window] makeFirstResponder:clickedView]) && [self acceptsFirstResponder]) [[self window] makeFirstResponder:self];
+	NSView *const clickedView = [self PG_deepestViewAtPoint:[firstEvent PG_locationInView:self.superview]];
+	if(!(clickedView.acceptsFirstResponder && [self.window makeFirstResponder:clickedView]) && self.acceptsFirstResponder) [self.window makeFirstResponder:self];
 	self.scrolling = YES;
 	[self stopAnimatedScrolling];
 	BOOL handled = NO;
 	NSUInteger dragMask = 0;
 	NSEventType stopType = 0;
-	switch([firstEvent type]) {
+	switch(firstEvent.type) {
 		case NSEventTypeLeftMouseDown:  dragMask = NSEventMaskLeftMouseDragged;  stopType = NSEventTypeLeftMouseUp;  break;
 		case NSEventTypeRightMouseDown: dragMask = NSEventMaskRightMouseDragged; stopType = NSEventTypeRightMouseUp; break;
 		default: return NO;
@@ -398,15 +397,15 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 		GetDblTime() / 60.0f
 #endif
 		options:kNilOptions mode:NSEventTrackingRunLoopMode];
-	NSPoint const originalPoint = [firstEvent locationInWindow]; // Don't convert the point to our view coordinates, since we change them when scrolling.
+	NSPoint const originalPoint = firstEvent.locationInWindow; // Don't convert the point to our view coordinates, since we change them when scrolling.
 	NSPoint finalPoint = originalPoint; // We use CGAssociateMouseAndMouseCursorPosition() to prevent the mouse from moving during the drag, so we have to keep track of where it should reappear ourselves.
-	NSRect const availableDragRect = [self convertRect:NSInsetRect([self insetBounds], 4, 4) toView:nil];
+	NSRect const availableDragRect = [self convertRect:NSInsetRect(self.insetBounds, 4, 4) toView:nil];
 #if !PGMouseHiddenDraggingStyle
-	NSPoint const dragPoint = PGOffsetPointByXY(originalPoint, [self position].x, [self position].y);
+	NSPoint const dragPoint = PGOffsetPointByXY(originalPoint, self.position.x, self.position.y);
 #endif
 	NSEvent *latestEvent;
-	while([(latestEvent = [[self window] nextEventMatchingMask:dragMask | NSEventMaskFromType(stopType) untilDate:[NSDate distantFuture] inMode:NSEventTrackingRunLoopMode dequeue:YES]) type] != stopType) {
-		NSPoint const latestPoint = [latestEvent locationInWindow];
+	while((latestEvent = [self.window nextEventMatchingMask:dragMask | NSEventMaskFromType(stopType) untilDate:[NSDate distantFuture] inMode:NSEventTrackingRunLoopMode dequeue:YES]).type != stopType) {
+		NSPoint const latestPoint = latestEvent.locationInWindow;
 		if(PGPreliminaryDragging == dragMode ||
 		   (PGNotDragging == dragMode &&
 			hypotf(originalPoint.x - latestPoint.x, originalPoint.y - latestPoint.y) >= PGClickSlopDistance)) {
@@ -426,11 +425,11 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 		[self scrollTo:PGOffsetPointByXY(dragPoint, -latestPoint.x, -latestPoint.y)
 			 animation:PGNoAnimation];
 #endif
-		finalPoint = PGPointInRect(PGOffsetPointByXY(finalPoint, [latestEvent deltaX],
-											-[latestEvent deltaY]), availableDragRect);
+		finalPoint = PGPointInRect(PGOffsetPointByXY(finalPoint, latestEvent.deltaX,
+											-latestEvent.deltaY), availableDragRect);
 	}
 	[self PG_cancelPreviousPerformRequestsWithSelector:@selector(_beginPreliminaryDrag:) object:dragModeValue];
-	[[self window] discardEventsMatchingMask:NSEventMaskAny beforeEvent:nil];
+	[self.window discardEventsMatchingMask:NSEventMaskAny beforeEvent:nil];
 	if(PGNotDragging != dragMode) {
 		handled = YES;
 		[NSCursor pop];
@@ -452,7 +451,7 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 			[NSCursor unhide];
 		}
 		dragMode = PGNotDragging;
-	} else handled = [[self delegate] clipView:self handleMouseEvent:firstEvent first:_firstMouse];
+	} else handled = [self.delegate clipView:self handleMouseEvent:firstEvent first:_firstMouse];
 	_firstMouse = NO;
 	self.scrolling = NO;
 	return handled;
@@ -466,7 +465,7 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 	PGRectEdgeMask pressedDirections = PGNoEdges;
 	NSTimeInterval pageTurnTime = 0.0f, lastAnimationTime = 0.0f;
 	do {
-		NSEventType const type = [latestEvent type];
+		NSEventType const type = latestEvent.type;
 		if(NSEventTypePeriodic == type) {
 			NSTimeInterval const currentTime = PGUptime();
 			if(currentTime > pageTurnTime + PGPageTurnMovementDelay) {
@@ -477,9 +476,9 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 			lastAnimationTime = currentTime;
 			continue;
 		}
-		if([latestEvent isARepeat]) continue;
-		NSString *const characters = [latestEvent charactersIgnoringModifiers];
-		if([characters length] != 1) continue;
+		if(latestEvent.ARepeat) continue;
+		NSString *const characters = latestEvent.charactersIgnoringModifiers;
+		if(characters.length != 1) continue;
 		unichar const character = [characters characterAtIndex:0];
 		PGRectEdgeMask direction;
 		switch(character) {
@@ -492,29 +491,29 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 		if(NSEventTypeKeyDown == type) {
 			pressedDirections |= direction;
 			PGRectEdgeMask const d = PGNonContradictoryRectEdges(pressedDirections);
-			if([self shouldExitForMovementInDirection:d] && [[self delegate] clipView:self shouldExitEdges:d]) pageTurnTime = PGUptime();
+			if([self shouldExitForMovementInDirection:d] && [self.delegate clipView:self shouldExitEdges:d]) pageTurnTime = PGUptime();
 		} else pressedDirections &= ~direction;
 	} while(pressedDirections && (latestEvent = [NSApp nextEventMatchingMask:NSEventMaskKeyUp | NSEventMaskKeyDown | NSEventMaskPeriodic untilDate:[NSDate distantFuture] inMode:NSEventTrackingRunLoopMode dequeue:YES]));
 	[NSEvent stopPeriodicEvents];
-	[[self window] discardEventsMatchingMask:NSEventMaskAny beforeEvent:nil];
+	[self.window discardEventsMatchingMask:NSEventMaskAny beforeEvent:nil];
 	self.scrolling = NO;
 }
 - (void)scrollInDirection:(PGRectEdgeMask)direction type:(PGScrollType)scrollType
 {
-	if(![self shouldExitForMovementInDirection:direction] || ![[self delegate] clipView:self shouldExitEdges:direction]) [self scrollBy:[self distanceInDirection:direction forScrollType:scrollType] animation:PGPreferAnimation];
+	if(![self shouldExitForMovementInDirection:direction] || ![self.delegate clipView:self shouldExitEdges:direction]) [self scrollBy:[self distanceInDirection:direction forScrollType:scrollType] animation:PGPreferAnimation];
 }
 - (void)magicPanForward:(BOOL)forward acrossFirst:(BOOL)across
 {
-	PGRectEdgeMask const mask = [[self delegate] clipView:self directionFor:forward ? PGEndLocation : PGHomeLocation];
+	PGRectEdgeMask const mask = [self.delegate clipView:self directionFor:forward ? PGEndLocation : PGHomeLocation];
 	NSAssert(!PGHasContradictoryRectEdges(mask), @"Delegate returned contradictory directions.");
-	NSPoint position = [self position];
+	NSPoint position = self.position;
 	PGRectEdgeMask const dir1 = mask & (across ? PGHorzEdgesMask : PGVertEdgesMask);
 	position = PGOffsetPointBySize(position, [self distanceInDirection:dir1 forScrollType:PGScrollByPage fromPosition:position]);
-	if([self shouldExitForMovementInDirection:dir1] || NSEqualPoints(PGPointInRect(position, [self scrollableRectWithBorder:YES]), [self position])) {
+	if([self shouldExitForMovementInDirection:dir1] || NSEqualPoints(PGPointInRect(position, [self scrollableRectWithBorder:YES]), self.position)) {
 		PGRectEdgeMask const dir2 = mask & (across ? PGVertEdgesMask : PGHorzEdgesMask);
 		position = PGOffsetPointBySize(position, [self distanceInDirection:dir2 forScrollType:PGScrollByPage fromPosition:position]);
 		if([self shouldExitForMovementInDirection:dir2]) {
-			if([[self delegate] clipView:self shouldExitEdges:mask]) return;
+			if([self.delegate clipView:self shouldExitEdges:mask]) return;
 			position = PGRectEdgeMaskToPointWithMagnitude(mask, CGFLOAT_MAX); // We can't exit, but make sure we're at the very end.
 		} else if(across) position.x = CGFLOAT_MAX * (mask & PGMinXEdgeMask ? 1 : -1);
 		else position.y = CGFLOAT_MAX * (mask & PGMinYEdgeMask ? 1 : -1);
@@ -527,8 +526,8 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 - (void)viewFrameDidChange:(NSNotification *)aNotif
 {
 	_documentViewIsResizing++;
-	NSSize const offset = [self pinLocationOffset];
-	_documentFrame = [documentView frame];
+	NSSize const offset = self.pinLocationOffset;
+	_documentFrame = documentView.frame;
 	[self scrollPinLocationToOffset:offset animation:PGNoAnimation];
 	[self PG_postNotificationName:PGClipViewBoundsDidChangeNotification];
 	NSParameterAssert(_documentViewIsResizing);
@@ -540,7 +539,7 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 - (BOOL)_setPosition:(NSPoint)aPoint scrollEnclosingClipViews:(BOOL)scroll markForRedisplay:(BOOL)redisplay
 {
 	NSPoint const newPosition = PGPointInRect(aPoint, [self scrollableRectWithBorder:YES]);
-	if(scroll) [[self PG_enclosingClipView] scrollBy:NSMakeSize(aPoint.x - newPosition.x, aPoint.y - newPosition.y) animation:PGAllowAnimation];
+	if(scroll) [self.PG_enclosingClipView scrollBy:NSMakeSize(aPoint.x - newPosition.x, aPoint.y - newPosition.y) animation:PGAllowAnimation];
 	if(NSEqualPoints(newPosition, _position)) return NO;
 	self.scrolling = YES;
 	_position = newPosition;
@@ -566,23 +565,23 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 
 - (void)_beginPreliminaryDrag:(NSValue *)val
 {
-	PGDragMode *const dragMode = [val pointerValue];
+	PGDragMode *const dragMode = val.pointerValue;
 	NSAssert(PGNotDragging == *dragMode, @"Already dragging.");
 	*dragMode = PGPreliminaryDragging;
 	[[NSCursor closedHandCursor] push];
 }
 - (void)_delayedEndGesture
 {
-	[[self delegate] clipViewGestureDidEnd:self];
+	[self.delegate clipViewGestureDidEnd:self];
 }
 
 //	MARK: - NSView
 
-- (id)initWithFrame:(NSRect)aRect
+- (instancetype)initWithFrame:(NSRect)aRect
 {
 	if((self = [super initWithFrame:aRect])) {
 		[self setShowsBorder:YES];
-		[self setCursor:[NSCursor arrowCursor]];
+		self.cursor = [NSCursor arrowCursor];
 		_backgroundIsComplex = YES;
 		_allowsAnimation = YES;
 	}
@@ -606,7 +605,7 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 - (void)drawRect:(NSRect)aRect
 {
 	if(!_backgroundColor) return;
-	CGContextSetPatternPhase([[NSGraphicsContext currentContext] CGContext], CGSizeMake(0, NSHeight([self bounds])));
+	CGContextSetPatternPhase([NSGraphicsContext currentContext].CGContext, CGSizeMake(0, NSHeight(self.bounds)));
 	[_backgroundColor set];
 
 	NSInteger count;
@@ -626,21 +625,21 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 	if(!_cursor) return;
 	NSUInteger i;
 	NSRect rects[4];
-	NSRect b = [self insetBounds];
-	if([[self window] styleMask] & NSWindowStyleMaskResizable) {
-		PGGetRectDifference(rects, &i, NSMakeRect(NSMinX(b), NSMinY(b), NSWidth(b) - 15, 15), ([[self documentView] PG_acceptsClicksInClipView:self] ? _documentFrame : NSZeroRect));
+	NSRect b = self.insetBounds;
+	if(self.window.styleMask & NSWindowStyleMaskResizable) {
+		PGGetRectDifference(rects, &i, NSMakeRect(NSMinX(b), NSMinY(b), NSWidth(b) - 15, 15), ([self.documentView PG_acceptsClicksInClipView:self] ? _documentFrame : NSZeroRect));
 		while(i--) [self addCursorRect:rects[i] cursor:_cursor];
 
 		b.origin.y += 15;
 		b.size.height -= 15;
 	}
-	PGGetRectDifference(rects, &i, b, ([[self documentView] PG_acceptsClicksInClipView:self] ? _documentFrame : NSZeroRect));
+	PGGetRectDifference(rects, &i, b, ([self.documentView PG_acceptsClicksInClipView:self] ? _documentFrame : NSZeroRect));
 	while(i--) [self addCursorRect:rects[i] cursor:_cursor];
 }
 
 - (void)setFrameSize:(NSSize)newSize
 {
-	CGFloat const heightDiff = NSHeight([self frame]) - newSize.height;
+	CGFloat const heightDiff = NSHeight(self.frame) - newSize.height;
 	[super setFrameSize:newSize];
 	if(![self _setPosition:PGOffsetPointByXY(_position, 0.0f, heightDiff) scrollEnclosingClipViews:NO markForRedisplay:YES]) [self PG_postNotificationName:PGClipViewBoundsDidChangeNotification];
 }
@@ -657,9 +656,9 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 - (void)PG_scrollRectToVisible:(NSRect)aRect forView:(NSView *)view type:(PGScrollToRectType)type
 {
 	NSRect const r = [self convertRect:aRect fromView:view];
-	NSRect const b = [self insetBounds];
+	NSRect const b = self.insetBounds;
 	NSSize o = NSZeroSize;
-	PGRectEdgeMask const part = [[self delegate] clipView:self directionFor:PGHomeLocation];
+	PGRectEdgeMask const part = [self.delegate clipView:self directionFor:PGHomeLocation];
 	NSPoint const preferredVisiblePoint = PGPointOfPartOfRect(r, part);
 	NSPoint const preferredTargetLocation = PGPointOfPartOfRect(b, part);
 	if(NSWidth(r) > NSWidth(b)) o.width = preferredVisiblePoint.x - preferredTargetLocation.x;
@@ -704,7 +703,7 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 
 - (NSSize)PG_zoomedBoundsSize
 {
-	return PGInsetSize([super PG_zoomedBoundsSize], PGInvertInset([self boundsInset]));
+	return PGInsetSize([super PG_zoomedBoundsSize], PGInvertInset(self.boundsInset));
 }
 
 //	MARK: - NSResponder
@@ -720,15 +719,15 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 }
 - (void)rightMouseDown:(NSEvent *)anEvent
 {
-	if([[self window] isKeyWindow]) [self handleMouseDown:anEvent];
+	if(self.window.keyWindow) [self handleMouseDown:anEvent];
 }
 - (void)scrollWheel:(NSEvent *)anEvent
 {
 	[NSCursor setHiddenUntilMouseMoves:YES];
-	CGFloat const x = -[anEvent deltaX], y = [anEvent deltaY];
-	if([anEvent modifierFlags] & NSEventModifierFlagCommand) {
+	CGFloat const x = -anEvent.deltaX, y = anEvent.deltaY;
+	if(anEvent.modifierFlags & NSEventModifierFlagCommand) {
 		[self PG_cancelPreviousPerformRequestsWithSelector:@selector(_delayedEndGesture) object:nil];
-		[[self delegate] clipView:self magnifyBy:y * PGMouseWheelZoomFactor];
+		[self.delegate clipView:self magnifyBy:y * PGMouseWheelZoomFactor];
 		[self PG_performSelector:@selector(_delayedEndGesture) withObject:nil fireDate:nil interval:1.0f options:kNilOptions]; // We don't actually know when the zooming will stop, since there's no such thing as a "scroll wheel up" event.
 	} else [self scrollBy:NSMakeSize(x * PGMouseWheelScrollFactor, y * PGMouseWheelScrollFactor) animation:PGNoAnimation];
 }
@@ -742,19 +741,19 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 }
 - (void)swipeWithEvent:(NSEvent *)anEvent
 {
-	[[self delegate] clipView:self shouldExitEdges:PGPointToRectEdgeMaskWithThreshhold(NSMakePoint(-[anEvent deltaX], [anEvent deltaY]), 0.1f)];
+	[self.delegate clipView:self shouldExitEdges:PGPointToRectEdgeMaskWithThreshhold(NSMakePoint(-anEvent.deltaX, anEvent.deltaY), 0.1f)];
 }
 - (void)magnifyWithEvent:(NSEvent *)anEvent
 {
-	[[self delegate] clipView:self magnifyBy:[anEvent deltaZ]];
+	[self.delegate clipView:self magnifyBy:anEvent.deltaZ];
 }
 - (void)rotateWithEvent:(NSEvent *)anEvent
 {
-	[[self delegate] clipView:self rotateByDegrees:[anEvent rotation]];
+	[self.delegate clipView:self rotateByDegrees:anEvent.rotation];
 }
 - (void)endGestureWithEvent:(NSEvent *)anEvent
 {
-	[[self delegate] clipViewGestureDidEnd:self];
+	[self.delegate clipViewGestureDidEnd:self];
 }
 
 //	MARK: -
@@ -784,7 +783,7 @@ PerformMenuItemActionWithMatchingKeyEquivalent(NSEvent *event, NSMenu *menu) {
 					//	validate just the menu item
 					id validator = [NSApp targetForAction:action to:mi.target from:menu];
 					if(validator && [validator respondsToSelector:@selector(validateMenuItem:)])
-						[mi setEnabled:[validator validateMenuItem:mi]];
+						mi.enabled = [validator validateMenuItem:mi];
 					else
 						abort();
 				}
@@ -810,13 +809,13 @@ PerformMenuItemActionWithMatchingKeyEquivalent(NSEvent *event, NSMenu *menu) {
 - (void)keyDown:(NSEvent *)anEvent
 {
 	[NSCursor setHiddenUntilMouseMoves:YES];
-	if([[self delegate] clipView:self handleKeyDown:anEvent])
+	if([self.delegate clipView:self handleKeyDown:anEvent])
 		return;
-	if([anEvent modifierFlags] & NSEventModifierFlagCommand)
+	if(anEvent.modifierFlags & NSEventModifierFlagCommand)
 		return [super keyDown:anEvent];
-	NSUInteger const modifiers = [anEvent modifierFlags];
+	NSUInteger const modifiers = anEvent.modifierFlags;
 	BOOL const forward = !(NSEventModifierFlagShift & modifiers);
-	switch([anEvent keyCode]) {
+	switch(anEvent.keyCode) {
 #if PGGameStyleArrowScrolling
 		case PGKeyArrowUp:
 		case PGKeyArrowDown:
@@ -869,7 +868,7 @@ PerformMenuItemActionWithMatchingKeyEquivalent(NSEvent *event, NSMenu *menu) {
 						anEvent, NSApplication.sharedApplication.mainMenu);
 //NSLog(@"performed %c", performed ? 'Y' : 'N');
 	if(!performed)
-		[self interpretKeyEvents:[NSArray arrayWithObject:anEvent]];
+		[self interpretKeyEvents:@[anEvent]];
 }
 - (BOOL)performKeyEquivalent:(NSEvent *)anEvent
 {
@@ -915,11 +914,11 @@ PerformMenuItemActionWithMatchingKeyEquivalent(NSEvent *event, NSMenu *menu) {
 
 - (void)insertTab:(id)sender
 {
-	[[self window] selectNextKeyView:sender];
+	[self.window selectNextKeyView:sender];
 }
 - (void)insertBacktab:(id)sender
 {
-	[[self window] selectPreviousKeyView:sender];
+	[self.window selectPreviousKeyView:sender];
 }
 
 // These two functions aren't actually defined by NSResponder, but -interpretKeyEvents: calls them.
@@ -976,11 +975,11 @@ PerformMenuItemActionWithMatchingKeyEquivalent(NSEvent *event, NSMenu *menu) {
 
 - (PGClipView *)PG_enclosingClipView
 {
-	return [[self superview] PG_clipView];
+	return self.superview.PG_clipView;
 }
 - (PGClipView *)PG_clipView
 {
-	return [self PG_enclosingClipView];
+	return self.PG_enclosingClipView;
 }
 
 - (void)PG_scrollRectToVisible:(NSRect)aRect type:(PGScrollToRectType)type
@@ -989,7 +988,7 @@ PerformMenuItemActionWithMatchingKeyEquivalent(NSEvent *event, NSMenu *menu) {
 }
 - (void)PG_scrollRectToVisible:(NSRect)aRect forView:(NSView *)view type:(PGScrollToRectType)type
 {
-	[[self superview] PG_scrollRectToVisible:aRect forView:view type:type];
+	[self.superview PG_scrollRectToVisible:aRect forView:view type:type];
 }
 
 - (BOOL)PG_acceptsClicksInClipView:(PGClipView *)sender
@@ -1002,11 +1001,11 @@ PerformMenuItemActionWithMatchingKeyEquivalent(NSEvent *event, NSMenu *menu) {
 }
 - (void)PG_viewWillScrollInClipView:(PGClipView *)clipView
 {
-	if(clipView) [[self subviews] makeObjectsPerformSelector:_cmd withObject:clipView];
+	if(clipView) [self.subviews makeObjectsPerformSelector:_cmd withObject:clipView];
 }
 - (void)PG_viewDidScrollInClipView:(PGClipView *)clipView
 {
-	if(clipView) [[self subviews] makeObjectsPerformSelector:_cmd withObject:clipView];
+	if(clipView) [self.subviews makeObjectsPerformSelector:_cmd withObject:clipView];
 }
 
 - (NSView *)PG_deepestViewAtPoint:(NSPoint)aPoint

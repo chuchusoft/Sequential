@@ -113,7 +113,7 @@ GetSuitableFrameForScreenWithNotch(BOOL useEntireScreen, NSScreen* screen) {
 #endif
 }
 
-- (id)initWithScreen:(NSScreen *)screen
+- (instancetype)initWithScreen:(NSScreen *)screen
 {
 	const BOOL	useEntireScreen = ShouldUseEntireScreenWhenInFullScreen();
 	if((self = [super initWithContentRect:GetSuitableFrameForScreenWithNotch(useEntireScreen, screen)
@@ -172,7 +172,7 @@ GetSuitableFrameForScreenWithNotch(BOOL useEntireScreen, NSScreen* screen) {
 - (BOOL)validateMenuItem:(NSMenuItem *)anItem
 {
 	// NSWindow doesn't like -performClose: for borderless windows.
-	return [anItem action] == @selector(performClose:) ? YES :
+	return anItem.action == @selector(performClose:) ? YES :
 			[super validateMenuItem:anItem];
 }
 
@@ -180,7 +180,7 @@ GetSuitableFrameForScreenWithNotch(BOOL useEntireScreen, NSScreen* screen) {
 
 - (IBAction)performClose:(id)sender
 {
-	[(NSObject<PGFullscreenWindowDelegate> *)[self delegate] closeWindowContent:self];
+	[(NSObject<PGFullscreenWindowDelegate> *)self.delegate closeWindowContent:self];
 }
 
 //	MARK: -
@@ -192,7 +192,7 @@ GetSuitableFrameForScreenWithNotch(BOOL useEntireScreen, NSScreen* screen) {
 
 - (BOOL)canBecomeMainWindow
 {
-	return [self isVisible]; // Return -isVisible because that's (the relevant part of) what NSWindow does.
+	return self.isVisible; // Return -isVisible because that's (the relevant part of) what NSWindow does.
 }
 
 @end

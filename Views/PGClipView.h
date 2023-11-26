@@ -27,25 +27,22 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 extern NSString *const PGClipViewBoundsDidChangeNotification;
 
-enum {
+typedef NS_ENUM(NSUInteger, PGScrollType) {
 	PGScrollByLine = 0,
 	PGScrollByPage = 1
 };
-typedef NSUInteger PGScrollType;
 
-enum {
+typedef NS_ENUM(NSUInteger, PGAnimationType) {
 	PGNoAnimation = 0,
 	PGAllowAnimation = 1,
 	PGPreferAnimation = 2
 };
-typedef NSUInteger PGAnimationType;
 
-enum {
+typedef NS_ENUM(NSUInteger, PGScrollToRectType) {
 	PGScrollLeastToRect = 0,
 	PGScrollCenterToRect = 1,
 	PGScrollMostToRect = 2
 };
-typedef NSUInteger PGScrollToRectType;
 
 @protocol PGClipViewDelegate;
 
