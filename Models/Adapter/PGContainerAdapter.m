@@ -168,7 +168,7 @@ NSString *const PGMaxDepthKey = @"PGMaxDepth";
 
 - (PGRecursionPolicy)descendantRecursionPolicy
 {
-	return [self recursionPolicy];
+	return self.recursionPolicy;
 }
 
 //	MARK: -
@@ -177,12 +177,12 @@ NSString *const PGMaxDepthKey = @"PGMaxDepth";
 {
 #if __has_feature(objc_arc)
 	if(!_sortedChildren) {
-		PGSortOrder const order = [[self document] sortOrder];
+		PGSortOrder const order = self.document.sortOrder;
 		PGSortOrder const maskedUnsortedOrder = PGSortOrderMask & _unsortedOrder;
 		if((PGSortOrderMask & order) == maskedUnsortedOrder || PGSortInnateOrder == maskedUnsortedOrder) {
 			if((PGSortDescendingMask & order) == (PGSortDescendingMask & _unsortedOrder))
 				_sortedChildren = _unsortedChildren;
-			else _sortedChildren = [[_unsortedChildren reverseObjectEnumerator] allObjects];
+			else _sortedChildren = [_unsortedChildren reverseObjectEnumerator].allObjects;
 		} else _sortedChildren = [_unsortedChildren sortedArrayUsingSelector:@selector(compare:)];
 	}
 	return _sortedChildren;
@@ -216,8 +216,8 @@ NSString *const PGMaxDepthKey = @"PGMaxDepth";
 	NSMutableArray *const removedChildren = [[_unsortedChildren mutableCopy] autorelease];
 #endif
 	for(PGNode *const newChild in anArray) [removedChildren removeObjectIdenticalTo:newChild];
-	if([removedChildren count]) {
-		[[self document] noteNode:[self node] willRemoveNodes:removedChildren];
+	if(removedChildren.count) {
+		[self.document noteNode:self.node willRemoveNodes:removedChildren];
 		[removedChildren makeObjectsPerformSelector:@selector(detachFromTree)];
 	}
 
@@ -233,11 +233,11 @@ NSString *const PGMaxDepthKey = @"PGMaxDepth";
 #endif
 	_sortedChildren = nil;
 #if __has_feature(objc_arc)
-	[[[self node] menuItem] setSubmenu:_unsortedChildren.count ? [NSMenu new] : nil];
+	self.node.menuItem.submenu = _unsortedChildren.count ? [NSMenu new] : nil;
 #else
 	[[[self node] menuItem] setSubmenu:_unsortedChildren.count ? [[[NSMenu alloc] init] autorelease] : nil];
 #endif
-	[[self document] noteSortedChildrenDidChange];
+	[self.document noteSortedChildrenDidChange];
 
 //NSLog(@">>> %@ >>>", self.node.identifier.displayName);
 	_byteSizeDirectChildren	=	0;
@@ -273,28 +273,28 @@ NSString *const PGMaxDepthKey = @"PGMaxDepth";
 
 - (PGNode *)childForIdentifier:(PGResourceIdentifier *)anIdent
 {
-	for(PGNode *const child in _unsortedChildren) if(PGEqualObjects(anIdent, [child identifier])) return child;
+	for(PGNode *const child in _unsortedChildren) if(PGEqualObjects(anIdent, child.identifier)) return child;
 	return nil;
 }
 - (NSUInteger)viewableIndexOfChild:(PGNode *)aNode
 {
-	NSUInteger index = [[self node] isViewable] ? 1 : 0;
-	for(PGNode* const child in [self sortedChildren]) {
-		if(child == aNode) return index + [[self parentAdapter] viewableIndexOfChild:[self node]];
-		index += [[child resourceAdapter] viewableNodeCount];
+	NSUInteger index = self.node.isViewable ? 1 : 0;
+	for(PGNode* const child in self.sortedChildren) {
+		if(child == aNode) return index + [self.parentAdapter viewableIndexOfChild:self.node];
+		index += child.resourceAdapter.viewableNodeCount;
 	}
 	return 0;
 }
 - (PGNode *)outwardSearchForward:(BOOL)forward fromChild:(PGNode *)start inclusive:(BOOL)inclusive withSelector:(SEL)sel context:(id)context
 {
-	NSArray *const children = [self sortedChildren];
+	NSArray *const children = self.sortedChildren;
 	NSUInteger i = [children indexOfObjectIdenticalTo:start];
 	if(NSNotFound == i) return nil;
 	NSInteger const increment = forward ? 1 : -1;
-	NSRange const range = NSMakeRange(0, [children count]);
+	NSRange const range = NSMakeRange(0, children.count);
 	if(!inclusive) i += increment;
 	for(; NSLocationInRange(i, range); i += increment) {
-		PGResourceAdapter *const adapter = [[children objectAtIndex:i] resourceAdapter];
+		PGResourceAdapter *const adapter = [children[i] resourceAdapter];
 		IMP const search = [adapter methodForSelector:sel];
 		if(!search) continue;
 		PGNode* (*searchInvoker)(id,SEL,BOOL,id,id) = (PGNode* (*)(id,SEL,BOOL,id,id))search;
@@ -302,7 +302,7 @@ NSString *const PGMaxDepthKey = @"PGMaxDepth";
 	//	PGNode *const node = search(adapter, sel, forward, context, nil);
 		if(node) return node;
 	}
-	return [[self parentAdapter] outwardSearchForward:forward fromChild:[self node] inclusive:inclusive withSelector:sel context:context]; // TODO: I think this is a bug. Instead of passing up `inclusive`, we should always say YES for our parent nodes. The original `inclusive` parameter should only apply to the original node.
+	return [self.parentAdapter outwardSearchForward:forward fromChild:self.node inclusive:inclusive withSelector:sel context:context]; // TODO: I think this is a bug. Instead of passing up `inclusive`, we should always say YES for our parent nodes. The original `inclusive` parameter should only apply to the original node.
 	// Or maybe it should always be NO. If we say yes, we go right back into the child we just came out of.
 }
 - (void)noteChildValueForCurrentSortOrderDidChange:(PGNode *)child
@@ -312,7 +312,7 @@ NSString *const PGMaxDepthKey = @"PGMaxDepth";
 	[_sortedChildren release];
 #endif
 	_sortedChildren = nil;
-	[[self document] noteSortedChildrenDidChange];
+	[self.document noteSortedChildrenDidChange];
 }
 - (uint64_t)byteSizeOfAllChildren {
 	if(~0ull != _byteSizeAllChildren)
@@ -327,13 +327,13 @@ NSString *const PGMaxDepthKey = @"PGMaxDepth";
 
 - (void)loadIfNecessary
 {
-	if([self shouldRecursivelyCreateChildren]) [super loadIfNecessary];
-	else [[self node] loadFinishedForAdapter:self];
+	if(self.shouldRecursivelyCreateChildren) [super loadIfNecessary];
+	else [self.node loadFinishedForAdapter:self];
 }
 
 //	MARK: - NSObject
 
-- (id)init
+- (instancetype)init
 {
 	if(self = [super init]) {
 		_byteSizeAllChildren	=	~0ull;
@@ -358,15 +358,15 @@ NSString *const PGMaxDepthKey = @"PGMaxDepth";
 }
 - (PGContainerAdapter *)rootContainerAdapter
 {
-	return [self parentAdapter] ? [[self parentAdapter] rootContainerAdapter] : self;
+	return self.parentAdapter ? self.parentAdapter.rootContainerAdapter : self;
 }
 
 //	MARK: -
 
 - (BOOL)hasNodesWithData
 {
-	if([self canGetData]) return YES;
-	for(id const child in [self sortedChildren]) if([[child resourceAdapter] hasNodesWithData]) return YES;
+	if(self.canGetData) return YES;
+	for(id const child in self.sortedChildren) if([child resourceAdapter].hasNodesWithData) return YES;
 	return NO;
 }
 - (BOOL)isContainer
@@ -392,9 +392,9 @@ NSString *const PGMaxDepthKey = @"PGMaxDepth";
 
 - (BOOL)hasSavableChildren
 {
-	for(id const child in [self sortedChildren]) {
+	for(id const child in self.sortedChildren) {
 		PGResourceAdapter *childAdapter = [child resourceAdapter];
-		if([childAdapter canSaveData] || [childAdapter hasSavableChildren]) return YES;
+		if(childAdapter.canSaveData || childAdapter.hasSavableChildren) return YES;
 	}
 	return NO;
 }
@@ -403,18 +403,18 @@ NSString *const PGMaxDepthKey = @"PGMaxDepth";
 
 - (NSUInteger)viewableNodeCount
 {
-	NSUInteger count = [[self node] isViewable] ? 1 : 0;
-	for(id const child in [self sortedChildren]) count += [[child resourceAdapter] viewableNodeCount];
+	NSUInteger count = self.node.isViewable ? 1 : 0;
+	for(id const child in self.sortedChildren) count += [child resourceAdapter].viewableNodeCount;
 	return count;
 }
 - (BOOL)hasViewableNodeCountGreaterThan:(NSUInteger)anInt
 {
-	NSUInteger count = [[self node] isViewable] ? 1 : 0;
+	NSUInteger count = self.node.isViewable ? 1 : 0;
 	if(count > anInt) return YES;
 	for(PGNode *const child in _unsortedChildren) {
-		PGResourceAdapter *const adapter = [child resourceAdapter];
+		PGResourceAdapter *const adapter = child.resourceAdapter;
 		if([adapter hasViewableNodeCountGreaterThan:anInt - count]) return YES;
-		if(![child isViewable]) continue;
+		if(!child.isViewable) continue;
 		count++;
 		if(count > anInt) return YES;
 	}
@@ -425,7 +425,7 @@ NSString *const PGMaxDepthKey = @"PGMaxDepth";
 
 - (void)addChildrenToMenu:(NSMenu *)menu
 {
-	for(PGNode *const child in [self sortedChildren]) [child addToMenu:menu flatten:NO];
+	for(PGNode *const child in self.sortedChildren) [child addToMenu:menu flatten:NO];
 }
 
 //	MARK: -
@@ -434,7 +434,7 @@ NSString *const PGMaxDepthKey = @"PGMaxDepth";
 {
 	if(!ident) return nil;
 	for(PGNode *const child in _unsortedChildren) {
-		PGNode *const node = [[child resourceAdapter] nodeForIdentifier:ident];
+		PGNode *const node = [child.resourceAdapter nodeForIdentifier:ident];
 		if(node) return node;
 	}
 	return [super nodeForIdentifier:ident];
@@ -446,42 +446,42 @@ NSString *const PGMaxDepthKey = @"PGMaxDepth";
 }
 - (PGNode *)sortedViewableNodeFirst:(BOOL)flag stopAtNode:(PGNode *)descendent includeSelf:(BOOL)includeSelf
 {
-	if(descendent == [self node]) return nil;
+	if(descendent == self.node) return nil;
 	if(flag) {
 		PGNode *const child = [super sortedViewableNodeFirst:YES stopAtNode:descendent includeSelf:includeSelf];
 		if(child) return child;
 	}
-	NSArray *const children = [self sortedChildren];
+	NSArray *const children = self.sortedChildren;
 	for(PGNode *const child in flag ? (id)children : (id)[children reverseObjectEnumerator]) {
-		PGNode *const node = [[child resourceAdapter] sortedViewableNodeFirst:flag stopAtNode:descendent includeSelf:YES];
+		PGNode *const node = [child.resourceAdapter sortedViewableNodeFirst:flag stopAtNode:descendent includeSelf:YES];
 		if(node) return node;
-		if([descendent ancestorThatIsChildOfNode:[self node]] == child) return nil;
+		if([descendent ancestorThatIsChildOfNode:self.node] == child) return nil;
 	}
 	return flag ? nil : [super sortedViewableNodeFirst:NO stopAtNode:descendent includeSelf:includeSelf];
 }
 - (PGNode *)sortedFirstViewableNodeInFolderFirst:(BOOL)flag
 {
 	if(flag) return [self sortedViewableNodeFirst:YES];
-	NSArray *const children = [self sortedChildren];
+	NSArray *const children = self.sortedChildren;
 	for(PGNode *const child in [children reverseObjectEnumerator]) {
-		PGNode *const node = [[child resourceAdapter] sortedFirstViewableNodeInFolderFirst:flag];
+		PGNode *const node = [child.resourceAdapter sortedFirstViewableNodeInFolderFirst:flag];
 		if(node) return node;
 	}
-	for(PGNode *const child in children) if([child isViewable]) return child;
+	for(PGNode *const child in children) if(child.isViewable) return child;
 	return nil;
 }
 - (PGNode *)sortedViewableNodeFirst:(BOOL)flag matchSearchTerms:(NSArray *)terms stopAtNode:(PGNode *)descendent
 {
-	if(descendent == [self node]) return nil;
+	if(descendent == self.node) return nil;
 	if(flag) {
 		PGNode *const child = [super sortedViewableNodeFirst:YES matchSearchTerms:terms stopAtNode:descendent];
 		if(child) return child;
 	}
-	NSArray *const children = [self sortedChildren];
+	NSArray *const children = self.sortedChildren;
 	for(PGNode *const child in flag ? (id)children : (id)[children reverseObjectEnumerator]) {
-		PGNode *const node = [[child resourceAdapter] sortedViewableNodeFirst:flag matchSearchTerms:terms stopAtNode:descendent];
+		PGNode *const node = [child.resourceAdapter sortedViewableNodeFirst:flag matchSearchTerms:terms stopAtNode:descendent];
 		if(node) return node;
-		if([descendent ancestorThatIsChildOfNode:[self node]] == child) return nil;
+		if([descendent ancestorThatIsChildOfNode:self.node] == child) return nil;
 	}
 	return flag ? nil : [super sortedViewableNodeFirst:NO matchSearchTerms:terms stopAtNode:descendent];
 }
