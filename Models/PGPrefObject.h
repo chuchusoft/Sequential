@@ -37,22 +37,20 @@ extern NSString *const PGPrefObjectBaseOrientationDidChangeNotification;
 
 extern NSString *const PGPrefObjectAnimateKey;
 
-enum {
+typedef NS_ENUM(NSInteger, PGPatternType) {
 	PGNoPattern = 0,
 	PGCheckerboardPattern = 1,
 };
-typedef NSInteger PGPatternType;
 
-enum {
+typedef NS_ENUM(NSInteger, PGImageScaleMode) {
 	PGConstantFactorScale = 0, // "Actual Size" Formerly known as PGNoScale.
 	PGAutomaticScale = 1, // "Automatic Fit"
 	PGDeprecatedVerticalFitScale = 2, // Deprecated after 1.0.3.
 	PGViewFitScale = 3, // "Fit To Window" Fits the entire image inside the screen/window.
 	PGDeprecatedActualSizeWithDPI = 4, // Depcrecated after 2.1.2.
 };
-typedef NSInteger PGImageScaleMode;
 
-enum {
+typedef NS_OPTIONS(NSUInteger, PGSortOrder) {
 	PGUnsorted           = 0,
 	PGSortOrderMask      = 0x0000FFFF,
 	PGSortByName         = 1,
@@ -66,7 +64,6 @@ enum {
 	PGSortDescendingMask = 1 << 16,
 	PGSortRepeatMask     = 1 << 17,
 };
-typedef NSInteger PGSortOrder;
 
 @interface PGPrefObject : NSObject
 #if !__has_feature(objc_arc)

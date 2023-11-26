@@ -64,7 +64,7 @@ static NSString *const PGBaseOrientationKey = @"PGBaseOrientation";
 }
 + (NSArray *)imageScaleModes
 {
-	return [NSArray arrayWithObjects:[NSNumber numberWithInteger:PGConstantFactorScale], [NSNumber numberWithInteger:PGAutomaticScale], [NSNumber numberWithInteger:PGViewFitScale], nil];
+	return @[@(PGConstantFactorScale), @(PGAutomaticScale), @(PGViewFitScale)];
 }
 
 //	MARK: +NSObject
@@ -111,7 +111,7 @@ static NSString *const PGBaseOrientationKey = @"PGBaseOrientation";
 {
 	if(!flag == !_showsInfo) return;
 	_showsInfo = flag;
-	[[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithBool:flag] forKey:PGShowsInfoKey];
+	[[NSUserDefaults standardUserDefaults] setObject:@(flag) forKey:PGShowsInfoKey];
 	[self PG_postNotificationName:PGPrefObjectShowsInfoDidChangeNotification];
 }
 #if !__has_feature(objc_arc)
@@ -124,7 +124,7 @@ static NSString *const PGBaseOrientationKey = @"PGBaseOrientation";
 {
 	if(!flag == !_showsThumbnails) return;
 	_showsThumbnails = flag;
-	[[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithBool:flag] forKey:PGShowsThumbnailsKey];
+	[[NSUserDefaults standardUserDefaults] setObject:@(flag) forKey:PGShowsThumbnailsKey];
 	[self PG_postNotificationName:PGPrefObjectShowsThumbnailsDidChangeNotification];
 }
 
@@ -156,9 +156,9 @@ static NSString *const PGBaseOrientationKey = @"PGBaseOrientation";
 {
 	_imageScaleMode = aMode;
 	_imageScaleFactor = 1;
-	[[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithInteger:aMode] forKey:PGImageScaleModeKey];
-	[[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithDouble:1] forKey:PGImageScaleFactorKey];
-	[self PG_postNotificationName:PGPrefObjectImageScaleDidChangeNotification userInfo:[NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:YES], PGPrefObjectAnimateKey, nil]];
+	[[NSUserDefaults standardUserDefaults] setObject:@(aMode) forKey:PGImageScaleModeKey];
+	[[NSUserDefaults standardUserDefaults] setObject:@1.0 forKey:PGImageScaleFactorKey];
+	[self PG_postNotificationName:PGPrefObjectImageScaleDidChangeNotification userInfo:@{PGPrefObjectAnimateKey: @YES}];
 }
 
 #if !__has_feature(objc_arc)
@@ -177,9 +177,9 @@ static NSString *const PGBaseOrientationKey = @"PGBaseOrientation";
 	CGFloat const newFactor = fabs(1.0f - factor) < 0.01f ? 1.0f : factor; // If it's close to 1, fudge it.
 	_imageScaleFactor = newFactor;
 	_imageScaleMode = PGConstantFactorScale;
-	[[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithDouble:newFactor] forKey:PGImageScaleFactorKey];
-	[[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithInteger:PGConstantFactorScale] forKey:PGImageScaleModeKey];
-	[self PG_postNotificationName:PGPrefObjectImageScaleDidChangeNotification userInfo:[NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:flag], PGPrefObjectAnimateKey, nil]];
+	[[NSUserDefaults standardUserDefaults] setObject:@(newFactor) forKey:PGImageScaleFactorKey];
+	[[NSUserDefaults standardUserDefaults] setObject:@(PGConstantFactorScale) forKey:PGImageScaleModeKey];
+	[self PG_postNotificationName:PGPrefObjectImageScaleDidChangeNotification userInfo:@{PGPrefObjectAnimateKey: @(flag)}];
 }
 
 //	MARK: -
@@ -194,7 +194,7 @@ static NSString *const PGBaseOrientationKey = @"PGBaseOrientation";
 {
 	if(!flag == !_animatesImages) return;
 	_animatesImages = flag;
-	[[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithBool:flag] forKey:PGAnimatesImagesKey];
+	[[NSUserDefaults standardUserDefaults] setObject:@(flag) forKey:PGAnimatesImagesKey];
 	[self PG_postNotificationName:PGPrefObjectAnimatesImagesDidChangeNotification];
 }
 
@@ -210,7 +210,7 @@ static NSString *const PGBaseOrientationKey = @"PGBaseOrientation";
 {
 	if(anOrder == _sortOrder) return;
 	_sortOrder = anOrder;
-	[[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithInteger:anOrder] forKey:PGSortOrderKey];
+	[[NSUserDefaults standardUserDefaults] setObject:@(anOrder) forKey:PGSortOrderKey];
 	[self PG_postNotificationName:PGPrefObjectSortOrderDidChangeNotification];
 }
 
@@ -226,7 +226,7 @@ static NSString *const PGBaseOrientationKey = @"PGBaseOrientation";
 {
 	if(interval == _timerInterval) return;
 	_timerInterval = interval;
-	[[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithDouble:interval] forKey:PGTimerIntervalKey];
+	[[NSUserDefaults standardUserDefaults] setObject:@(interval) forKey:PGTimerIntervalKey];
 	[self PG_postNotificationName:PGPrefObjectTimerIntervalDidChangeNotification];
 }
 
@@ -242,7 +242,7 @@ static NSString *const PGBaseOrientationKey = @"PGBaseOrientation";
 {
 	if(anOrientation == _baseOrientation) return;
 	_baseOrientation = anOrientation;
-	[[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithUnsignedInteger:anOrientation] forKey:PGBaseOrientationKey];
+	[[NSUserDefaults standardUserDefaults] setObject:@(anOrientation) forKey:PGBaseOrientationKey];
 	[self PG_postNotificationName:PGPrefObjectBaseOrientationDidChangeNotification];
 }
 
@@ -255,7 +255,7 @@ static NSString *const PGBaseOrientationKey = @"PGBaseOrientation";
 
 //	MARK: - NSObject
 
-- (id)init
+- (instancetype)init
 {
 	if((self = [super init])) {
 		NSUserDefaults *const d = [NSUserDefaults standardUserDefaults];
@@ -263,7 +263,7 @@ static NSString *const PGBaseOrientationKey = @"PGBaseOrientation";
 		_showsThumbnails = [[d objectForKey:PGShowsThumbnailsKey] boolValue];
 		_readingDirection = [[d objectForKey:PGReadingDirectionRightToLeftKey] boolValue] ? PGReadingDirectionRightToLeft : PGReadingDirectionLeftToRight;
 		NSNumber *const imageScaleMode = [d objectForKey:PGImageScaleModeKey];
-		_imageScaleMode = [[[self class] imageScaleModes] containsObject:imageScaleMode] ? [imageScaleMode integerValue] : PGConstantFactorScale;
+		_imageScaleMode = [[[self class] imageScaleModes] containsObject:imageScaleMode] ? imageScaleMode.integerValue : PGConstantFactorScale;
 		_imageScaleFactor = (CGFloat)[[d objectForKey:PGImageScaleFactorKey] doubleValue];
 		_animatesImages = [[d objectForKey:PGAnimatesImagesKey] boolValue];
 		_sortOrder = [[d objectForKey:PGSortOrderKey] integerValue];
