@@ -566,7 +566,8 @@ NSLog(@"-mouseMoved:");
 	NSSet *const selection = [sender selection];
 	PGNode *const item = [selection anyObject];
 	NSUInteger const count = [selection count];
-	(void)[[self displayController] tryToSetActiveNode:[(count == 1 ? item : [(PGNode *)item parentNode]) viewableAncestor] forward:YES];
+	(void)[self.displayController tryToSetActiveNode:[(count == 1 ? item : [(PGNode *)item parentNode]) viewableAncestor]
+											 forward:YES];
 
 	//	2023/10/02 when > 1 node is selected, show and update the Info window
 	//	otherwise hide it
