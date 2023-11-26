@@ -46,7 +46,7 @@ extern NSString *const PGBezelPanelFrameDidChangeNotification;
 
 - (void)displayOverWindow:(NSWindow *)aWindow;
 
-- (id)content; // Returns the content view, but as type id so you don't have to cast it.
+//- (id)content; // Returns the content view, but as type id so you don't have to cast it.
 
 @property (nonatomic, assign) BOOL acceptsEvents;
 - (void)setCanBecomeKey:(BOOL)flag;
