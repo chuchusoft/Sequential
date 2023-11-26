@@ -57,8 +57,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 			break;
 		}
 		case AEPauseIcon:
-			[p setLineWidth:scale / 4.0f];
-			[p setLineCapStyle:NSRoundLineCapStyle];
+			p.lineWidth = scale / 4.0f;
+			p.lineCapStyle = NSRoundLineCapStyle;
 			[p moveToPoint:NSMakePoint(NSMinX(b) + NSWidth(b) * 0.25f, NSMinY(b) + NSHeight(b) * 0.85f)];
 			[p lineToPoint:NSMakePoint(NSMinX(b) + NSWidth(b) * 0.25f, NSMinY(b) + NSHeight(b) * 0.15f)];
 			[p moveToPoint:NSMakePoint(NSMinX(b) + NSWidth(b) * 0.75f, NSMinY(b) + NSHeight(b) * 0.85f)];
@@ -121,7 +121,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (NSColor *)PG_patternColorWithImage:(NSImage *)image fraction:(CGFloat)fraction
 {
 	NSParameterAssert(image);
-	NSSize const s = [image size];
+	NSSize const s = image.size;
 	NSRect const r = (NSRect){NSZeroPoint, s};
 #if __has_feature(objc_arc)
 	NSImage *const pattern = [[NSImage alloc] initWithSize:s];
@@ -159,7 +159,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (NSPoint)PG_locationInView:(NSView *)view
 {
 	NSParameterAssert([view window] == [self window]);
-	NSPoint const p = [self locationInWindow];
+	NSPoint const p = self.locationInWindow;
 	return view ? [view convertPoint:p fromView:nil] : p;
 }
 
@@ -230,19 +230,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (void)PG_addAfterItem:(NSMenuItem *)anItem
 {
-	NSMenu *const menu = [anItem menu];
+	NSMenu *const menu = anItem.menu;
 	NSAssert(menu, @"Can't add item after an item not in a menu.");
 	[menu insertItem:self atIndex:[menu indexOfItem:anItem] + 1];
 }
 - (void)PG_removeFromMenu
 {
-	[[self menu] removeItem:self];
+	[self.menu removeItem:self];
 }
 - (BOOL)PG_performAction
 {
-	NSMenu *const menu = [self menu];
+	NSMenu *const menu = self.menu;
 	[menu update];
-	if(![self isEnabled]) return NO;
+	if(!self.enabled) return NO;
 	NSInteger const i = [menu indexOfItem:self];
 	if(!PGIsSnowLeopardOrLater() && [menu respondsToSelector:@selector(_menuImpl)]) {
 		id const menuImpl = [menu _menuImpl];
@@ -269,7 +269,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 + (NSScreen *)PG_mainScreen
 {
 	NSArray *const screens = [self screens];
-	return [screens count] ? [screens objectAtIndex:0] : nil;
+	return screens.count ? screens[0] : nil;
 }
 /* - (BOOL)PG_setDesktopImageURL:(NSURL *)URL
 {
@@ -336,7 +336,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 {
 #if __LP64__
 	// TODO: Make sure this works correctly when the window is being dragged/resized.
-	return [self contentRectForFrameRect:[self frame]];
+	return [self contentRectForFrameRect:self.frame];
 #else
 	HIRect rect;
 	HIWindowGetBounds([self windowRef], kWindowContentRgn, kHICoordSpace72DPIGlobal, &rect); // Updated in realtime, unlike -frame. See http://web.archive.org/web/20100113062205/http://rentzsch.com/cocoa/nswindowFrameLies.
@@ -346,8 +346,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 }
 - (void)PG_setContentRect:(NSRect)aRect
 {
-	NSSize const min = [self minSize];
-	NSSize const max = [self maxSize];
+	NSSize const min = self.minSize;
+	NSSize const max = self.maxSize;
 	NSRect r = [self frameRectForContentRect:aRect];
 	r.size.width = MIN(MAX(min.width, NSWidth(r)), max.width);
 	CGFloat const newHeight = MIN(MAX(min.height, NSHeight(r)), max.height);
