@@ -110,7 +110,7 @@ static NSSize PGRoundedCornerSizes[4];
 
 + (NSArray *)pasteboardTypes
 {
-	return [NSArray arrayWithObjects:NSPasteboardTypeTIFF, nil];
+	return @[NSPasteboardTypeTIFF];
 }
 
 //	MARK: +NSObject
@@ -133,10 +133,10 @@ static NSSize PGRoundedCornerSizes[4];
 	PGRoundedCornerImages[PGMinXMaxYCorner] = [[NSImage imageNamed:@"Corner-Top-Left"] retain];
 	PGRoundedCornerImages[PGMaxXMaxYCorner] = [[NSImage imageNamed:@"Corner-Top-Right"] retain];
 #endif
-	PGRoundedCornerSizes[PGMinXMinYCorner] = [PGRoundedCornerImages[PGMinXMinYCorner] size];
-	PGRoundedCornerSizes[PGMaxXMinYCorner] = [PGRoundedCornerImages[PGMaxXMinYCorner] size];
-	PGRoundedCornerSizes[PGMinXMaxYCorner] = [PGRoundedCornerImages[PGMinXMaxYCorner] size];
-	PGRoundedCornerSizes[PGMaxXMaxYCorner] = [PGRoundedCornerImages[PGMaxXMaxYCorner] size];
+	PGRoundedCornerSizes[PGMinXMinYCorner] = PGRoundedCornerImages[PGMinXMinYCorner].size;
+	PGRoundedCornerSizes[PGMaxXMinYCorner] = PGRoundedCornerImages[PGMaxXMinYCorner].size;
+	PGRoundedCornerSizes[PGMinXMaxYCorner] = PGRoundedCornerImages[PGMinXMaxYCorner].size;
+	PGRoundedCornerSizes[PGMaxXMaxYCorner] = PGRoundedCornerImages[PGMaxXMaxYCorner].size;
 }
 
 //	MARK: - PGImageView
@@ -147,12 +147,12 @@ static NSSize PGRoundedCornerSizes[4];
 }
 - (NSSize)originalSize
 {
-	return PGRotated90CCW & _orientation ? NSMakeSize([_rep pixelsHigh], [_rep pixelsWide]) : NSMakeSize([_rep pixelsWide], [_rep pixelsHigh]);
+	return PGRotated90CCW & _orientation ? NSMakeSize(_rep.pixelsHigh, _rep.pixelsWide) : NSMakeSize(_rep.pixelsWide, _rep.pixelsHigh);
 }
 - (CGFloat)averageScaleFactor
 {
-	NSSize const s = [self size];
-	NSSize const o = [self originalSize];
+	NSSize const s = self.size;
+	NSSize const o = self.originalSize;
 	return (s.width / o.width + s.height / o.height) / 2.0f;
 }
 - (void)setRotationInDegrees:(CGFloat)val
@@ -174,9 +174,9 @@ static NSSize PGRoundedCornerSizes[4];
 //NSLog(@"_sizeTransitionTimer %@  self.inLiveResize %u  self.canAnimateRep %u  self animates %u  %s",
 //_sizeTransitionTimer, self.inLiveResize, self.canAnimateRep, self.animates,
 //_sizeTransitionTimer || [self inLiveResize] || ([self canAnimateRep] && [self animates]) ? "NSImageInterpolationNone" : "...");
-	if(_sizeTransitionTimer || [self inLiveResize] || ([self canAnimateRep] && [self animates])) return NSImageInterpolationNone;
-	if([self antialiasWhenUpscaling]) return NSImageInterpolationHigh;
-	NSSize const imageSize = NSMakeSize([_rep pixelsWide], [_rep pixelsHigh]), viewSize = [self size];
+	if(_sizeTransitionTimer || self.inLiveResize || (self.canAnimateRep && self.animates)) return NSImageInterpolationNone;
+	if(self.antialiasWhenUpscaling) return NSImageInterpolationHigh;
+	NSSize const imageSize = NSMakeSize(_rep.pixelsWide, _rep.pixelsHigh), viewSize = self.size;
 
 //NSLog(@"imageSize.width %5.2f  viewSize.width %5.2f  imageSize.height %5.2f  viewSize.height %5.2f  result %s",
 //imageSize.width, viewSize.width, imageSize.height, viewSize.height,
@@ -211,7 +211,7 @@ static NSSize PGRoundedCornerSizes[4];
 	if(flag == _animates) return;
 	_animates = flag;
 	if(flag) [self _invalidateCache];
-	else if([self antialiasWhenUpscaling]) [self setNeedsDisplay:YES];
+	else if(self.antialiasWhenUpscaling) [self setNeedsDisplay:YES];
 	[self _runAnimationTimer];
 }
 - (BOOL)isPaused
@@ -248,7 +248,7 @@ static NSSize PGRoundedCornerSizes[4];
 		return;
 
 	_orientation = orientation;
-	[_image setSize:NSMakeSize([rep pixelsWide], [rep pixelsHigh])];
+	_image.size = NSMakeSize(rep.pixelsWide, rep.pixelsHigh);
 	if(rep != _rep) {
 		[_image removeRepresentation:_rep];
 #if !__has_feature(objc_arc)
@@ -287,7 +287,7 @@ static NSSize PGRoundedCornerSizes[4];
 		_size = size;
 		return [self stopAnimatedSizeTransition];
 	}
-	if(NSEqualSizes(size, [self size])) return;
+	if(NSEqualSizes(size, self.size)) return;
 	_size = size;
 	if(!_sizeTransitionTimer)
 #if __has_feature(objc_arc)
@@ -317,10 +317,10 @@ static NSSize PGRoundedCornerSizes[4];
 }
 - (NSPoint)rotateByDegrees:(CGFloat)val adjustingPoint:(NSPoint)aPoint
 {
-	NSRect const b1 = [self bounds];
+	NSRect const b1 = self.bounds;
 	NSPoint const p = PGOffsetPointByXY(aPoint, -NSMidX(b1), -NSMidY(b1)); // Our bounds are going to change to fit the rotated image. Any point we want to remain constant relative to the image, we have to make relative to the bounds' center, since that's where the image is drawn.
-	[self setRotationInDegrees:[self rotationInDegrees] + val];
-	NSRect const b2 = [self bounds];
+	self.rotationInDegrees = self.rotationInDegrees + val;
+	NSRect const b2 = self.bounds;
 	return [[self _transformWithRotationInDegrees:val] transformPoint:PGOffsetPointByXY(p, NSMidX(b2), NSMidY(b2))];
 }
 
@@ -331,8 +331,8 @@ static NSSize PGRoundedCornerSizes[4];
 	if(![types containsObject:NSPasteboardTypeTIFF]) return NO;
 	if(!_rep || ![_rep respondsToSelector:@selector(TIFFRepresentation)]) return NO;
 	if(pboard) {
-		[pboard addTypes:[NSArray arrayWithObject:NSPasteboardTypeTIFF] owner:nil];
-		[pboard setData:[(NSBitmapImageRep *)_rep TIFFRepresentation] forType:NSPasteboardTypeTIFF];
+		[pboard addTypes:@[NSPasteboardTypeTIFF] owner:nil];
+		[pboard setData:((NSBitmapImageRep *)_rep).TIFFRepresentation forType:NSPasteboardTypeTIFF];
 	}
 	return YES;
 }
@@ -352,17 +352,17 @@ static NSSize PGRoundedCornerSizes[4];
 
 - (BOOL)_imageIsOpaque
 {
-	return _isPDF || [_rep isOpaque];
+	return _isPDF || _rep.opaque;
 }
 - (void)_runAnimationTimer
 {
 	[self PG_cancelPreviousPerformRequestsWithSelector:@selector(_animate) object:nil];
-	if([self canAnimateRep] && _animates && !_pauseCount) [self PG_performSelector:@selector(_animate) withObject:nil fireDate:nil interval:[[(NSBitmapImageRep *)_rep valueForProperty:NSImageCurrentFrameDuration] doubleValue] options:kNilOptions];
+	if(self.canAnimateRep && _animates && !_pauseCount) [self PG_performSelector:@selector(_animate) withObject:nil fireDate:nil interval:[[(NSBitmapImageRep *)_rep valueForProperty:NSImageCurrentFrameDuration] doubleValue] options:kNilOptions];
 }
 - (void)_animate
 {
 	NSUInteger const i = [[(NSBitmapImageRep *)_rep valueForProperty:NSImageCurrentFrame] unsignedIntegerValue] + 1;
-	[(NSBitmapImageRep *)_rep setProperty:NSImageCurrentFrame withValue:[NSNumber numberWithUnsignedInteger:i % _numberOfFrames]];
+	[(NSBitmapImageRep *)_rep setProperty:NSImageCurrentFrame withValue:@(i % _numberOfFrames)];
 	[self setNeedsDisplay:YES];
 	[self _runAnimationTimer];
 }
@@ -374,10 +374,10 @@ static NSSize PGRoundedCornerSizes[4];
 - (void)_cache
 {
 	if(//_cacheLayer ||	2023/10/16 removed
-		!_rep || ([self canAnimateRep] && [self animates]) || ![self usesCaching] || [self inLiveResize] || _sizeTransitionTimer) return;
-	NSString *const runLoopMode = [[NSRunLoop currentRunLoop] currentMode];
+		!_rep || (self.canAnimateRep && self.animates) || !self.usesCaching || self.inLiveResize || _sizeTransitionTimer) return;
+	NSString *const runLoopMode = [NSRunLoop currentRunLoop].currentMode;
 	if(!runLoopMode || PGEqualObjects(runLoopMode, NSEventTrackingRunLoopMode)) {
-		if(!_awaitingUpdate) [self performSelector:@selector(_update) withObject:nil afterDelay:0.0f inModes:[NSArray arrayWithObject:NSDefaultRunLoopMode]];
+		if(!_awaitingUpdate) [self performSelector:@selector(_update) withObject:nil afterDelay:0.0f inModes:@[NSDefaultRunLoopMode]];
 		_awaitingUpdate = YES;
 		return;
 	}
@@ -463,7 +463,7 @@ static NSSize PGRoundedCornerSizes[4];
 {
 	BOOL const roundedCorners = [self _needsToDrawRoundedCornersForImageRect:aRect rects:NULL count:0];
 	BOOL const useTransparencyLayer = roundedCorners;
-	CGContextRef const context = useTransparencyLayer ? [[NSGraphicsContext currentContext] CGContext] : NULL;
+	CGContextRef const context = useTransparencyLayer ? [NSGraphicsContext currentContext].CGContext : NULL;
 	if(useTransparencyLayer)
 		CGContextBeginTransparencyLayer(context, NULL);
 
@@ -478,9 +478,9 @@ static NSSize PGRoundedCornerSizes[4];
 		transform = [NSAffineTransform PG_transformWithRect:&r orientation:_orientation];
 		[transform concat];
 	}
-	NSCompositingOperation const op = (!_isPDF && [_rep isOpaque]) ?
+	NSCompositingOperation const op = (!_isPDF && _rep.opaque) ?
 										NSCompositingOperationCopy : NSCompositingOperationSourceOver;
-	NSDictionary *const hints = @{NSImageHintInterpolation: [NSNumber numberWithUnsignedLong:[self interpolation]]};
+	NSDictionary *const hints = @{NSImageHintInterpolation: [NSNumber numberWithUnsignedLong:self.interpolation]};
 	[_image drawInRect:r
 			  fromRect:NSZeroRect
 			 operation:op
@@ -531,7 +531,7 @@ static NSSize PGRoundedCornerSizes[4];
 }
 - (NSAffineTransform *)_transformWithRotationInDegrees:(CGFloat)val
 {
-	NSRect const b = [self bounds];
+	NSRect const b = self.bounds;
 	NSAffineTransform *const t = [NSAffineTransform transform];
 	[t translateXBy:NSMidX(b) yBy:NSMidY(b)];
 	[t rotateByDegrees:val];
@@ -555,9 +555,9 @@ static NSSize PGRoundedCornerSizes[4];
 - (void)_updateFrameSize
 {
 	NSSize s = _immediateSize;
-	CGFloat const r = [self rotationInDegrees] / 180.0f * (CGFloat)M_PI;
+	CGFloat const r = self.rotationInDegrees / 180.0f * (CGFloat)M_PI;
 	if(r) s = NSMakeSize(ceil(fabs(cosf(r)) * s.width + fabs(sinf(r)) * s.height), ceil(fabs(cosf(r)) * s.height + fabs(sinf(r)) * s.width));
-	if(NSEqualSizes(s, [self frame].size)) return;
+	if(NSEqualSizes(s, self.frame.size)) return;
 	[super setFrameSize:s];
 	[self _invalidateCache];
 }
@@ -569,7 +569,7 @@ static NSSize PGRoundedCornerSizes[4];
 
 //	MARK: - NSView
 
-- (id)initWithFrame:(NSRect)aRect
+- (instancetype)initWithFrame:(NSRect)aRect
 {
 	if((self = [super initWithFrame:aRect])) {
 		_image = [[NSImage alloc] init];
@@ -590,17 +590,17 @@ static NSSize PGRoundedCornerSizes[4];
 }
 - (BOOL)isOpaque
 {
-	return self._imageIsOpaque && !self._shouldDrawRoundedCorners && ![self rotationInDegrees];
+	return self._imageIsOpaque && !self._shouldDrawRoundedCorners && !self.rotationInDegrees;
 }
 - (void)drawRect:(NSRect)aRect
 {
 	if(!_rep) return;
-	NSRect const b = [self bounds];
+	NSRect const b = self.bounds;
 	NSRect const imageRect = NSMakeRect(
 		round(NSMidX(b) - _immediateSize.width / 2.0f),
 		round(NSMidY(b) - _immediateSize.height / 2.0f),
 		_immediateSize.width, _immediateSize.height);
-	CGFloat const deg = [self rotationInDegrees];
+	CGFloat const deg = self.rotationInDegrees;
 	if(deg) {
 		[NSGraphicsContext saveGraphicsState];
 		[[self _transformWithRotationInDegrees:deg] concat];
@@ -681,7 +681,7 @@ static NSSize PGRoundedCornerSizes[4];
 
 //	MARK: - NSObject
 
-- (id)init
+- (instancetype)init
 {
 	return [self initWithFrame:NSZeroRect];
 }
