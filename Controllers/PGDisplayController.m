@@ -146,7 +146,6 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 
 @property (nonatomic, assign) BeforeState bs;
 @property (nonatomic, assign) NSRect windowFrameForNonFullScreenMode;
-@property (nonatomic, assign) BOOL isInFullSizeContentModeForNonFullScreenMode;
 
 - (void)_setClipViewBackground;
 - (void)_setImageView:(PGImageView *)aView;
@@ -204,7 +203,7 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 	return [NSUserDefaultsController sharedUserDefaultsController];
 }
 
-//	MARK: - PGDisplayController
+//	MARK: - PGDisplayController IBAction
 
 - (IBAction)reveal:(id)sender
 {
@@ -347,7 +346,21 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 - (IBAction)toggleFullscreen:(id)sender
 {
 	PGDocumentController *const dc = PGDocumentController.sharedDocumentController;
-	dc.fullscreen = !dc.fullscreen;
+	BOOL const inFullscreen = dc.fullscreen;
+	if(!inFullscreen) {
+		BOOL const inFullSizeContentMode =
+			0 != (self.window.styleMask & NSWindowStyleMaskFullSizeContentView);
+		_inFullSizeContentModeForNonFullScreenMode = inFullSizeContentMode;
+		if(inFullSizeContentMode)
+			[_fullSizeContentController toggleFullSizeContentWithAnimation:NO];
+	}
+
+	dc.fullscreen = !inFullscreen;	//	creates/destroys a fullscreen window; not animated
+
+	//	because of the way classic fullscreen is implemented, this if never executes;
+	//	see -setInFullSizeContentModeForNonFullScreenMode: for the code which handles this case
+//	if(inFullscreen && _inFullSizeContentModeForNonFullScreenMode)
+//		[_fullSizeContentController toggleFullSizeContentWithAnimation:NO];
 
 	//	2023/08/14 the background color now depends on whether the view's window
 	//	is in fullscreen mode so the background color must be updated:
@@ -361,7 +374,7 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 		PGDocumentController *const dc = PGDocumentController.sharedDocumentController;
 		dc.usesEntireScreenWhenInFullScreen = !dc.usesEntireScreenWhenInFullScreen;
 	} else
-		[_fullSizeContentController toggleFullSizeContent];
+		[_fullSizeContentController toggleFullSizeContentWithAnimation:YES];
 }
 
 - (IBAction)toggleInfo:(id)sender
@@ -533,7 +546,7 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 	[activeNode becomeViewed];
 }
 
-//	MARK: -
+//	MARK: - public API (properties)
 
 #if !__has_feature(objc_arc)
 @synthesize activeDocument = _activeDocument;
@@ -642,7 +655,20 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 	[self PG_postNotificationName:PGDisplayControllerTimerDidChangeNotification];
 }
 
-//	MARK: -
+- (void)setInFullSizeContentModeForNonFullScreenMode:(BOOL)fullSizeContentMode {
+	_inFullSizeContentModeForNonFullScreenMode = fullSizeContentMode;
+
+	//	this setting is transferred twice:
+	//	(1) from the old non-fullscreen controller to the fullscreen controller with
+	//		PGDocumentController.sharedDocumentController.fullscreen being true, and
+	//	(2) from the fullscreen controller to the new non-fullscreen controller with
+	//		PGDocumentController.sharedDocumentController.fullscreen being false
+	//	the fullSizeContentController is only altered on the second transfer, ie, (2)
+	if(fullSizeContentMode && !PGDocumentController.sharedDocumentController.fullscreen)
+		[_fullSizeContentController toggleFullSizeContentWithAnimation:NO];
+}
+
+//	MARK: - public API (methods)
 
 - (BOOL)setActiveDocument:(PGDocument *)document closeIfAppropriate:(BOOL)flag
 {
@@ -915,7 +941,7 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 	return didAnything;
 }
 
-//	MARK: -
+//	MARK: - notification handlers
 
 - (void)clipViewFrameDidChange:(NSNotification *)aNotif
 {
@@ -1215,12 +1241,10 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 	//	cause a crash if the notification is for a *particular* PGDocument instance but is
 	//	processed by a thumbnail browser which is associated with a different PGDocument
 	//	instance. Solution: provide context to the notification callback by supplying the
-	//	active document value. See corresponding code in PGThumbnailController's method
-	//	-displayControllerActiveNodeDidChange:
-	NSDictionary* d = [NSDictionary dictionaryWithObjectsAndKeys:_activeDocument, @"PGDocument",
-																	_activeNode, @"PGNode", nil];
+	//	active document value. See the corresponding code in
+	//	-[PGThumbnailController displayControllerActiveNodeDidChange:]
 	[self PG_postNotificationName:PGDisplayControllerActiveNodeDidChangeNotification
-						 userInfo:d];
+						 userInfo:@{ @"PGDocument":_activeDocument, @"PGNode":_activeNode }];
 //	[self PG_postNotificationName:PGDisplayControllerActiveNodeDidChangeNotification];
 
 	return YES;
@@ -1912,7 +1936,7 @@ GetNotchHeight(NSScreen* screen) {
 //NSLog(@"duration %5.2f", duration);
 
 	_windowFrameForNonFullScreenMode = window.frame;
-	_isInFullSizeContentModeForNonFullScreenMode =
+	_inFullSizeContentModeForNonFullScreenMode =
 		0 != (window.styleMask & NSWindowStyleMaskFullSizeContentView);
 	[self invalidateRestorableState];
 
@@ -1922,8 +1946,8 @@ GetNotchHeight(NSScreen* screen) {
 	//	if the window is in fullsize content mode then the animation to
 	//	go fullscreen will not occur so first get out of fullsize content
 	//	mode and then add NSWindowStyleMaskFullScreen to the styleMask
-	if(_isInFullSizeContentModeForNonFullScreenMode)
-		[_fullSizeContentController toggleFullSizeContent];
+	if(_inFullSizeContentModeForNonFullScreenMode)
+		[_fullSizeContentController toggleFullSizeContentWithAnimation:YES];
 
 	//	if -toggleFullSizeContent was called, window.styleMask was changed
 	//	so it must be reloaded here:
@@ -2005,8 +2029,8 @@ proposedFrame.size.width, proposedFrame.size.height); */
 
 		//	If the window was in fullsize content mode when fullscreen mode was
 		//	entered then restore it. Do this *before* calling -setFrame:display:
-		if(_isInFullSizeContentModeForNonFullScreenMode)
-			[_fullSizeContentController toggleFullSizeContent];
+		if(_inFullSizeContentModeForNonFullScreenMode)
+			[_fullSizeContentController toggleFullSizeContentWithAnimation:YES];
 
 		[window.animator setFrame:_windowFrameForNonFullScreenMode display:YES];
 
