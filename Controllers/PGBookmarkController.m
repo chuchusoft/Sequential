@@ -70,7 +70,7 @@ GetBookmarksFileURL(BOOL createParentFolderIfNonExistant) {
 	if(nil == urls || 1 != urls.count)
 		return nil;
 
-	NSURL*	parentFolder = [[urls objectAtIndex:0] URLByAppendingPathComponent:NSBundle.mainBundle.bundleIdentifier
+	NSURL*	parentFolder = [urls[0] URLByAppendingPathComponent:NSBundle.mainBundle.bundleIdentifier
 																   isDirectory:YES];
 	if(nil == parentFolder)
 		return nil;
@@ -85,7 +85,7 @@ GetBookmarksFileURL(BOOL createParentFolderIfNonExistant) {
 		if(!error || !error.userInfo)
 			return nil;
 
-		id	ue	=	[error.userInfo objectForKey:NSUnderlyingErrorKey];
+		id	ue	=	(error.userInfo)[NSUnderlyingErrorKey];
 		if(!ue || ![ue isKindOfClass:NSError.class])
 			return nil;
 
@@ -129,7 +129,7 @@ GetBookmarksFileURL(BOOL createParentFolderIfNonExistant) {
 
 //	MARK: +PGBookmarkController
 
-+ (id)sharedBookmarkController
++ (PGBookmarkController*)sharedBookmarkController
 {
 #if __has_feature(objc_arc)
 	return sharedBookmarkController ? sharedBookmarkController : [self new];
@@ -142,9 +142,9 @@ GetBookmarksFileURL(BOOL createParentFolderIfNonExistant) {
 
 - (IBAction)open:(id)sender
 {
-	PGBookmark *const bookmark = [(NSMenuItem *)sender representedObject];
-	BOOL const deleteBookmark = _deletesBookmarks || NSEventModifierFlagOption & [[NSApp currentEvent] modifierFlags];
-	if(!deleteBookmark && [bookmark isValid]) {
+	PGBookmark *const bookmark = ((NSMenuItem *)sender).representedObject;
+	BOOL const deleteBookmark = _deletesBookmarks || NSEventModifierFlagOption & NSApp.currentEvent.modifierFlags;
+	if(!deleteBookmark && bookmark.isValid) {
 		[[PGDocumentController sharedDocumentController] openDocumentWithBookmark:bookmark display:YES];
 		return;
 	}
@@ -153,14 +153,14 @@ GetBookmarksFileURL(BOOL createParentFolderIfNonExistant) {
 #else
 	NSAlert *const alert = [[[NSAlert alloc] init] autorelease];
 #endif
-	[alert setAlertStyle:NSAlertStyleInformational];
+	alert.alertStyle = NSAlertStyleInformational;
 	NSButton *const deleteButton = [alert addButtonWithTitle:NSLocalizedString(@"Delete Bookmark", nil)];
 	NSButton *const cancelButton = [alert addButtonWithTitle:NSLocalizedString(@"Cancel", nil)];
 	if(deleteBookmark) return [self removeBookmark:bookmark];
-	[alert setMessageText:[NSString stringWithFormat:NSLocalizedString(@"The file referenced by the bookmark %@ could not be found.", @"Bookmarked file could not be found error. %@ is replaced with the missing page's saved filename."), [[bookmark fileIdentifier] displayName]]];
+	alert.messageText = [NSString stringWithFormat:NSLocalizedString(@"The file referenced by the bookmark %@ could not be found.", @"Bookmarked file could not be found error. %@ is replaced with the missing page's saved filename."), bookmark.fileIdentifier.displayName];
 	[alert setInformativeText:NSLocalizedString(@"It may have been moved or deleted.", @"Bookmarked file could not be found error informative text.")];
-	[deleteButton setKeyEquivalent:@""];
-	[cancelButton setKeyEquivalent:@"\r"];
+	deleteButton.keyEquivalent = @"";
+	cancelButton.keyEquivalent = @"\r";
 	if([alert runModal] == NSAlertFirstButtonReturn) [self removeBookmark:bookmark];
 	else [self _updateMenuItemForBookmark:bookmark];
 }
@@ -177,7 +177,7 @@ GetBookmarksFileURL(BOOL createParentFolderIfNonExistant) {
 {
 	_deletesBookmarks = flag;
 #if __has_feature(objc_arc)
-	[_bookmarkItem setTitle:flag ? NSLocalizedString(@"Delete", @"The title of the bookmarks menu. Two states.") : NSLocalizedString(@"Resume", @"The title of the bookmarks menu. Two states.")];
+	_bookmarkItem.title = flag ? NSLocalizedString(@"Delete", @"The title of the bookmarks menu. Two states.") : NSLocalizedString(@"Resume", @"The title of the bookmarks menu. Two states.");
 #else
 	[bookmarkItem setTitle:flag ? NSLocalizedString(@"Delete", @"The title of the bookmarks menu. Two states.") : NSLocalizedString(@"Resume", @"The title of the bookmarks menu. Two states.")];
 #endif
@@ -205,16 +205,16 @@ GetBookmarksFileURL(BOOL createParentFolderIfNonExistant) {
 	NSParameterAssert(aBookmark);
 #if __has_feature(objc_arc)
 	[_emptyMenuItem PG_removeFromMenu];
-	if([_bookmarkMenu numberOfItems]) [[_bookmarkMenu itemAtIndex:0] setKeyEquivalent:@""];
+	if(_bookmarkMenu.numberOfItems) [_bookmarkMenu itemAtIndex:0].keyEquivalent = @"";
 	NSMenuItem *const item = [NSMenuItem new];
 #else
 	[emptyMenuItem PG_removeFromMenu];
 	if([bookmarkMenu numberOfItems]) [[bookmarkMenu itemAtIndex:0] setKeyEquivalent:@""];
 	NSMenuItem *const item = [[[NSMenuItem alloc] init] autorelease];
 #endif
-	[item setTarget:self];
-	[item setAction:@selector(open:)];
-	[item setRepresentedObject:aBookmark];
+	item.target = self;
+	item.action = @selector(open:);
+	item.representedObject = aBookmark;
 #if __has_feature(objc_arc)
 	[_bookmarkMenu insertItem:item atIndex:0];
 #else
@@ -225,7 +225,7 @@ GetBookmarksFileURL(BOOL createParentFolderIfNonExistant) {
 }
 - (PGBookmark *)bookmarkForIdentifier:(PGResourceIdentifier *)ident
 {
-	for(PGBookmark *const bookmark in _bookmarks) if(PGEqualObjects([bookmark documentIdentifier], ident)) return bookmark;
+	for(PGBookmark *const bookmark in _bookmarks) if(PGEqualObjects(bookmark.documentIdentifier, ident)) return bookmark;
 	return nil;
 }
 
@@ -234,7 +234,7 @@ GetBookmarksFileURL(BOOL createParentFolderIfNonExistant) {
 - (void)bookmarkDidUpdate:(NSNotification *)aNotif
 {
 	NSParameterAssert(aNotif);
-	[self _updateMenuItemForBookmark:[aNotif object]];
+	[self _updateMenuItemForBookmark:aNotif.object];
 	[self _saveBookmarks];
 }
 
@@ -251,9 +251,9 @@ GetBookmarksFileURL(BOOL createParentFolderIfNonExistant) {
 	if(-1 == index) return; // Fail gracefully.
 	NSMenuItem *const item = [bookmarkMenu itemAtIndex:index];
 #endif
-	if(![aBookmark isValid]) {
+	if(!aBookmark.isValid) {
 		[item setAttributedTitle:nil];
-		[item setTitle:[NSString stringWithFormat:NSLocalizedString(@"Missing File %@", @"Bookmark menu item used when the file named %@ cannot be found."), [[aBookmark fileIdentifier] displayName]]];
+		item.title = [NSString stringWithFormat:NSLocalizedString(@"Missing File %@", @"Bookmark menu item used when the file named %@ cannot be found."), aBookmark.fileIdentifier.displayName];
 		return;
 	}
 #if __has_feature(objc_arc)
@@ -261,20 +261,20 @@ GetBookmarksFileURL(BOOL createParentFolderIfNonExistant) {
 #else
 	NSMutableAttributedString *const title = [[[NSMutableAttributedString alloc] init] autorelease];
 #endif
-	[title appendAttributedString:[[aBookmark documentIdentifier] attributedStringWithAncestory:NO]];
-	if(!PGEqualObjects([aBookmark documentIdentifier], [aBookmark fileIdentifier])) {
-		[[title mutableString] appendFormat:@" %C ", (unichar)0x25B8];
-		[title appendAttributedString:[[aBookmark fileIdentifier] attributedStringWithAncestory:NO]];
+	[title appendAttributedString:[aBookmark.documentIdentifier attributedStringWithAncestory:NO]];
+	if(!PGEqualObjects(aBookmark.documentIdentifier, aBookmark.fileIdentifier)) {
+		[title.mutableString appendFormat:@" %C ", (unichar)0x25B8];
+		[title appendAttributedString:[aBookmark.fileIdentifier attributedStringWithAncestory:NO]];
 	}
-	[item setAttributedTitle:title];
+	item.attributedTitle = title;
 }
 - (void)_removeBookmarkAtIndex:(NSUInteger)index
 {
-	[[_bookmarks objectAtIndex:index] PG_removeObserver:self name:PGBookmarkDidUpdateNotification];
+	[_bookmarks[index] PG_removeObserver:self name:PGBookmarkDidUpdateNotification];
 	[_bookmarks removeObjectAtIndex:index];
 #if __has_feature(objc_arc)
-	[_bookmarkMenu removeItemAtIndex:[_bookmarkMenu numberOfItems] - index - 1];
-	if(![_bookmarks count]) [_bookmarkMenu addItem:_emptyMenuItem];
+	[_bookmarkMenu removeItemAtIndex:_bookmarkMenu.numberOfItems - index - 1];
+	if(!_bookmarks.count) [_bookmarkMenu addItem:_emptyMenuItem];
 #else
 	[bookmarkMenu removeItemAtIndex:[bookmarkMenu numberOfItems] - index - 1];
 	if(![_bookmarks count]) [bookmarkMenu addItem:emptyMenuItem];
@@ -333,7 +333,7 @@ GetBookmarksFileURL(BOOL createParentFolderIfNonExistant) {
 
 //	MARK: - NSObject
 
-- (id)init
+- (instancetype)init
 {
 	if((self = [super init])) {
 		if(!sharedBookmarkController) {

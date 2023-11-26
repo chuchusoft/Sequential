@@ -39,7 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 }
 #endif
 
-+ (id)sharedBookmarkController;
++ (PGBookmarkController*)sharedBookmarkController;
 
 - (IBAction)open:(id)sender;
 

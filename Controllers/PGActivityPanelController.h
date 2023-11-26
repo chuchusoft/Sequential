@@ -25,7 +25,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import "PGFloatingPanelController.h"
 
 @interface PGActivityPanelController :
-	PGFloatingPanelController <NSOutlineViewDataSource, NSOutlineViewDelegate>
+	PGFloatingPanelController <NSOutlineViewDataSource, NSOutlineViewDelegate, PGFloatingPanelProtocol>
 #if !__has_feature(objc_arc)
 {
 	@private

@@ -64,11 +64,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (IBAction)cancelLoad:(id)sender
 {
 #if __has_feature(objc_arc)
-	NSIndexSet *const indexes = [_activityOutline selectedRowIndexes];
+	NSIndexSet *const indexes = _activityOutline.selectedRowIndexes;
 #else
 	NSIndexSet *const indexes = [activityOutline selectedRowIndexes];
 #endif
-	NSUInteger i = [indexes firstIndex];
+	NSUInteger i = indexes.firstIndex;
 	for(; NSNotFound != i; i = [indexes indexGreaterThanIndex:i])
 #if __has_feature(objc_arc)
 		[[_activityOutline itemAtRow:i] cancel:sender];
@@ -93,7 +93,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (void)_enableCancelButton
 {
 #if __has_feature(objc_arc)
-	[_cancelButton setEnabled:[[_activityOutline selectedRowIndexes] count] > 0];
+	_cancelButton.enabled = _activityOutline.selectedRowIndexes.count > 0;
 #else
 	[cancelButton setEnabled:[[activityOutline selectedRowIndexes] count] > 0];
 #endif
@@ -136,7 +136,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 {
 	[super windowDidLoad];
 #if __has_feature(objc_arc)
-	[_progressColumn setDataCell:[PGProgressIndicatorCell new]];
+	_progressColumn.dataCell = [PGProgressIndicatorCell new];
 #else
 	[progressColumn setDataCell:[[[PGProgressIndicatorCell alloc] init] autorelease]];
 #endif
@@ -157,17 +157,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (NSInteger)outlineView:(NSOutlineView *)outlineView numberOfChildrenOfItem:(nullable id)item
 {
-	return [[(item ? item : [PGActivity applicationActivity]) childActivities:YES] count];
+	return [(item ? item : [PGActivity applicationActivity]) childActivities:YES].count;
 }
 
 - (id)outlineView:(NSOutlineView *)outlineView child:(NSInteger)index ofItem:(nullable id)item
 {
-	return [[(item ? item : [PGActivity applicationActivity]) childActivities:YES] objectAtIndex:index];
+	return [(item ? item : [PGActivity applicationActivity]) childActivities:YES][index];
 }
 
 - (BOOL)outlineView:(NSOutlineView *)outlineView isItemExpandable:(id)item
 {
-	return item ? [[item childActivities:YES] count] > 0 : YES;
+	return item ? [item childActivities:YES].count > 0 : YES;
 }
 
 // NOTE: this method is optional for the View Based OutlineView.
@@ -188,9 +188,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #else
 			NSMutableParagraphStyle *const style = [[[NSParagraphStyle defaultParagraphStyle] mutableCopy] autorelease];
 #endif
-			[style setTighteningFactorForTruncation:0.3f];
-			[style setLineBreakMode:NSLineBreakByTruncatingMiddle];
-			attrs = [[NSDictionary alloc] initWithObjectsAndKeys:style, NSParagraphStyleAttributeName, nil];
+			style.tighteningFactorForTruncation = 0.3f;
+			style.lineBreakMode = NSLineBreakByTruncatingMiddle;
+			attrs = @{NSParagraphStyleAttributeName: style};
 		}
 #if __has_feature(objc_arc)
 		return [[NSAttributedString alloc] initWithString:[item activityDescription] attributes:attrs];
@@ -202,7 +202,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #else
 	} else if(tableColumn == progressColumn) {
 #endif
-		return [NSNumber numberWithDouble:[(PGActivity*) item progress]];
+		return @(((PGActivity*) item).progress);
 	}
 	return nil;
 }
@@ -235,7 +235,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #endif
 	{
 		PGActivity*		ai		=	(PGActivity*) item;
-		if(![ai progress] || 0 != [[ai childActivities:YES] count])
+		if(!ai.progress || 0 != [ai childActivities:YES].count)
 			return nil;
 	}
 	return result;

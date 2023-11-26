@@ -32,7 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 }
 #endif
 
-+ (id)sharedAboutBoxController;
++ (PGAboutBoxController*)sharedAboutBoxController;
 
 - (IBAction)changePane:(id)sender;
 

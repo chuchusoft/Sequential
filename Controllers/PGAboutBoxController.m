@@ -48,7 +48,7 @@ static PGAboutBoxController *PGSharedAboutBoxController;
 
 //	MARK: + PGAboutBoxController
 
-+ (id)sharedAboutBoxController
++ (PGAboutBoxController*)sharedAboutBoxController
 {
 #if __has_feature(objc_arc)
 	return PGSharedAboutBoxController ? PGSharedAboutBoxController : [self new];
@@ -63,20 +63,20 @@ static PGAboutBoxController *PGSharedAboutBoxController;
 {
 	NSString *path = nil;
 #if __has_feature(objc_arc)
-	switch([_paneControl selectedSegment]) {
+	switch(_paneControl.selectedSegment) {
 		case 0: path = [[NSBundle mainBundle] pathForResource:@"Credits" ofType:@"rtf"]; break;
 		case 1: path = [[NSBundle mainBundle] pathForResource:@"History" ofType:@"txt"]; break;
 		case 2: path = [[NSBundle mainBundle] pathForResource:@"License" ofType:@"txt"]; break;
 	}
 	if(!path) return;
 	[_textView setSelectedRange:NSMakeRange(0, 0)];
-	[[_textView textStorage] removeLayoutManager:[_textView layoutManager]];
+	[_textView.textStorage removeLayoutManager:_textView.layoutManager];
 	NSDictionary *attrs = nil;
 	NSTextStorage* ts = [[NSTextStorage alloc] initWithURL:[path PG_fileURL]
 		options:@{NSCharacterEncodingDocumentAttribute:@(NSUTF8StringEncoding)}
 												/* options:[NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithUnsignedInteger:NSUTF8StringEncoding], NSCharacterEncodingDocumentAttribute, nil] */
 		documentAttributes:&attrs error:NULL];
-	[ts addLayoutManager:[_textView layoutManager]];
+	[ts addLayoutManager:_textView.layoutManager];
 #else
 	switch([paneControl selectedSegment]) {
 		case 0: path = [[NSBundle mainBundle] pathForResource:@"Credits" ofType:@"rtf"]; break;
@@ -96,13 +96,13 @@ static PGAboutBoxController *PGSharedAboutBoxController;
 	[ts autorelease];
 #endif
 
-	if(PGEqualObjects([attrs objectForKey:NSDocumentTypeDocumentAttribute], NSPlainTextDocumentType)) {
+	if(PGEqualObjects(attrs[NSDocumentTypeDocumentAttribute], NSPlainTextDocumentType)) {
 		// There's no way to ask for the system-wide fixed pitch font, so
 		// we use 10pt Monaco since it's the default for TextEdit.
 		NSFont *const font = [NSFont fontWithName:@"Monaco" size:10.0f];
 		if(font)
 #if __has_feature(objc_arc)
-			[_textView setFont:font];
+			_textView.font = font;
 #else
 			[textView setFont:font];
 #endif
@@ -117,7 +117,7 @@ static PGAboutBoxController *PGSharedAboutBoxController;
 	[_paneControl sizeToFit];
 	[_paneControl removeFromSuperview];
 	if([_paneControl respondsToSelector:@selector(setSegmentStyle:)])
-		[_paneControl setSegmentStyle:NSSegmentStyleTexturedRounded];
+		_paneControl.segmentStyle = NSSegmentStyleTexturedRounded;
 #else
 	[paneControl sizeToFit];
 	[paneControl retain];
@@ -131,20 +131,20 @@ static PGAboutBoxController *PGSharedAboutBoxController;
 #else
 	NSToolbar *const toolbar = [[(NSToolbar *)[NSToolbar alloc] initWithIdentifier:@"PGAboutBoxControllerToolbar"] autorelease];
 #endif
-	[toolbar setDisplayMode:NSToolbarDisplayModeIconOnly];
-	[toolbar setSizeMode:NSToolbarSizeModeRegular];
+	toolbar.displayMode = NSToolbarDisplayModeIconOnly;
+	toolbar.sizeMode = NSToolbarSizeModeRegular;
 	[toolbar setAllowsUserCustomization:NO];
-	[toolbar setDelegate:self];
-	[[self window] setToolbar:toolbar];
-	[[self window] setShowsToolbarButton:NO];
-	[[self window] center];
+	toolbar.delegate = self;
+	self.window.toolbar = toolbar;
+	[self.window setShowsToolbarButton:NO];
+	[self.window center];
 	[self changePane:nil];
 	[super windowDidLoad];
 }
 
 //	MARK: - NSObject
 
-- (id)init
+- (instancetype)init
 {
 	if((self = [super initWithWindowNibName:@"PGAbout"])) {
 #if __has_feature(objc_arc)
@@ -177,8 +177,8 @@ static PGAboutBoxController *PGSharedAboutBoxController;
 	NSParameterAssert(PGEqualObjects(ident, PGPaneItemKey));
 #if __has_feature(objc_arc)
 	NSToolbarItem *const item = [[NSToolbarItem alloc] initWithItemIdentifier:ident];
-	[item setView:_paneControl];
-	[item setMinSize:[_paneControl frame].size];
+	item.view = _paneControl;
+	item.minSize = _paneControl.frame.size;
 #else
 	NSToolbarItem *const item = [[[NSToolbarItem alloc] initWithItemIdentifier:ident] autorelease];
 	[item setView:paneControl];
@@ -188,7 +188,7 @@ static PGAboutBoxController *PGSharedAboutBoxController;
 }
 - (NSArray *)toolbarDefaultItemIdentifiers:(NSToolbar *)toolbar
 {
-	return [NSArray arrayWithObjects:NSToolbarFlexibleSpaceItemIdentifier, PGPaneItemKey, NSToolbarFlexibleSpaceItemIdentifier, nil];
+	return @[NSToolbarFlexibleSpaceItemIdentifier, PGPaneItemKey, NSToolbarFlexibleSpaceItemIdentifier];
 }
 - (NSArray *)toolbarAllowedItemIdentifiers:(NSToolbar *)toolbar
 {
