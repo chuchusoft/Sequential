@@ -134,6 +134,9 @@ InformPossiblePGFullSizeContentProtocolAdopter(id object,
 	NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:sig];
 	invocation.selector = selector;
 
+	//	NB: args are NOT retained so the sender and adopter must both stay alive until
+	//	the selector is invoked otherwise the program will crash
+
 	__unsafe_unretained PGFullSizeContentController *uu_sender = sender;
 	[invocation setArgument:&uu_sender atIndex:2];
 	__unsafe_unretained NSWindow *uu_parent = parent;
@@ -212,12 +215,7 @@ InformPossiblePGFullSizeContentProtocolAdopter(id object,
 }
 
 - (void)dealloc {
-	[NSNotificationCenter.defaultCenter removeObserver:self
-												  name:NSWindowDidEnterFullScreenNotification
-												object:_window];
-	[NSNotificationCenter.defaultCenter removeObserver:self
-												  name:NSWindowDidExitFullScreenNotification
-												object:_window];
+	[NSNotificationCenter.defaultCenter removeObserver:self];
 
 #if !__has_feature(objc_arc)
 	[super dealloc];
@@ -232,10 +230,6 @@ InformPossiblePGFullSizeContentProtocolAdopter(id object,
 
 - (void)_windowDidExitFullScreen:(NSNotification *)notification {
 	self.fullSizeContentTitlebarAccessoryViewController.toggleButtonEnabled = YES;
-}
-
-- (BOOL)_isShowingFullSizeContent {
-	return 0 != (NSWindowStyleMaskFullSizeContentView & self.window.styleMask);
 }
 
 - (void)_updateTrackingAreas:(BOOL)isFullSizeContentView {
@@ -356,31 +350,29 @@ titleTextField.superview.subviews.count);
 	}
 }
 
-//	MARK: <MouseTrackingDelegate>
-- (void)mouseEntered:(NSEvent *)theEvent {
-	[self _setVisibilityOfTitleBarButtonsForTrackingArea:theEvent.trackingArea
-												 visible:YES];
+static
+CGFloat
+GetTitleBarHeightFor(NSWindow *w) {
+	return NSHeight([w standardWindowButton:NSWindowCloseButton].superview.frame);
 }
 
-- (void)mouseExited:(NSEvent *)theEvent {
-	[self _setVisibilityOfTitleBarButtonsForTrackingArea:theEvent.trackingArea
-												 visible:NO];
-}
-
-//	MARK: <FullSizeContentTitlebarAccessoryViewDelegate>
-- (void)fullSizeContentTitlebarAccessoryViewWasToggled:(BOOL)setting_IGNORED {
+- (void)_toggleFullSizeContentWithAnimation:(BOOL)animate {
 	NSWindow *const w = self.window;
 	NSRect const frame = w.frame;
 	NSWindowStyleMask styleMask = w.styleMask;
 	NSWindowStyleMask const isFullSizeContentView =
 		NSWindowStyleMaskFullSizeContentView & styleMask;
 
-	for(NSWindow *child in w.childWindows) {
-		InformPossiblePGFullSizeContentProtocolAdopter(child, self, w);
-		InformPossiblePGFullSizeContentProtocolAdopter(child.delegate, self, w);
-	}
+	if(animate) {
+		for(NSWindow *child in w.childWindows) {
+			InformPossiblePGFullSizeContentProtocolAdopter(child, self, w);
+			InformPossiblePGFullSizeContentProtocolAdopter(child.delegate, self, w);
+		}
 
-	w.animator.titlebarAppearsTransparent = !isFullSizeContentView;
+		w.animator.titlebarAppearsTransparent = !isFullSizeContentView;
+	} else
+		w.titlebarAppearsTransparent = !isFullSizeContentView;
+
 //	w.titleVisibility = isFullSizeContentView ? NSWindowTitleVisible :
 //						NSWindowTitleHidden;
 
@@ -405,8 +397,12 @@ titleTextField.superview.subviews.count);
 		styleMask &= ~NSWindowStyleMaskFullSizeContentView;
 	} else
 		styleMask |= NSWindowStyleMaskFullSizeContentView;
-//NSLog(@"-fullSizeContentTitlebarAccessoryViewWasToggled: w.animator.styleMask");
-	w.animator.styleMask = styleMask;
+
+//NSLog(@"-_toggleFullSizeContentWithAnimation: -setStyleMask:");
+	if(animate)
+		w.animator.styleMask = styleMask;
+	else
+		w.styleMask = styleMask;
 
 	[self _updateTrackingAreas:!isFullSizeContentView];
 
@@ -417,28 +413,40 @@ titleTextField.superview.subviews.count);
 	//	However, when the title bar is close to the top of the screen (just
 	//	under the menu bar), the animation during -setFrame: looks odd so
 	//	detect that situation and if so, perform a non-animated -setFrame:.
-//NSLog(@"-fullSizeContentTitlebarAccessoryViewWasToggled: -setFrame:display:");
-	CGFloat const titleBarHeight = [w standardWindowButton:NSWindowCloseButton]
-									.superview.frame.size.height;
-	if(isFullSizeContentView &&
-		NSMaxY(w.screen.visibleFrame) - NSMaxY(frame) < titleBarHeight) {
-		[w setFrame:frame display:NO];	//	the animation looks odd
-//NSLog(@"-setFrame: is NOT animated (titleBarHeight %5.2f", titleBarHeight);
-	} else {
-		[w.animator setFrame:frame display:NO];	//	the animation looks OK
-	}
+//NSLog(@"-_toggleFullSizeContentWithAnimation: -setFrame:display:");
+	if(!animate || (isFullSizeContentView &&
+		NSMaxY(w.screen.visibleFrame) - NSMaxY(frame) < GetTitleBarHeightFor(w))) {
+		[w setFrame:frame display:NO];
+	} else
+		[w.animator setFrame:frame display:NO];
 
-//NSLog(@"-fullSizeContentTitlebarAccessoryViewWasToggled: exiting");
+//NSLog(@"-_toggleFullSizeContentWithAnimation: exiting");
+}
+
+//	MARK: <MouseTrackingDelegate>
+- (void)mouseEntered:(NSEvent *)theEvent {
+	[self _setVisibilityOfTitleBarButtonsForTrackingArea:theEvent.trackingArea
+												 visible:YES];
+}
+
+- (void)mouseExited:(NSEvent *)theEvent {
+	[self _setVisibilityOfTitleBarButtonsForTrackingArea:theEvent.trackingArea
+												 visible:NO];
+}
+
+//	MARK: <FullSizeContentTitlebarAccessoryViewDelegate>
+- (void)fullSizeContentTitlebarAccessoryViewWasToggled:(BOOL)setting_IGNORED {
+	[self _toggleFullSizeContentWithAnimation:YES];
 }
 
 //	MARK: public API
-- (void)toggleFullSizeContent {
+- (void)toggleFullSizeContentWithAnimation:(BOOL)animate {
 	//	because this call does not invoke the delegate...
 	self.fullSizeContentTitlebarAccessoryViewController.toggleButtonIntegerValue =
 		1 - self.fullSizeContentTitlebarAccessoryViewController.toggleButtonIntegerValue;
 
 	//	...this call becomes necessary
-	[self fullSizeContentTitlebarAccessoryViewWasToggled:!self._isShowingFullSizeContent];
+	[self _toggleFullSizeContentWithAnimation:animate];
 }
 
 - (NSTextField *)accessoryTextField {
