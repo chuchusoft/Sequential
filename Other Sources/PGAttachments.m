@@ -44,15 +44,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #else
 		NSTextAttachment *const attachment = [[[NSTextAttachment alloc] init] autorelease];
 #endif
-		[attachment setAttachmentCell:cell];
+		attachment.attachmentCell = cell;
 		[result appendAttributedString:[NSAttributedString attributedStringWithAttachment:attachment]];
-		if(label) [[result mutableString] appendString:@" "];
+		if(label) [result.mutableString appendString:@" "];
 	}
-	if(label) [[result mutableString] appendString:label];
+	if(label) [result.mutableString appendString:label];
 	// Use 14 instead of 0 (default) for the font size because the default seems to be 13, which is wrong.
 	[result addAttribute:NSFontAttributeName
 				   value:[NSFont menuFontOfSize:14.0f]
-				   range:NSMakeRange(0, [result length])];
+				   range:NSMakeRange(0, result.length)];
 	return result;
 }
 + (NSMutableAttributedString *)PG_attributedStringWithFileIcon:(NSImage *)anImage name:(NSString *)fileName
@@ -75,11 +75,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (void)drawWithFrame:(NSRect)aRect inView:(NSView *)aView
 {
 	[NSGraphicsContext saveGraphicsState];
-	[[NSGraphicsContext currentContext] setImageInterpolation:NSImageInterpolationHigh];
+	[NSGraphicsContext currentContext].imageInterpolation = NSImageInterpolationHigh;
 	NSRect r = aRect;
 	[[NSAffineTransform PG_counterflipWithRect:&r] concat];
 	r.origin.x = round(NSMinX(r));
-	[[self image] drawInRect:r fromRect:NSZeroRect operation:NSCompositingOperationSourceOver fraction:1.0f];
+	[self.image drawInRect:r fromRect:NSZeroRect operation:NSCompositingOperationSourceOver fraction:1.0f];
 	[NSGraphicsContext restoreGraphicsState];
 }
 - (NSSize)cellSize
@@ -93,7 +93,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 //	MARK: - NSCell
 
-- (id)initImageCell:(NSImage *)anImage
+- (instancetype)initImageCell:(NSImage *)anImage
 {
 	if(anImage) return [super initImageCell:anImage];
 #if __has_feature(objc_arc)
