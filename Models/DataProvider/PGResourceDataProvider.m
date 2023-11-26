@@ -51,7 +51,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 @synthesize identifier = _identifier;
 #endif
 
-- (id)initWithResourceIdentifier:(PGResourceIdentifier *)ident displayableName:(NSString *)name
+- (instancetype)initWithResourceIdentifier:(PGResourceIdentifier *)ident displayableName:(NSString *)name
 {
 	if((self = [super init])) {
 #if __has_feature(objc_arc)
@@ -82,7 +82,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (id)valueForFMAttributeName:(NSString *)name
 {
-	return [_identifier isFileIdentifier] ? [[[NSFileManager defaultManager] attributesOfItemAtPath:[[_identifier URL] path] error:NULL] objectForKey:name] : nil;
+	return _identifier.isFileIdentifier ? [[NSFileManager defaultManager] attributesOfItemAtPath:_identifier.URL.path error:NULL][name] : nil;
 }
 
 //	MARK: - PGDataProvider
@@ -100,7 +100,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 }
 - (NSData *)data
 {
-	return [NSData dataWithContentsOfURL:[_identifier URL]
+	return [NSData dataWithContentsOfURL:_identifier.URL
 								 options:NSDataReadingMapped | NSDataReadingUncached
 								   error:NULL];
 }
@@ -153,7 +153,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 } */
 - (NSImage *)icon
 {
-	return [[NSWorkspace sharedWorkspace] iconForFile:[[_identifier URL] path]];
+	return [[NSWorkspace sharedWorkspace] iconForFile:_identifier.URL.path];
 }
 /* this method does (more or less) the same thing as the superclass, so removed
 - (NSString *)kindString
