@@ -33,7 +33,10 @@ extern NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification;
 
 @interface PGResourceIdentifier : NSObject <NSSecureCoding>	//	NSCoding
 
-+ (id)resourceIdentifierWithURL:(NSURL *)URL;
++ (instancetype)resourceIdentifierWithURL:(NSURL *)URL;
+
+- (instancetype)initWithCoder:(NSCoder *)coder NS_DESIGNATED_INITIALIZER;
+- (instancetype)init NS_DESIGNATED_INITIALIZER;
 
 @property(readonly) PGResourceIdentifier *identifier;
 @property(readonly) PGDisplayableIdentifier *displayableIdentifier;
@@ -97,7 +100,7 @@ typedef UInt8 PGLabelColor;
 
 //	MARK: -
 
-@interface PGDisplayableIdentifier : PGResourceIdentifier <NSSecureCoding>	//	NSCoding
+@interface PGDisplayableIdentifier : PGResourceIdentifier
 #if !__has_feature(objc_arc)
 {
 	@private
@@ -109,17 +112,23 @@ typedef UInt8 PGLabelColor;
 }
 #endif
 
-@property(assign) BOOL postsNotifications;
 #if __has_feature(objc_arc)
-@property(strong) NSImage *icon;
+@property (nonatomic, assign) BOOL postsNotifications;
+@property (nonatomic, strong) NSImage *icon;
+@property (nonatomic, readonly) NSString *displayName;
+@property (nonatomic, copy) NSString *customDisplayName;
+@property (nonatomic, copy) NSString *naturalDisplayName; // The name from the filesystem or raw address of the URL.
+//@property(readonly) PGLabelColor labelColor;	2021/07/21 modernized
+@property (nonatomic, readonly) NSColor* labelColor;
 #else
+@property(assign) BOOL postsNotifications;
 @property(retain) NSImage *icon;
-#endif
 @property(readonly) NSString *displayName;
 @property(copy) NSString *customDisplayName;
 @property(copy) NSString *naturalDisplayName; // The name from the filesystem or raw address of the URL.
 //@property(readonly) PGLabelColor labelColor;	2021/07/21 modernized
 @property(readonly) NSColor* labelColor;
+#endif
 
 - (NSAttributedString *)attributedStringWithAncestory:(BOOL)flag;
 - (void)noteNaturalDisplayNameDidChange;
