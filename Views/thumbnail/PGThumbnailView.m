@@ -924,6 +924,21 @@ SetPtrEqualsSet(CFSetRef cfSet, NSSet *const nsSet) {
 	return YES;
 }
 
+	#elif __has_feature(objc_arc) && defined(SELECTION_IVAR_SPECIAL_NSMUTABLESET)
+
+static
+BOOL
+SetEqualsSet(NSSet *const nsSet1, NSSet *const nsSet2) {
+	if(nsSet1.count != nsSet2.count)
+		return NO;
+
+	for(id item in nsSet2)
+		if(![nsSet1 containsObject:item])
+			return NO;
+
+	return YES;
+}
+
 	#endif
 #endif
 
@@ -1192,10 +1207,10 @@ SetPtrEqualsSet(CFSetRef cfSet, NSSet *const nsSet) {
 - (void)setSelection:(NSSet *)items
 {
 #if __has_feature(objc_arc) && defined(SELECTION_IVAR_ORIGINAL_NSMUTABLESET)	//	[1]
-	if([_selection isEqualToSet:items])
+	if([_selection isEqualToSet:items])	//	probably incorrect: -isEqualToSet: does not work with the custom set
 		return;
 #elif __has_feature(objc_arc) && defined(SELECTION_IVAR_NSSET)	//	[2]
-	if([_selection isEqualToSet:items])
+	if([_selection isEqualToSet:items])	//	probably incorrect: -isEqualToSet: does not work with the custom set
 		return;
 #elif __has_feature(objc_arc) && defined(SELECTION_IVAR_SPECIAL_CFMUTABLESET)	//	[3]
 	NSAssert((__bridge void *)items != _mutableSelection, @"");
@@ -1205,7 +1220,8 @@ SetPtrEqualsSet(CFSetRef cfSet, NSSet *const nsSet) {
 		return;	//	contents are identical (all pointer match)
 #elif __has_feature(objc_arc) && defined(SELECTION_IVAR_SPECIAL_NSMUTABLESET)	//	[4]
 	NSAssert(items != _mutableSelection, @"");
-	if([_mutableSelection isEqualToSet:items])
+	//	SetEqualsSet() works correctly whereas -isEqualToSet: does not
+	if(SetEqualsSet(_mutableSelection, items))	//	if([_mutableSelection isEqualToSet:items])
 		return;	//	contents are identical (all pointer match)
 #else
 	if(items == _selection)	//	NB: original code uses an incorrect test
@@ -1381,10 +1397,13 @@ SetPtrEqualsSet(CFSetRef cfSet, NSSet *const nsSet) {
 - (void)reloadData
 {
 	BOOL const hadSelection = 0 != [self _selectionCount];
+	NSArray *items = [[self dataSource] itemsForThumbnailView:self];
+	if(![_items isEqualToArray:items]) {
 #if !__has_feature(objc_arc)
-	[_items release];
+		[_items release];
 #endif
-	_items = [[[self dataSource] itemsForThumbnailView:self] copy];
+		_items = [items copy];
+	}
 	[self _validateSelection];
 	[self sizeToFit];
 	[self _scrollToSelectionAnchor:PGScrollCenterToRect];
