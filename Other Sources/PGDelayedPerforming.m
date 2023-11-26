@@ -83,7 +83,9 @@ static NSMutableDictionary *PGTimersByNonretainedObjectValue;
 	PGDelayedPerformingOptions _options;
 }
 
-- (id)initWithTarget:(id)target selector:(SEL)aSel object:(id)anArgument options:(PGDelayedPerformingOptions)opts;
+- (instancetype)initWithTarget:(id)target selector:(SEL)aSel object:(id)anArgument options:(PGDelayedPerformingOptions)opts NS_DESIGNATED_INITIALIZER;
+- (instancetype)init NS_UNAVAILABLE;
+
 - (BOOL)matchesSelector:(SEL)aSel object:(id)anObject;
 - (void)invoke;
 - (id)target;
@@ -103,7 +105,7 @@ static void PGTimerCallback(CFRunLoopTimerRef timer, PGTimerContextObject *conte
 																			(__bridge const void *)[context target]);
 		[timers removeObjectIdenticalTo:(__bridge NSTimer *)timer];
 #else
-		[[PGTimersByNonretainedObjectValue objectForKey:context.target] removeObjectIdenticalTo:(NSTimer *)timer];
+		[PGTimersByNonretainedObjectValue[context.target] removeObjectIdenticalTo:(NSTimer *)timer];
 #endif
 	}
 	[context invoke];
@@ -171,7 +173,7 @@ static void PGTimerCallback(CFRunLoopTimerRef timer, PGTimerContextObject *conte
 		PGTimersByNonretainedObjectValue = (NSMutableDictionary *)CFDictionaryCreateMutable(
 											kCFAllocatorDefault, 0, NULL, &kCFTypeDictionaryValueCallBacks);
 
-	NSMutableArray *timers = [PGTimersByNonretainedObjectValue objectForKey:self];
+	NSMutableArray *timers = PGTimersByNonretainedObjectValue[self];
 	if(!timers) {
 		timers = [NSMutableArray array];
 		CFDictionaryAddValue((CFMutableDictionaryRef)PGTimersByNonretainedObjectValue, self, timers);
@@ -188,7 +190,7 @@ static void PGTimerCallback(CFRunLoopTimerRef timer, PGTimerContextObject *conte
 	[timers makeObjectsPerformSelector:@selector(invalidate)];
 	CFDictionaryRemoveValue(PGTimers_NonretainedKey_RetainedValue, (__bridge const void *)self);
 #else
-	[[PGTimersByNonretainedObjectValue objectForKey:self] makeObjectsPerformSelector:@selector(invalidate)];
+	[PGTimersByNonretainedObjectValue[self] makeObjectsPerformSelector:@selector(invalidate)];
 	[PGTimersByNonretainedObjectValue removeObjectForKey:self];
 #endif
 }
@@ -208,9 +210,9 @@ static void PGTimerCallback(CFRunLoopTimerRef timer, PGTimerContextObject *conte
 		[timers removeObjectIdenticalTo:timer];
 	}
 #else
-	NSMutableArray *const timers = [PGTimersByNonretainedObjectValue objectForKey:self];
+	NSMutableArray *const timers = PGTimersByNonretainedObjectValue[self];
 	for(NSTimer *const timer in [[timers copy] autorelease]) {
-		if([timer isValid]) {
+		if(timer.valid) {
 			CFRunLoopTimerContext context;
 			CFRunLoopTimerGetContext((CFRunLoopTimerRef)timer, &context);
 			if(![(PGTimerContextObject *)context.info matchesSelector:aSel object:anArgument]) continue;
@@ -229,7 +231,7 @@ static void PGTimerCallback(CFRunLoopTimerRef timer, PGTimerContextObject *conte
 #if __has_feature(objc_arc)
 - (id)initWithSelector:(SEL)aSel object:(id)anArgument options:(PGDelayedPerformingOptions)opts
 #else
-- (id)initWithTarget:(id)target selector:(SEL)aSel object:(id)anArgument options:(PGDelayedPerformingOptions)opts
+- (instancetype)initWithTarget:(id)target selector:(SEL)aSel object:(id)anArgument options:(PGDelayedPerformingOptions)opts
 #endif
 {
 	if((self = [super init])) {
