@@ -45,7 +45,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 }
 #endif
 
-- (id)initWithResourceIdentifier:(PGResourceIdentifier *)identifier;
+- (instancetype)initWithResourceIdentifier:(PGResourceIdentifier *)identifier NS_DESIGNATED_INITIALIZER;
+- (instancetype)init NS_UNAVAILABLE;
 
 @end
 
@@ -70,9 +71,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 + (PGDataProvider *)customDataProviderWithResourceIdentifier:(PGResourceIdentifier *)ident displayableName:(NSString *)name
 {
-	if([ident isFileIdentifier]) return nil;
-	NSURL *const URL = [ident URL];
-	if([[NSArray arrayWithObjects:@"http", @"https", nil] containsObject:[URL scheme]])
+	if(ident.isFileIdentifier) return nil;
+	NSURL *const URL = ident.URL;
+	if([@[@"http", @"https"] containsObject:URL.scheme])
 #if __has_feature(objc_arc)
 		return [[PGWebDataProvider alloc] initWithResourceIdentifier:ident];
 #else
@@ -85,8 +86,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (void)load
 {
-	NSURL *const URL = [[(PGDataProvider *)[self dataProvider] identifier] URL];
-	if([URL isFileURL]) return [[self node] fallbackFromFailedAdapter:self];
+	NSURL *const URL = ((PGDataProvider *)self.dataProvider).identifier.URL;
+	if(URL.fileURL) return [self.node fallbackFromFailedAdapter:self];
 	[_faviconLoad cancelAndNotify:NO];
 #if !__has_feature(objc_arc)
 	[_faviconLoad release];
@@ -120,33 +121,33 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (CGFloat)progressForActivity:(PGActivity *)activity
 {
-	return [[_mainLoad activity] progress];
+	return _mainLoad.activity.progress;
 }
 
 //	MARK: - <PGURLLoadDelegate>
 
 - (void)loadLoadingDidProgress:(PGURLLoad *)sender
 {
-	if(sender == _mainLoad) [[self node] PG_postNotificationName:PGNodeLoadingDidProgressNotification];
+	if(sender == _mainLoad) [self.node PG_postNotificationName:PGNodeLoadingDidProgressNotification];
 }
 - (void)loadDidReceiveResponse:(PGURLLoad *)sender
 {
 	if(sender != _mainLoad) return;
-	id const resp = [sender response];
+	id const resp = sender.response;
 	if([resp respondsToSelector:@selector(statusCode)] && ([resp statusCode] < 200 || [resp statusCode] >= 300)) {
 		[_mainLoad cancelAndNotify:NO];
 		[_faviconLoad cancelAndNotify:NO];
-		[self setError:[NSError PG_errorWithDomain:PGNodeErrorDomain code:PGGenericError localizedDescription:[NSString stringWithFormat:NSLocalizedString(@"The error %ld %@ was generated while loading the URL %@.", @"The URL returned a error status code. %ld is replaced by the status code, the first %@ is replaced by the human-readable error (automatically localized), the second %@ is replaced by the full URL."), (long)[resp statusCode], [NSHTTPURLResponse localizedStringForStatusCode:[resp statusCode]], [resp URL]] userInfo:nil]];
-		[[self node] loadFinishedForAdapter:self];
+		self.error = [NSError PG_errorWithDomain:PGNodeErrorDomain code:PGGenericError localizedDescription:[NSString stringWithFormat:NSLocalizedString(@"The error %ld %@ was generated while loading the URL %@.", @"The URL returned a error status code. %ld is replaced by the status code, the first %@ is replaced by the human-readable error (automatically localized), the second %@ is replaced by the full URL."), (long)[resp statusCode], [NSHTTPURLResponse localizedStringForStatusCode:[resp statusCode]], [resp URL]] userInfo:nil];
+		[self.node loadFinishedForAdapter:self];
 		return;
 	}
 	PGDataProvider *const potentialDataProvider = [PGDataProvider providerWithURLResponse:resp data:nil];
 #if __has_feature(objc_arc)
-	NSMutableArray *const potentialAdapterClasses = [[potentialDataProvider adapterClassesForNode:[self node]] mutableCopy];
+	NSMutableArray *const potentialAdapterClasses = [[potentialDataProvider adapterClassesForNode:self.node] mutableCopy];
 #else
 	NSMutableArray *const potentialAdapterClasses = [[[potentialDataProvider adapterClassesForNode:[self node]] mutableCopy] autorelease];
 #endif
-	if(![self shouldRecursivelyCreateChildren])
+	if(!self.shouldRecursivelyCreateChildren)
 #if __has_feature(objc_arc)
 		for(Class const adapterClass in [potentialAdapterClasses copy])
 #else
@@ -154,37 +155,37 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #endif
 			if([adapterClass isKindOfClass:[PGContainerAdapter class]])
 				[potentialAdapterClasses removeObjectIdenticalTo:adapterClass]; // Instead of using -isKindOfClass:, add a class method or something.
-	if([potentialAdapterClasses count]) return;
+	if(potentialAdapterClasses.count) return;
 	[_mainLoad cancelAndNotify:NO];
 	[_faviconLoad cancelAndNotify:NO];
-	[[self node] fallbackFromFailedAdapter:self];
+	[self.node fallbackFromFailedAdapter:self];
 }
 - (void)loadDidSucceed:(PGURLLoad *)sender
 {
 	if(sender == _mainLoad) {
 		[_faviconLoad cancelAndNotify:NO];
-		[[self node] setDataProvider:[PGDataProvider providerWithURLResponse:[_mainLoad response] data:[_mainLoad data]]];
+		self.node.dataProvider = [PGDataProvider providerWithURLResponse:_mainLoad.response data:_mainLoad.data];
 	} else if(sender == _faviconLoad) {
 #if __has_feature(objc_arc)
-		NSImage *const favicon = [[NSImage alloc] initWithData:[_faviconLoad data]];
+		NSImage *const favicon = [[NSImage alloc] initWithData:_faviconLoad.data];
 #else
 		NSImage *const favicon = [[[NSImage alloc] initWithData:[_faviconLoad data]] autorelease];
 #endif
-		if(favicon) [[[self node] identifier] setIcon:favicon]; // Don't clear the favicon we already have if we can't load a new one.
+		if(favicon) self.node.identifier.icon = favicon; // Don't clear the favicon we already have if we can't load a new one.
 	}
 }
 - (void)loadDidFail:(PGURLLoad *)sender
 {
 	if(sender != _mainLoad) return;
 	[_faviconLoad cancelAndNotify:NO];
-	[self setError:[NSError PG_errorWithDomain:PGNodeErrorDomain code:PGGenericError localizedDescription:[NSString stringWithFormat:NSLocalizedString(@"The URL %@ could not be loaded.", @"The URL could not be loaded for an unknown reason. %@ is replaced by the full URL."), [[_mainLoad request] URL]] userInfo:nil]];
-	[[self node] loadFinishedForAdapter:self];
+	self.error = [NSError PG_errorWithDomain:PGNodeErrorDomain code:PGGenericError localizedDescription:[NSString stringWithFormat:NSLocalizedString(@"The URL %@ could not be loaded.", @"The URL could not be loaded for an unknown reason. %@ is replaced by the full URL."), _mainLoad.request.URL] userInfo:nil];
+	[self.node loadFinishedForAdapter:self];
 }
 - (void)loadDidCancel:(PGURLLoad *)sender
 {
 	if(sender != _mainLoad) return;
 	[_faviconLoad cancelAndNotify:NO];
-	[[self node] loadFinishedForAdapter:self];
+	[self.node loadFinishedForAdapter:self];
 }
 
 @end
@@ -199,7 +200,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 //	MARK: -
 @implementation PGWebDataProvider
 
-- (id)initWithResourceIdentifier:(PGResourceIdentifier *)identifier
+- (instancetype)initWithResourceIdentifier:(PGResourceIdentifier *)identifier
 {
 	if((self = [super init])) {
 #if __has_feature(objc_arc)
@@ -223,7 +224,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 - (NSArray *)adapterClassesForNode:(PGNode *)node
 {
-	return [NSArray arrayWithObject:[PGWebAdapter class]];
+	return @[[PGWebAdapter class]];
 }
 
 //	MARK: - NSObject
