@@ -125,16 +125,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 //	MARK: - NSWindowController
 
-/* - (id)initWithWindowNibName:(NSString *)name
+- (id)initWithWindowNibName:(NSString *)name
 {
 	if((self = [super initWithWindowNibName:name])) {
-		//	these are not needed anymore (NSWindow will call these methods even if self
-		//	is not registered as an observer)
-		[(NSNotificationCenter *)[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(windowDidBecomeMain:) name:NSWindowDidBecomeMainNotification object:nil];
-		[(NSNotificationCenter *)[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(windowDidResignMain:) name:NSWindowDidResignMainNotification object:nil];
+		[NSNotificationCenter.defaultCenter addObserver:self
+											   selector:@selector(windowDidBecomeMain:)
+												   name:NSWindowDidBecomeMainNotification
+												 object:nil];
+		[NSNotificationCenter.defaultCenter addObserver:self
+											   selector:@selector(windowDidResignMain:)
+												   name:NSWindowDidResignMainNotification
+												 object:nil];
 	}
 	return self;
-} */
+}
 
 //	MARK: -
 
