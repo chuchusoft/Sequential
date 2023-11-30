@@ -1,4 +1,4 @@
-# Sequential 2.4.0 (2023-11-02).
+# Sequential 2.5.0 (2023-12-01).
 
 Sequential is an image and comic viewer for macOS.
 
