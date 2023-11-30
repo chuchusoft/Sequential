@@ -1,4 +1,5 @@
-2.5.0 (2023-11-??)
+2.5.0 (2023-12-01)
+- converted the codebase to use Modern Objective-C syntax.
 - converted the codebase to build under Automatic Reference Counting (ARC);
   the codebase can still build under Manual Retain Release (MRR) but this will
   be removed later when all breaking changes have been fixed.
