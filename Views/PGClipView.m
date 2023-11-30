@@ -415,6 +415,7 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 			CGAssociateMouseAndMouseCursorPosition(false);
 #else
 			[[NSCursor closedHandCursor] push];
+//NSLog(@"[[NSCursor closedHandCursor] push] 1");
 #endif
 			[self PG_cancelPreviousPerformRequestsWithSelector:@selector(_beginPreliminaryDrag:) object:dragModeValue];
 		}
@@ -433,6 +434,7 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 	if(PGNotDragging != dragMode) {
 		handled = YES;
 		[NSCursor pop];
+//NSLog(@"[NSCursor pop] 1");
 		if(PGMouseHiddenDraggingStyle) {
 			CGAssociateMouseAndMouseCursorPosition(true);
 #if 1
@@ -569,6 +571,7 @@ static inline NSPoint PGPointInRect(NSPoint aPoint, NSRect aRect)
 	NSAssert(PGNotDragging == *dragMode, @"Already dragging.");
 	*dragMode = PGPreliminaryDragging;
 	[[NSCursor closedHandCursor] push];
+//NSLog(@"[[NSCursor closedHandCursor] push] 2");
 }
 - (void)_delayedEndGesture
 {
