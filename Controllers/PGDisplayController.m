@@ -287,8 +287,11 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 #if 1
 		[NSWorkspace.sharedWorkspace recycleURLs:@[node.identifier.URL]
 							   completionHandler:^(NSDictionary<NSURL*,NSURL*>* newURLs, NSError* error) {
-			if(!error)
-				movedAnything = YES;
+			if(nil != error)
+				return;
+
+			movedAnything = YES;
+			[node removeFromDocument];	//	2024/02/29 remove node from model and UI
 		}];
 #else
 		NSString *const path = [[[node identifier] URL] path];
@@ -1915,8 +1918,21 @@ GetNotchHeight(NSScreen* screen) {
 		return 0;
 }
 
-#if 0
-//	Using this delegate method cause the statement:
+//	Transitioning to fullscreen via the "Tile Window to Left/Right of Screen" always
+//	causes the -window:startCustomAnimationToEnterFullScreenWithDuration: method to
+//	NOT be called so any member variable changes and method calls it makes are NOT
+//	performed. Such code has been moved to the -windowWillEnterFullScreen: method.
+
+#if 1
+//	Using this delegate method causes the statement:
+//		window.styleMask = window.styleMask | NSWindowStyleMaskFullScreen;
+//	to work.
+- (void)window:(NSWindow *)window startCustomAnimationToEnterFullScreenWithDuration:(NSTimeInterval)duration
+{
+//	NSScreen *screen = [[NSScreen screens] objectAtIndex:0];
+	NSScreen *screen = window.screen;
+#else
+//	Using this delegate method causes the statement:
 //		window.styleMask = window.styleMask | NSWindowStyleMaskFullScreen;
 //	to not work: the animation does not occur. Instead, the window immediately
 //	goes fullscreen. This appears to be a bug in macOS Monterey 12.7.1.
@@ -1924,20 +1940,12 @@ GetNotchHeight(NSScreen* screen) {
 {
 //	NSScreen *screen0 = [[NSScreen screens] objectAtIndex:0];
 //NSLog(@"screen %@  screen0 %@", screen, screen0);
-#else
-//	Using this delegate method cause the statement:
-//		window.styleMask = window.styleMask | NSWindowStyleMaskFullScreen;
-//	to work.
-- (void)window:(NSWindow *)window startCustomAnimationToEnterFullScreenWithDuration:(NSTimeInterval)duration
-{
-//	NSScreen *screen = [[NSScreen screens] objectAtIndex:0];
-	NSScreen *screen = window.screen;
 #endif
 //NSLog(@"duration %5.2f", duration);
 
-	_windowFrameForNonFullScreenMode = window.frame;
-	_inFullSizeContentModeForNonFullScreenMode =
-		0 != (window.styleMask & NSWindowStyleMaskFullSizeContentView);
+//	_windowFrameForNonFullScreenMode = window.frame;
+//	_inFullSizeContentModeForNonFullScreenMode =
+//		0 != (window.styleMask & NSWindowStyleMaskFullSizeContentView);
 	[self invalidateRestorableState];
 
 //	NSInteger previousWindowLevel = [window level];
@@ -1946,8 +1954,8 @@ GetNotchHeight(NSScreen* screen) {
 	//	if the window is in fullsize content mode then the animation to
 	//	go fullscreen will not occur so first get out of fullsize content
 	//	mode and then add NSWindowStyleMaskFullScreen to the styleMask
-	if(_inFullSizeContentModeForNonFullScreenMode)
-		[_fullSizeContentController toggleFullSizeContentWithAnimation:YES];
+//	if(_inFullSizeContentModeForNonFullScreenMode)
+//		[_fullSizeContentController toggleFullSizeContentWithAnimation:YES];
 
 	//	if -toggleFullSizeContent was called, window.styleMask was changed
 	//	so it must be reloaded here:
@@ -2070,18 +2078,36 @@ proposedFrame.size.width, proposedFrame.size.height); */
 }
 
 //	MARK: -
+
 - (void)windowWillEnterFullScreen:(NSNotification *)notification {
+	NSWindow *window = self.window;
+
 	//	changing the window's level in the method
 	//		-window:startCustomAnimationToEnterFullScreenOnScreen:withDuration:
 	//	causes a visible screen flashing; doing it in this method does not
-	self.window.level = NSStatusWindowLevel;
+	window.level = NSStatusWindowLevel;
 
 	_bs = [PGDocumentController.sharedDocumentController
 			togglePanelsForExitingFullScreen:NO
 							 withBeforeState:0];
+
+	//	2024/03/01 when transitioning to fullscreen via the "Tile Window to
+	//	Left/Right of Screen" command, the method
+	//	-window:startCustomAnimationToEnterFullScreenWithDuration:
+	//	is not invoked, so code was moved here to ensure correct state.
+
+	_windowFrameForNonFullScreenMode = window.frame;
+	_inFullSizeContentModeForNonFullScreenMode =
+		0 != (window.styleMask & NSWindowStyleMaskFullSizeContentView);
+
+	//	if the window is in fullsize content mode then the animation to
+	//	go fullscreen will not occur so first get out of fullsize content
+	//	mode and then add NSWindowStyleMaskFullScreen to the styleMask
+	if(_inFullSizeContentModeForNonFullScreenMode)
+		[_fullSizeContentController toggleFullSizeContentWithAnimation:YES];
 }
 
-- (void)_updateViewMenuItems {
+- (void)updateViewMenuItems_ {
 	NSMenu *const mainMenu = NSApplication.sharedApplication.mainMenu;
 	NSInteger const viewMenuIndex = [mainMenu indexOfItemWithTitle:@"View"];
 	NSAssert(NSNotFound != viewMenuIndex, @"");
@@ -2103,7 +2129,7 @@ proposedFrame.size.width, proposedFrame.size.height); */
 	//	is not executed when option-F is typed because the menu items in the
 	//	View menu are in an incorrect state, so find the View menu and update
 	//	its items.
-	[self _updateViewMenuItems];
+	[self updateViewMenuItems_];
 }
 
 //	MARK: - <PGClipViewDelegate>
