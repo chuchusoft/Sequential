@@ -37,6 +37,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import "PGGeometry.h"
 #import "PGDocumentController.h"	//	for thumbnail userDefault keys
 
+#if !defined(NDEBUG) && 0	//	used to fix the incorrect -[PGNode isEqual:] bug
+	#import "PGNode.h"
+	#import "PGResourceIdentifier.h"
+#endif
+
 //extern	void	Unpack2HalfUInts(NSUInteger packed, NSUInteger* upper, NSUInteger* lower);
 extern	void	Unpack_ByteSize_FolderImageCounts(uint64_t packed, uint64_t* byteSize,
 												  NSUInteger* folders, NSUInteger* images);
@@ -986,6 +991,19 @@ SetEqualsSet(NSSet *const nsSet1, NSSet *const nsSet2) {
 
 - (void)_invalidateItem:(id)item {
 	NSUInteger const i = [_items indexOfObjectIdenticalTo:item];
+#if !defined(NDEBUG) && 0	//	used to fix the incorrect -[PGNode isEqual:] bug
+	NSParameterAssert([item isKindOfClass:PGNode.class]);
+	if (NSNotFound == i) {
+		NSLog(@"item 0x%p [%@]/[%@] is NOT in items [%lu]", (__bridge void*)item,
+			[[[(PGNode*)item parentNode] identifier] displayName],
+			[[(PGNode*)item identifier] displayName], _items.count);
+		for (id i in _items) {
+			NSLog(@"\titem 0x%p [%@]/[%@]", (__bridge void*)i,
+					[[[(PGNode*)i parentNode] identifier] displayName],
+					[[(PGNode*)i identifier] displayName]);
+		}
+	}
+#endif
 	NSAssert(NSNotFound != i, @"i");
 	NSRect const r = [self frameOfItemAtIndex:i withMargin:YES];
 	[self setNeedsDisplayInRect:r];
@@ -1404,6 +1422,19 @@ SetEqualsSet(NSSet *const nsSet1, NSSet *const nsSet2) {
 #endif
 		_items = [items copy];
 	}
+#if !defined(NDEBUG) && 0	//	used to fix the incorrect -[PGNode isEqual:] bug
+	else {
+		NSParameterAssert(_items.count == items.count);
+		for(NSUInteger i = 0; i != items.count; ++i) {
+			PGNode *n1 = [_items objectAtIndex:i];
+			PGNode *n2 = [items objectAtIndex:i];
+NSLog(@"n1 %@/%@", n1.parentNode.identifier.displayName, n1.identifier.displayName);
+NSLog(@"n2 %@/%@", n2.parentNode.identifier.displayName, n2.identifier.displayName);
+			NSParameterAssert([n1 isEqualTo:n2]);
+		}
+		NSParameterAssert(_items.count == items.count);
+	}
+#endif
 	[self _validateSelection];
 	[self sizeToFit];
 	[self _scrollToSelectionAnchor:PGScrollCenterToRect];
