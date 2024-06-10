@@ -633,7 +633,10 @@ NSLog(@"-mouseMoved:");
 }
 - (BOOL)thumbnailView:(PGThumbnailView *)sender canSelectItem:(id)item;
 {
-	return [[item resourceAdapter] hasViewableNodeCountGreaterThan:0];
+	//	2024/03/01 folders containing just folders should be selectable
+	return [self thumbnailView:sender isContainerItem:item] ||
+			[[item resourceAdapter] hasViewableNodeCountGreaterThan:0];
+//	return [[item resourceAdapter] hasViewableNodeCountGreaterThan:0];
 }
 - (BOOL)thumbnailView:(PGThumbnailView *)sender isContainerItem:(id)item
 {
