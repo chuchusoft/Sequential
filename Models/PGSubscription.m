@@ -147,12 +147,17 @@ static CFMutableSetRef PGActiveSubscriptions = nil;
 #endif
 				@(ev.fflags), PGLeafSubscriptionFlagsKey, nil]
 								waitUntilDone:NO];
+//NSLog(@"+[PGLeafSubscription threaded_sendFileEvents]: obj = %p", ev.udata);
 		}
 	}
 }
 
 + (void)mainThread_sendFileEvent:(NSDictionary *)info
 {
+	NSParameterAssert(nil != info[PGLeafSubscriptionValueKey]);
+	NSParameterAssert([info[PGLeafSubscriptionValueKey] isKindOfClass:NSValue.class]);
+//NSLog(@"+[PGLeafSubscription mainThread_sendFileEvent]: obj = %p", info[PGLeafSubscriptionValueKey]);
+	NSParameterAssert(nil != [info[PGLeafSubscriptionValueKey] nonretainedObjectValue]);
 	PGSubscription *const subscription = [info[PGLeafSubscriptionValueKey] nonretainedObjectValue];
 #if __has_feature(objc_arc)
 	if(!CFSetContainsValue(PGActiveSubscriptions, (__bridge CFTypeRef) subscription)) return;
@@ -203,7 +208,17 @@ static CFMutableSetRef PGActiveSubscriptions = nil;
 			.ident = _descriptor,
 			.filter = EVFILT_VNODE,
 			.flags = EV_ADD | EV_CLEAR,
-			.fflags = NOTE_DELETE | NOTE_WRITE | NOTE_EXTEND | NOTE_ATTRIB | NOTE_LINK | NOTE_RENAME | NOTE_REVOKE,
+			//	2024/02/26 only request events which are to be acted upon
+			//	under ARC builds, the PGLeafSubscription object can be
+			//	deleted before the callback +mainThread_sendFileEvent:
+			//	executes which results in it accessing a deleted object
+			//	and then crashing. This can occur when a bookmarked
+			//	folder is Resumed: doing so generates a NOTE_ATTRIB
+			//	event which gets enqueued for execution by
+			//	+mainThread_sendFileEvent but the object gets -delloc'd
+			//	before it is dequeued.
+		//	.fflags = NOTE_DELETE | NOTE_WRITE | NOTE_EXTEND | NOTE_ATTRIB | NOTE_LINK | NOTE_RENAME | NOTE_REVOKE,
+			.fflags = NOTE_DELETE | NOTE_RENAME | NOTE_REVOKE,
 			.data = 0,
 #if __has_feature(objc_arc)
 			.udata = (__bridge void *)self,
@@ -239,6 +254,8 @@ static CFMutableSetRef PGActiveSubscriptions = nil;
 
 - (void)dealloc
 {
+//NSLog(@"-[PGLeafSubscription dealloc]: %p", (__bridge void *)self);
+
 #if __has_feature(objc_arc)
 	CFSetRemoveValue(PGActiveSubscriptions, (__bridge void *)self);
 #else
