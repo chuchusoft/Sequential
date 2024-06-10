@@ -672,15 +672,23 @@ NSString *const PGDisplayableIdentifierDisplayNameDidChangeNotification = @"PGDi
 
 	BOOL bookmarkDataIsStale = NO;
 	NSError* error = nil;
+	//	when the target is offline (eg, on a server that is not mounted),
+	//	the bookmark's resolution can be very slow; so use
+	//	NSURLBookmarkResolutionWithoutMounting to not mount a server that
+	//	may not be available/online; similarly for the url if it's an
+	//	alias (flag = YES means "try to resolve any alias files")
+	//	NB: the entry in the Recent Items sub-menu will not be displayed
+	//	if it refers to a file server that isn't mounted because AppKit
+	//	will remove it from the entries in the Recent Items sub-menu.
 	NSURL* url = [NSURL URLByResolvingBookmarkData:_bookmark
-										   options:NSURLBookmarkResolutionWithoutUI
+										   options:(NSURLBookmarkResolutionWithoutUI | NSURLBookmarkResolutionWithoutMounting)
 									 relativeToURL:nil
 							   bookmarkDataIsStale:&bookmarkDataIsStale
 											 error:&error];
 
 	if(flag && url)
 		url = [NSURL URLByResolvingAliasFileAtURL:url
-										  options:NSURLBookmarkResolutionWithoutUI
+										  options:(NSURLBookmarkResolutionWithoutUI | NSURLBookmarkResolutionWithoutMounting)
 											error:&error];
 
 	[self cacheURL:url];
