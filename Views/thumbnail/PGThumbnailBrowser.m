@@ -27,6 +27,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 // Other Sources
 #import "PGFoundationAdditions.h"
 
+#if !defined(NDEBUG) && 0	//	used to fix the incorrect -[PGNode isEqual:] bug
+	#import "PGNode.h"
+	#import "PGResourceIdentifier.h"
+#endif
+
 #if __has_feature(objc_arc)
 
 @interface PGThumbnailBrowser ()
@@ -111,6 +116,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 		PGThumbnailView *const view = [self viewAtIndex:i];
 		id const item = path[i];
 		NSParameterAssert([[self dataSource] thumbnailBrowser:self itemCanHaveChildren:item]);
+#if !defined(NDEBUG) && 0	//	used to fix the incorrect -[PGNode isEqual:] bug
+NSLog(@"path[%lu].selection := %@", i, [[(PGNode*)item identifier] displayName]);
+#endif
 		view.selection = [NSSet setWithObject:item];
 		if(i + 1 < self.numberOfColumns) {
 			PGThumbnailView *const nextView = [self viewAtIndex:i + 1];
