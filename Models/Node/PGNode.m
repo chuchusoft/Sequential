@@ -529,7 +529,32 @@ enum {
 }
 - (BOOL)isEqual:(id)anObject
 {
+#if 1
+	//	2024/03/09 bugfix: the original code tested for
+	//	equality by checking for same-class-type and for
+	//	same-identifier, where the same-identifier test
+	//	consists of testing the identifier instance var
+	//	of both objects as well as the superidentifier
+	//	instance var of both objects. The problem is
+	//	that, for objects inside an archive, the
+	//	superidentifier is a PGAliasIdentifier for in-
+	//	-archive folders and they only test the URL of
+	//	the archive file itself and not the parent-path.
+	//	This causes strange problems when an archive has
+	//	different folders containing similarly-named
+	//	sub-folders. The easiest way to fix this is to
+	//	add another test: the parent nodes must match
+	//	which is, arguably, what the original code
+	//	should have been doing all along. This is-
+	//	-same-parent test is done first because it's a
+	//	quick address comparison, whereas the other
+	//	tests involve more work.
+	return self.parentNode == ((PGNode *)anObject).parentNode &&
+		[anObject isMemberOfClass:[self class]] &&
+		PGEqualObjects(self.identifier, ((PGNode *)anObject).identifier);
+#else	//	original code
 	return [anObject isMemberOfClass:[self class]] && PGEqualObjects(self.identifier, ((PGNode *)anObject).identifier);
+#endif
 }
 
 //	MARK: -
