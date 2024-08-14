@@ -394,6 +394,11 @@ CA
                                     <action selector="toggleAnimation:" target="-1" id="1272"/>
                                 </connections>
                             </menuItem>
+                            <menuItem title="Invert Colors" keyEquivalent="I" id="w9t-ac-696">
+                                <connections>
+                                    <action selector="invertColors:" target="-1" id="wpa-y8-INf"/>
+                                </connections>
+                            </menuItem>
                         </items>
                     </menu>
                 </menuItem>
