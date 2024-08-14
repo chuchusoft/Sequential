@@ -419,7 +419,7 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 	[_graphicPanel.contentView pushGraphic:[PGBezierPathIconGraphic graphicWithIconType:nowPlaying ? AEPlayIcon : AEPauseIcon] window:self.window];
 	self.activeDocument.animatesImages = nowPlaying;
 }
-- (IBAction)invertColors:(id)sender	//	2024/08/14 added action for better PDF reading in Dark Mode
+- (IBAction)toggleColorInversion:(id)sender	//	2024/08/14 added action for better PDF reading in Dark Mode
 {
 	PGImageView *iv = self.imageView;
 	if(!iv)
@@ -1686,6 +1686,7 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 		anItem.title = canAnimate && self.activeDocument.animatesImages ? NSLocalizedString(@"Turn Animation Off", @"Title of menu item for toggling animation. Two states.") : NSLocalizedString(@"Turn Animation On", @"Title of menu item for toggling animation. Two states.");
 		if(!canAnimate) return NO;
 	}
+	if(@selector(toggleColorInversion:) == action) anItem.state = self.imageView.wantsLayer;
 
 	// Scale:
 	if(@selector(changeImageScaleMode:) == action) {
