@@ -25,6 +25,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #import "PGDisplayController.h"
 #import <unistd.h>
 #import <tgmath.h>
+#import <QuartzCore/QuartzCore.h>	//	2024/08/14 added for -invertColors:
 
 // Models
 #import "PGDocument.h"
@@ -417,6 +418,21 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 	BOOL const nowPlaying = !self.activeDocument.animatesImages;
 	[_graphicPanel.contentView pushGraphic:[PGBezierPathIconGraphic graphicWithIconType:nowPlaying ? AEPlayIcon : AEPauseIcon] window:self.window];
 	self.activeDocument.animatesImages = nowPlaying;
+}
+- (IBAction)invertColors:(id)sender	//	2024/08/14 added action for better PDF reading in Dark Mode
+{
+	PGImageView *iv = self.imageView;
+	if(!iv)
+		return;
+
+	const BOOL invertColors = !iv.wantsLayer;
+	iv.wantsLayer = invertColors;
+	iv.layer.compositingFilter = invertColors ? [CIFilter filterWithName:@"CIColorInvert"] : nil;
+
+#if !defined(NDEBUG) && 0
+	NSLog(@"self.imageView.layer = %@, self.imageView.layer.compositingFilter = %@",
+			iv.layer, iv.layer.compositingFilter);
+#endif
 }
 
 //	MARK: -
