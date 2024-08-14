@@ -396,7 +396,7 @@ CA
                             </menuItem>
                             <menuItem title="Invert Colors" keyEquivalent="I" id="w9t-ac-696">
                                 <connections>
-                                    <action selector="invertColors:" target="-1" id="wpa-y8-INf"/>
+                                    <action selector="toggleColorInversion:" target="-1" id="nxg-uy-2g4"/>
                                 </connections>
                             </menuItem>
                         </items>
