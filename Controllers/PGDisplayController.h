@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 @class PGLoadingGraphic;
 @class PGFindView;
 @class PGFindlessTextView;
+@class PGGoToPageView;
 
 // Controllers
 @class PGThumbnailController;
@@ -59,6 +60,8 @@ extern NSString *const PGDisplayControllerTimerDidChangeNotification;
 	IBOutlet PGClipView *clipView;
 	IBOutlet PGFindView *findView;
 	IBOutlet NSSearchField *searchField;
+	IBOutlet PGGoToPageView *goToPageView;
+	IBOutlet NSTextField *pageNumberField;
 	IBOutlet NSView *errorView;
 	IBOutlet NSTextField *errorLabel;
 	IBOutlet NSTextField *errorMessage;
@@ -158,6 +161,7 @@ extern NSString *const PGDisplayControllerTimerDidChangeNotification;
 @property (readonly) BOOL shouldShowInfo;
 @property (readonly) BOOL loadingIndicatorShown;
 @property (nonatomic, assign) BOOL findPanelShown;
+@property (nonatomic, assign) BOOL goToPagePanelShown;
 @property (readonly) NSDate *nextTimerFireDate;
 @property (nonatomic, assign) BOOL timerRunning;
 @property (nonatomic, assign, getter=isInFullSizeContentModeForNonFullScreenMode)
@@ -176,6 +180,7 @@ extern NSString *const PGDisplayControllerTimerDidChangeNotification;
 @property(readonly) BOOL shouldShowInfo;
 @property(readonly) BOOL loadingIndicatorShown;
 @property(assign) BOOL findPanelShown;
+@property(assign) BOOL goToPagePanelShown;
 @property(readonly) NSDate *nextTimerFireDate;
 @property(assign) BOOL timerRunning;
 @property(assign, getter = isInFullSizeContentModeForNonFullScreenMode)
