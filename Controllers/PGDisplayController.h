@@ -38,7 +38,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 @class PGLoadingGraphic;
 @class PGFindView;
 @class PGFindlessTextView;
-@class PGGoToPageView;
 
 // Controllers
 @class PGThumbnailController;
@@ -60,7 +59,7 @@ extern NSString *const PGDisplayControllerTimerDidChangeNotification;
 	IBOutlet PGClipView *clipView;
 	IBOutlet PGFindView *findView;
 	IBOutlet NSSearchField *searchField;
-	IBOutlet PGGoToPageView *goToPageView;
+	IBOutlet PGFindView *goToPageView;
 	IBOutlet NSTextField *pageNumberField;
 	IBOutlet NSView *errorView;
 	IBOutlet NSTextField *errorLabel;
