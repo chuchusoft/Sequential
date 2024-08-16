@@ -184,7 +184,7 @@ DQ
             </subviews>
             <point key="canvasLocation" x="-396" y="-109"/>
         </customView>
-        <customView id="aHU-bF-WNC" customClass="PGGoToPageView">
+        <customView id="aHU-bF-WNC" userLabel="Go to Page" customClass="PGFindView">
             <rect key="frame" x="0.0" y="0.0" width="96" height="32"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
             <subviews>
