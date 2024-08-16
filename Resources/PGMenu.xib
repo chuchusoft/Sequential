@@ -513,6 +513,13 @@ CA
                                     <action selector="firstOfFolder:" target="-1" id="1140"/>
                                 </connections>
                             </menuItem>
+                            <menuItem isSeparatorItem="YES" id="xS1-Jt-8H9"/>
+                            <menuItem title="Go to Page…" keyEquivalent="g" id="5Dc-SF-585">
+                                <modifierMask key="keyEquivalentModifierMask" option="YES" command="YES"/>
+                                <connections>
+                                    <action selector="toggleGoToPagePanelVisibility:" target="-1" id="48n-Te-JtT"/>
+                                </connections>
+                            </menuItem>
                         </items>
                     </menu>
                 </menuItem>
