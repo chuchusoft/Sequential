@@ -104,16 +104,53 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 
 //	MARK: -
 
+@interface IntegerNumberFormatter : NSNumberFormatter
+@property (assign, nonatomic) NSInteger maxValue;
+@end
+
+@implementation IntegerNumberFormatter
+
+- (BOOL)isPartialStringValid:(NSString *)partialString
+			newEditingString:(NSString **)newString
+			errorDescription:(NSString **)error {
+	// Make sure we clear newString and error to ensure old values aren't being used
+	if(newString)
+		*newString = nil;
+	if(error)
+		*error = nil;
+
+	static NSCharacterSet *nonDecimalCharacters = nil;
+	if(nonDecimalCharacters == nil) {
+		nonDecimalCharacters = [[NSCharacterSet decimalDigitCharacterSet] invertedSet];
+	}
+
+	if([partialString length] == 0) {
+		return YES; // The empty string is okay (the user might just be deleting everything and starting over)
+	} else if([partialString rangeOfCharacterFromSet:nonDecimalCharacters].location != NSNotFound) {
+		return NO; // Non-decimal characters aren't cool!
+	}
+
+	NSInteger const value = partialString.integerValue;
+	return 0 < value && value <= self.maxValue;
+}
+
+@end
+
+//	MARK: -
+
 #if __has_feature(objc_arc)
 
-@interface PGDisplayController ()
+@interface PGDisplayController () <NSTextFieldDelegate>
 
 @property (nonatomic, weak) IBOutlet PGClipView *clipView;
+
 @property (nonatomic, weak) IBOutlet PGFindView *findView;
 @property (nonatomic, weak) IBOutlet NSSearchField *searchField;
+
 @property (nonatomic, weak) IBOutlet NSView *errorView;
 @property (nonatomic, weak) IBOutlet NSTextField *errorLabel;
 @property (nonatomic, weak) IBOutlet NSTextField *errorMessage;
+
 @property (nonatomic, weak) IBOutlet NSButton *reloadButton;
 //	the original code -retain'd passwordView but there appears to be no
 //	valid reason for doing this because the view should not be released
@@ -122,6 +159,10 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 @property (nonatomic, weak) IBOutlet NSView *passwordView;
 @property (nonatomic, weak) IBOutlet NSTextField *passwordLabel;
 @property (nonatomic, weak) IBOutlet NSTextField *passwordField;
+
+//	no need for separate NSView subclass - instead, re-use PGFindView
+@property (nonatomic, weak) IBOutlet PGFindView *goToPageView; // 2024/08/16
+@property (nonatomic, weak) IBOutlet NSTextField *pageNumberField; // 2024/08/16
 
 //	PGDocument *_activeDocument;
 @property (nonatomic, strong) PGNode *activeNode;
@@ -138,6 +179,8 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 
 @property (nonatomic, strong) PGBezelPanel *findPanel;
 @property (nonatomic, strong) PGFindlessTextView *findFieldEditor;
+
+@property (nonatomic, strong) PGBezelPanel *goToPagePanel; // 2024/08/16
 
 @property (nonatomic, strong) NSDate *nextTimerFireDate;
 @property (nonatomic, strong) NSTimer *timer;
@@ -164,7 +207,7 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 
 #else
 
-@interface PGDisplayController(Private)
+@interface PGDisplayController(Private) <NSTextFieldDelegate>
 
 - (void)_setClipViewBackground;
 - (void)_setImageView:(PGImageView *)aView;
@@ -333,7 +376,7 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 			NSBeep();
 	}
 #if __has_feature(objc_arc)
-	if(_findPanel.keyWindow) [_findPanel makeFirstResponder:_searchField];
+	if(_findPanel.isKeyWindow) [_findPanel makeFirstResponder:_searchField];
 #else
 	if([_findPanel isKeyWindow]) [_findPanel makeFirstResponder:searchField];
 #endif
@@ -521,6 +564,67 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 
 //	MARK: -
 
+- (void)pageNumberFieldDidChange:(NSNotification *)notification {
+	NSTextField *tf = (NSTextField *)notification.object;
+//NSLog(@"-pageNumberFieldDidChange: \"%@\"", tf.stringValue);
+	if(0 == tf.stringValue.length)
+		return;
+
+	NSInteger const value = tf.stringValue.integerValue;
+	NSParameterAssert(0 < value &&
+		(NSUInteger) value <= self.activeDocument.node.resourceAdapter.viewableNodeCount);
+
+	NSInteger const numberOfOtherItems = [PGDocumentController sharedDocumentController].defaultPageMenu.numberOfItems;
+	NSMenu *pageMenu = self.activeDocument.pageMenu;
+//NSLog(@"pageMenu.numberOfItems = %ld, numberOfOtherItems = %ld, value = %ld",
+//		pageMenu.numberOfItems, numberOfOtherItems, value);
+	NSParameterAssert(value < pageMenu.numberOfItems - numberOfOtherItems);
+
+	NSMenuItem *item = [pageMenu itemAtIndex:numberOfOtherItems + value];
+	NSParameterAssert(item);
+	[self jumpToPage:item];
+}
+
+//	@protocol NSControlTextEditingDelegate
+- (BOOL)control:(NSControl *)control
+	   textView:(NSTextView *)textView
+	doCommandBySelector:(SEL)commandSelector {
+//NSLog(@"Selector method is (%@)", NSStringFromSelector(commandSelector));
+
+	if(commandSelector == @selector(insertNewline:)) {
+		//Do something against ENTER key
+		[self toggleGoToPagePanelVisibility:nil];
+		return YES;
+	} else if(commandSelector == @selector(deleteForward:)) {
+		//Do something against DELETE key
+	} else if(commandSelector == @selector(deleteBackward:)) {
+		//Do something against BACKSPACE key
+	} else if(commandSelector == @selector(insertTab:)) {
+		//Do something against TAB key
+	} else if(commandSelector == @selector(cancelOperation:)) {
+		//Do something against Escape key
+		[self toggleGoToPagePanelVisibility:nil];
+		return YES;
+	}
+
+	return NO;
+}
+
+- (IBAction)toggleGoToPagePanelVisibility:(id)sender
+{
+	self.goToPagePanelShown = !(self.goToPagePanelShown && _goToPagePanel.keyWindow);
+
+#if __has_feature(objc_arc)
+	if(_goToPagePanel.isKeyWindow)
+		[_goToPagePanel makeFirstResponder:_pageNumberField];
+#else
+	if([_goToPagePanel isKeyWindow])
+		[_goToPagePanel makeFirstResponder:pageNumberField];
+#endif
+}
+
+//	MARK: -
+
 - (IBAction)jumpToPage:(id)sender
 {
 	PGNode *node = [((NSMenuItem *)sender).representedObject nonretainedObjectValue];
@@ -628,6 +732,25 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 	//	NSEnableScreenUpdates();	2021/07/21 deprecated
 	} else {
 		[_findPanel fadeOut];
+		[self documentReadingDirectionDidChange:nil];
+		[self.window makeKeyWindow];
+	}
+}
+- (BOOL)goToPagePanelShown
+{
+	return _goToPagePanel.visible && !_goToPagePanel.isFadingOut;
+}
+- (void)setGoToPagePanelShown:(BOOL)flag
+{
+	if(flag) {
+	//	NSDisableScreenUpdates();	2021/07/21 deprecated
+		[self.window orderFront:self];
+		if(!self.goToPagePanelShown) [_goToPagePanel displayOverWindow:self.window];
+		[_goToPagePanel makeKeyWindow];
+		[self documentReadingDirectionDidChange:nil];
+	//	NSEnableScreenUpdates();	2021/07/21 deprecated
+	} else {
+		[_goToPagePanel fadeOut];
 		[self documentReadingDirectionDidChange:nil];
 		[self.window makeKeyWindow];
 	}
@@ -797,6 +920,10 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 #else
 		[searchField setStringValue:query];
 #endif
+
+		NSParameterAssert(nil != _pageNumberField && nil != node);
+		IntegerNumberFormatter *nf = _pageNumberField.cell.formatter;
+		nf.maxValue = self.activeDocument.node.resourceAdapter.viewableNodeCount;
 
 		[self documentReadingDirectionDidChange:nil];
 		[self documentShowsInfoDidChange:nil];
@@ -1505,6 +1632,25 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 	[_findPanel setAcceptsEvents:YES];
 	[_findPanel setCanBecomeKey:YES];
 
+#if __has_feature(objc_arc)
+	_goToPagePanel = [[PGBezelPanel alloc] initWithContentView:_goToPageView];
+	_goToPagePanel.initialFirstResponder = _pageNumberField;
+#else
+	_goToPagePanel = [[PGBezelPanel alloc] initWithContentView:goToPageView];
+	[_goToPagePanel setInitialFirstResponder:pageNumberField];
+#endif
+//	_goToPagePanel.delegate = self;
+	[_goToPagePanel setAcceptsEvents:YES];
+	[_goToPagePanel setCanBecomeKey:YES];
+
+	_pageNumberField.delegate = self;
+
+	[NSNotificationCenter.defaultCenter
+		 addObserver:self
+			selector:@selector(pageNumberFieldDidChange:)
+				name:NSControlTextDidChangeNotification
+			  object:_pageNumberField];
+
 	[self prefControllerBackgroundPatternColorDidChange:nil];
 
 	//	create the full-size-content controller only when not in
@@ -1595,6 +1741,12 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 	[self PG_cancelPreviousPerformRequests];
 	[self PG_removeObserver];
 	[self _setImageView:nil];
+
+	[NSNotificationCenter.defaultCenter
+		removeObserver:self
+				  name:NSControlTextDidChangeNotification
+				object:_pageNumberField];
+
 #if !__has_feature(objc_arc)
 	[passwordView release];
 	[_activeNode release];
@@ -1602,6 +1754,7 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 	[_graphicPanel release];
 	[_loadingGraphic release];
 	[_infoPanel release];
+	[_goToPagePanel release];
 	[_findPanel release];
 	[_findFieldEditor release];
 	[_thumbnailController release];
@@ -1711,6 +1864,22 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 	if(@selector(nextPage:) == action || @selector(lastPage:) == action) anItem.keyEquivalent = self.activeDocument.readingDirection == PGReadingDirectionLeftToRight ? @"]" : @"[";
 	if(@selector(previousPage:) == action || @selector(firstPage:) == action) anItem.keyEquivalent = self.activeDocument.readingDirection == PGReadingDirectionLeftToRight ? @"[" : @"]";
 	if(@selector(nextPage:) == action || @selector(previousPage:) == action) anItem.keyEquivalentModifierMask = kNilOptions;
+	if(@selector(toggleGoToPagePanelVisibility:) == action) {
+		//	if any of the children of the root node are containers then
+		//	disable the "Go to Page…" command because there won't be a
+		//	1-1 correspondence between the Page menu items and the child
+		//	index that is entered in the Page Number text field; see the
+		//	code in -pageNumberFieldDidChange: which assumes a simple
+		//	array of menu items with no sub-menus.
+		PGResourceAdapter *rootNodeRA = self.activeDocument.node.resourceAdapter;
+		PGContainerAdapter *ca = rootNodeRA.isContainer ? (PGContainerAdapter *)rootNodeRA : nil;
+//NSLog(@"rootNode.resourceAdapter.unsortedChildren.count = %lu", ca.unsortedChildren.count);
+		if(ca) for(PGNode *child in ca.unsortedChildren) {
+			if(child.resourceAdapter.isContainer)
+				return NO;
+		}
+		return nil != ca;
+	}
 	if(@selector(jumpToPage:) == action) {
 		PGNode *const node = [anItem.representedObject nonretainedObjectValue];
 		NSControlStateValue state = NSControlStateValueOff;
@@ -1856,13 +2025,19 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 {
 #if __has_feature(objc_arc)
 	if(notification.object == _findPanel) [_findPanel makeFirstResponder:_searchField];
+	else if(notification.object == _goToPagePanel)
+		[_goToPagePanel makeFirstResponder:_pageNumberField];
 #else
 	if([notification object] == _findPanel) [_findPanel makeFirstResponder:searchField];
+	else if([notification object] == _goToPagePanel)
+		[_goToPagePanel makeFirstResponder:pageNumberField];
 #endif
 }
 - (void)windowDidResignKey:(NSNotification *)notification
 {
 	if(notification.object == _findPanel) [_findPanel makeFirstResponder:nil];
+	else if(notification.object == _goToPagePanel)
+		[_goToPagePanel makeFirstResponder:nil];
 }
 
 - (void)windowDidBecomeMain:(NSNotification *)notification
