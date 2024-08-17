@@ -580,6 +580,9 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 //		pageMenu.numberOfItems, numberOfOtherItems, value);
 	NSParameterAssert(value < pageMenu.numberOfItems - numberOfOtherItems);
 
+	//	this assumes there is a 1-1 correspondence between the Page menu
+	//	items and the child index that is entered in the Page Number text
+	//	field, ie, assumes a simple array of menu items with no sub-menus:
 	NSMenuItem *item = [pageMenu itemAtIndex:numberOfOtherItems + value];
 	NSParameterAssert(item);
 	[self jumpToPage:item];
@@ -615,11 +618,15 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 	self.goToPagePanelShown = !(self.goToPagePanelShown && _goToPagePanel.keyWindow);
 
 #if __has_feature(objc_arc)
-	if(_goToPagePanel.isKeyWindow)
+	if(_goToPagePanel.isKeyWindow) {
 		[_goToPagePanel makeFirstResponder:_pageNumberField];
+		_pageNumberField.integerValue	=	_displayImageIndex + 1;
+	}
 #else
-	if([_goToPagePanel isKeyWindow])
+	if([_goToPagePanel isKeyWindow]) {
 		[_goToPagePanel makeFirstResponder:pageNumberField];
+		_pageNumberField.integerValue	=	_displayImageIndex + 1;
+	}
 #endif
 }
 
