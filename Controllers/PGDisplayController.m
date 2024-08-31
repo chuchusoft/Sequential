@@ -120,15 +120,13 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 		*error = nil;
 
 	static NSCharacterSet *nonDecimalCharacters = nil;
-	if(nonDecimalCharacters == nil) {
+	if(nonDecimalCharacters == nil)
 		nonDecimalCharacters = [[NSCharacterSet decimalDigitCharacterSet] invertedSet];
-	}
 
-	if([partialString length] == 0) {
-		return YES; // The empty string is okay (the user might just be deleting everything and starting over)
-	} else if([partialString rangeOfCharacterFromSet:nonDecimalCharacters].location != NSNotFound) {
-		return NO; // Non-decimal characters aren't cool!
-	}
+	if(partialString.length == 0)
+		return YES; // The empty string is okay (the user clears the field to start over)
+	else if([partialString rangeOfCharacterFromSet:nonDecimalCharacters].location != NSNotFound)
+		return NO; // Non-decimal characters aren't allowed
 
 	NSInteger const value = partialString.integerValue;
 	return 0 < value && value <= self.maxValue;
@@ -470,11 +468,17 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 
 	const BOOL invertColors = !iv.wantsLayer;
 	iv.wantsLayer = invertColors;
-	iv.layer.compositingFilter = invertColors ? [CIFilter filterWithName:@"CIColorInvert"] : nil;
-
+	iv.layer.filters = invertColors ? @[
+						//	first, invert the colors (white --> black, etc.)
+						[CIFilter filterWithName:@"CIColorInvert"],
+						//	next, darken the whites to enhance readability
+						//	because really bright whites are hard to look
+						//	at for a long time in a darkened environment
+						[CIFilter filterWithName:@"CIExposureAdjust"
+							 withInputParameters:@{@"inputEV": @-1.1}]] : nil;
 #if !defined(NDEBUG) && 0
-	NSLog(@"self.imageView.layer = %@, self.imageView.layer.compositingFilter = %@",
-			iv.layer, iv.layer.compositingFilter);
+	NSLog(@"self.imageView.layer = %@, self.imageView.layer.filters = %@",
+			iv.layer, iv.layer.filters);
 #endif
 }
 
@@ -562,7 +566,7 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 	[self setActiveNode:[self.activeNode.resourceAdapter sortedViewableNodeInFolderFirst:NO] forward:NO];
 }
 
-//	MARK: -
+//	MARK: - Go To Page Number
 
 - (void)pageNumberFieldDidChange:(NSNotification *)notification {
 	NSTextField *tf = (NSTextField *)notification.object;
@@ -571,21 +575,20 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 		return;
 
 	NSInteger const value = tf.stringValue.integerValue;
-	NSParameterAssert(0 < value &&
-		(NSUInteger) value <= self.activeDocument.node.resourceAdapter.viewableNodeCount);
 
-	NSInteger const numberOfOtherItems = [PGDocumentController sharedDocumentController].defaultPageMenu.numberOfItems;
-	NSMenu *pageMenu = self.activeDocument.pageMenu;
-//NSLog(@"pageMenu.numberOfItems = %ld, numberOfOtherItems = %ld, value = %ld",
-//		pageMenu.numberOfItems, numberOfOtherItems, value);
-	NSParameterAssert(value < pageMenu.numberOfItems - numberOfOtherItems);
+	PGNode *const activeNode = self.activeNode;
+	NSParameterAssert(activeNode);
+	PGNode *const parentNode = activeNode.parentNode;
+	NSParameterAssert(parentNode);
 
-	//	this assumes there is a 1-1 correspondence between the Page menu
-	//	items and the child index that is entered in the Page Number text
-	//	field, ie, assumes a simple array of menu items with no sub-menus:
-	NSMenuItem *item = [pageMenu itemAtIndex:numberOfOtherItems + value];
-	NSParameterAssert(item);
-	[self jumpToPage:item];
+	PGResourceAdapter *ra = parentNode.resourceAdapter;
+	PGContainerAdapter *ca = ra.isContainer ? (PGContainerAdapter *)ra : nil;
+	NSParameterAssert(ca);
+
+	NSParameterAssert(0 < value && (NSUInteger) value <= ca.sortedChildren.count);
+	PGNode *const node = [ca.sortedChildren objectAtIndex:value-1];
+	NSParameterAssert(ca);
+	[self setActiveNode:node forward:YES];
 }
 
 //	@protocol NSControlTextEditingDelegate
@@ -594,6 +597,7 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 	doCommandBySelector:(SEL)commandSelector {
 //NSLog(@"Selector method is (%@)", NSStringFromSelector(commandSelector));
 
+	//	<https://stackoverflow.com/questions/995758/execute-an-action-when-the-enter-key-is-pressed-in-a-nstextfield>
 	if(commandSelector == @selector(insertNewline:)) {
 		//Do something against ENTER key
 		[self toggleGoToPagePanelVisibility:nil];
@@ -617,17 +621,26 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 {
 	self.goToPagePanelShown = !(self.goToPagePanelShown && _goToPagePanel.keyWindow);
 
-#if __has_feature(objc_arc)
 	if(_goToPagePanel.isKeyWindow) {
 		[_goToPagePanel makeFirstResponder:_pageNumberField];
-		_pageNumberField.integerValue	=	_displayImageIndex + 1;
+
+		PGNode *const activeNode = self.activeNode;
+		NSParameterAssert(nil != activeNode);
+		PGNode *const parentNode = activeNode.parentNode;
+		NSParameterAssert(nil != parentNode);
+
+		PGResourceAdapter *ra = parentNode.resourceAdapter;
+		PGContainerAdapter *ca = ra.isContainer ? (PGContainerAdapter *)ra : nil;
+		NSParameterAssert(nil != ca);
+
+		//	page number field
+		NSParameterAssert(nil != _pageNumberField);
+		_pageNumberField.integerValue	=	ca ?
+			1 + [ca.sortedChildren indexOfObject:activeNode] : 0;
+
+		IntegerNumberFormatter *nf = _pageNumberField.cell.formatter;
+		nf.maxValue = ca.sortedChildren.count;
 	}
-#else
-	if([_goToPagePanel isKeyWindow]) {
-		[_goToPagePanel makeFirstResponder:pageNumberField];
-		_pageNumberField.integerValue	=	_displayImageIndex + 1;
-	}
-#endif
 }
 
 //	MARK: -
@@ -927,10 +940,6 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 #else
 		[searchField setStringValue:query];
 #endif
-
-		NSParameterAssert(nil != _pageNumberField && nil != node);
-		IntegerNumberFormatter *nf = _pageNumberField.cell.formatter;
-		nf.maxValue = self.activeDocument.node.resourceAdapter.viewableNodeCount;
 
 		[self documentReadingDirectionDidChange:nil];
 		[self documentShowsInfoDidChange:nil];
@@ -1872,20 +1881,10 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 	if(@selector(previousPage:) == action || @selector(firstPage:) == action) anItem.keyEquivalent = self.activeDocument.readingDirection == PGReadingDirectionLeftToRight ? @"[" : @"]";
 	if(@selector(nextPage:) == action || @selector(previousPage:) == action) anItem.keyEquivalentModifierMask = kNilOptions;
 	if(@selector(toggleGoToPagePanelVisibility:) == action) {
-		//	if any of the children of the root node are containers then
-		//	disable the "Go to Page…" command because there won't be a
-		//	1-1 correspondence between the Page menu items and the child
-		//	index that is entered in the Page Number text field; see the
-		//	code in -pageNumberFieldDidChange: which assumes a simple
-		//	array of menu items with no sub-menus.
 		PGResourceAdapter *rootNodeRA = self.activeDocument.node.resourceAdapter;
 		PGContainerAdapter *ca = rootNodeRA.isContainer ? (PGContainerAdapter *)rootNodeRA : nil;
 //NSLog(@"rootNode.resourceAdapter.unsortedChildren.count = %lu", ca.unsortedChildren.count);
-		if(ca) for(PGNode *child in ca.unsortedChildren) {
-			if(child.resourceAdapter.isContainer)
-				return NO;
-		}
-		return nil != ca;
+		return ca && ca.unsortedChildren.count > 1;
 	}
 	if(@selector(jumpToPage:) == action) {
 		PGNode *const node = [anItem.representedObject nonretainedObjectValue];
