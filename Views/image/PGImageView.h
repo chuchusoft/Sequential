@@ -89,6 +89,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (void)setImageRep:(NSImageRep *)rep orientation:(PGOrientation)orientation size:(NSSize)size;
 - (void)setSize:(NSSize)size allowAnimation:(BOOL)flag; // Use this function to control how big the image is displayed. PGImageView manages its own frame size.
 - (void)stopAnimatedSizeTransition;
+- (NSPoint)rotateToDegrees:(CGFloat)val adjustingPoint:(NSPoint)aPoint;
 - (NSPoint)rotateByDegrees:(CGFloat)val adjustingPoint:(NSPoint)aPoint;
 
 - (BOOL)writeToPasteboard:(NSPasteboard *)pboard types:(NSArray *)types;
