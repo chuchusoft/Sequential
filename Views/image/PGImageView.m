@@ -315,12 +315,20 @@ static NSSize PGRoundedCornerSizes[4];
 	[self _setSize:_size];
 	[self setNeedsDisplay:YES];
 }
+- (NSPoint)rotateToDegrees:(CGFloat)val adjustingPoint:(NSPoint)aPoint {
+	NSRect const b1 = self.bounds;
+	NSPoint const p = PGOffsetPointByXY(aPoint, -NSMidX(b1), -NSMidY(b1)); // Our bounds are going to change to fit the rotated image. Any point we want to remain constant relative to the image, we have to make relative to the bounds' center, since that's where the image is drawn.
+	self.rotationInDegrees = val;
+	NSRect const b2 = self.bounds;
+	return [[self _transformWithRotationInDegrees:val] transformPoint:PGOffsetPointByXY(p, NSMidX(b2), NSMidY(b2))];
+}
 - (NSPoint)rotateByDegrees:(CGFloat)val adjustingPoint:(NSPoint)aPoint
 {
 	NSRect const b1 = self.bounds;
 	NSPoint const p = PGOffsetPointByXY(aPoint, -NSMidX(b1), -NSMidY(b1)); // Our bounds are going to change to fit the rotated image. Any point we want to remain constant relative to the image, we have to make relative to the bounds' center, since that's where the image is drawn.
 	self.rotationInDegrees = self.rotationInDegrees + val;
 	NSRect const b2 = self.bounds;
+	//	FIXME: this might be a bug: maybe self.rotationInDegrees should be passed instead of val
 	return [[self _transformWithRotationInDegrees:val] transformPoint:PGOffsetPointByXY(p, NSMidX(b2), NSMidY(b2))];
 }
 
@@ -480,13 +488,12 @@ static NSSize PGRoundedCornerSizes[4];
 	}
 	NSCompositingOperation const op = (!_isPDF && _rep.opaque) ?
 										NSCompositingOperationCopy : NSCompositingOperationSourceOver;
-	NSDictionary *const hints = @{NSImageHintInterpolation: [NSNumber numberWithUnsignedLong:self.interpolation]};
 	[_image drawInRect:r
 			  fromRect:NSZeroRect
 			 operation:op
 			  fraction:1.0f
 		respectFlipped:YES
-				 hints:hints];
+				 hints:@{ NSImageHintInterpolation: @(self.interpolation) }];
 
 	if(roundedCorners) {
 		NSUInteger i;
