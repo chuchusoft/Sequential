@@ -387,6 +387,12 @@ CA
                                     </items>
                                 </menu>
                             </menuItem>
+                            <menuItem title="Reset rotation" keyEquivalent="r" id="Pge-aA-Qb5">
+                                <modifierMask key="keyEquivalentModifierMask" option="YES" command="YES"/>
+                                <connections>
+                                    <action selector="resetRotation:" target="-1" id="rYl-sT-Isc"/>
+                                </connections>
+                            </menuItem>
                             <menuItem isSeparatorItem="YES" id="1270"/>
                             <menuItem title="Turn Animation On" keyEquivalent="m" id="1271">
                                 <modifierMask key="keyEquivalentModifierMask"/>
