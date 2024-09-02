@@ -161,6 +161,7 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 //	no need for separate NSView subclass - instead, re-use PGFindView
 @property (nonatomic, weak) IBOutlet PGFindView *goToPageView; // 2024/08/16
 @property (nonatomic, weak) IBOutlet NSTextField *pageNumberField; // 2024/08/16
+@property (nonatomic, weak) IBOutlet NSTextField *maxPageNumberField; // 2024/08/16
 
 //	PGDocument *_activeDocument;
 @property (nonatomic, strong) PGNode *activeNode;
@@ -453,6 +454,14 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 {
 	self.activeDocument.baseOrientation = PGAddOrientation(self.activeDocument.baseOrientation, [sender tag]);
 }
+- (IBAction)resetRotation:(id)sender
+{
+#if __has_feature(objc_arc)
+	[_clipView scrollCenterTo:[_clipView convertPoint:[_imageView rotateToDegrees:0 adjustingPoint:[_imageView convertPoint:_clipView.center fromView:_clipView]] fromView:_imageView] animation:PGNoAnimation];
+#else
+	[clipView scrollCenterTo:[clipView convertPoint:[_imageView rotateToDegrees:0 adjustingPoint:[_imageView convertPoint:[clipView center] fromView:clipView]] fromView:_imageView] animation:PGNoAnimation];
+#endif
+}
 - (IBAction)toggleAnimation:(id)sender
 {
 	NSParameterAssert([_imageView canAnimateRep]);
@@ -635,8 +644,9 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 
 		//	page number field
 		NSParameterAssert(nil != _pageNumberField);
-		_pageNumberField.integerValue	=	ca ?
+		_pageNumberField.integerValue = ca ?
 			1 + [ca.sortedChildren indexOfObject:activeNode] : 0;
+		_maxPageNumberField.stringValue = [NSString stringWithFormat:@"/ %lu", ca.sortedChildren.count];
 
 		IntegerNumberFormatter *nf = _pageNumberField.cell.formatter;
 		nf.maxValue = ca.sortedChildren.count;
@@ -919,7 +929,9 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 #else
 			[clipView setDocumentView:view];
 #endif
-			[view setImageRep:view.rep orientation:view.orientation size:[self _sizeForImageRep:view.rep orientation:view.orientation]];
+			[view setImageRep:view.rep
+				  orientation:view.orientation
+						 size:[self _sizeForImageRep:view.rep orientation:view.orientation]];
 #if __has_feature(objc_arc)
 			[_clipView scrollPinLocationToOffset:offset animation:PGNoAnimation];
 #else
@@ -1127,7 +1139,9 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 #endif
 		NSImageRep *const rep = aNotif.userInfo[PGImageRepKey];
 		PGOrientation const orientation = [self.activeNode.resourceAdapter orientationWithBase:YES];
-		[_imageView setImageRep:rep orientation:orientation size:[self _sizeForImageRep:rep orientation:orientation]];
+		[_imageView setImageRep:rep
+					orientation:orientation
+						   size:[self _sizeForImageRep:rep orientation:orientation]];
 #if __has_feature(objc_arc)
 		_clipView.documentView = _imageView;
 		if(PGPreserveLocation == _initialLocation)
@@ -1435,9 +1449,15 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 }
 - (NSSize)_sizeForImageRep:(NSImageRep *)rep orientation:(PGOrientation)orientation
 {
-	return [self _sizeForImageRep:rep orientation:orientation scaleMode:self.activeDocument.imageScaleMode factor:self.activeDocument.imageScaleFactor];
+	return [self _sizeForImageRep:rep
+					  orientation:orientation
+						scaleMode:self.activeDocument.imageScaleMode
+						   factor:self.activeDocument.imageScaleFactor];
 }
-- (NSSize)_sizeForImageRep:(NSImageRep *)rep orientation:(PGOrientation)orientation scaleMode:(PGImageScaleMode)scaleMode factor:(float)factor
+- (NSSize)_sizeForImageRep:(NSImageRep *)rep
+			   orientation:(PGOrientation)orientation
+				 scaleMode:(PGImageScaleMode)scaleMode
+					factor:(float)factor
 {
 	if(!rep) return NSZeroSize;
 	NSSize originalSize = NSMakeSize(rep.pixelsWide, rep.pixelsHigh);
