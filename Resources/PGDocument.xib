@@ -14,6 +14,7 @@
                 <outlet property="errorView" destination="158" id="169"/>
                 <outlet property="findView" destination="49" id="52"/>
                 <outlet property="goToPageView" destination="aHU-bF-WNC" id="KtY-zD-4ee"/>
+                <outlet property="maxPageNumberField" destination="ENE-DZ-M6M" id="kZ8-KW-BbT"/>
                 <outlet property="pageNumberField" destination="4cT-VH-dfV" id="BDV-ez-MeI"/>
                 <outlet property="passwordField" destination="103" id="126"/>
                 <outlet property="passwordLabel" destination="105" id="127"/>
@@ -185,21 +186,30 @@ DQ
             <point key="canvasLocation" x="-396" y="-109"/>
         </customView>
         <customView id="aHU-bF-WNC" userLabel="Go to Page" customClass="PGFindView">
-            <rect key="frame" x="0.0" y="0.0" width="96" height="32"/>
+            <rect key="frame" x="0.0" y="0.0" width="108" height="32"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
             <subviews>
                 <textField verticalHuggingPriority="750" fixedFrame="YES" textCompletion="NO" translatesAutoresizingMaskIntoConstraints="NO" id="4cT-VH-dfV">
-                    <rect key="frame" x="5" y="5" width="86" height="22"/>
+                    <rect key="frame" x="5" y="5" width="52" height="22"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" borderStyle="bezel" placeholderString="page #" bezelStyle="round" id="nBb-Rv-xWj">
+                    <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" borderStyle="bezel" alignment="right" placeholderString="page #" bezelStyle="round" id="nBb-Rv-xWj">
                         <numberFormatter key="formatter" formatterBehavior="default10_4" usesGroupingSeparator="NO" formatWidth="-1" groupingSize="0" minimumIntegerDigits="1" maximumIntegerDigits="42" id="YbJ-h7-EzX" customClass="IntegerNumberFormatter"/>
                         <font key="font" usesAppearanceFont="YES"/>
                         <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                         <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
+                <textField verticalHuggingPriority="750" fixedFrame="YES" textCompletion="NO" translatesAutoresizingMaskIntoConstraints="NO" id="ENE-DZ-M6M">
+                    <rect key="frame" x="59" y="2" width="48" height="22"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" id="d6P-EV-39U">
+                        <font key="font" usesAppearanceFont="YES"/>
+                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
             </subviews>
-            <point key="canvasLocation" x="-29" y="-175"/>
+            <point key="canvasLocation" x="-23" y="-174"/>
         </customView>
     </objects>
 </document>
