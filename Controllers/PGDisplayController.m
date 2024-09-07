@@ -449,6 +449,7 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 - (IBAction)revertOrientation:(id)sender
 {
 	self.activeDocument.baseOrientation = PGUpright;
+	[self resetRotation:sender];
 }
 - (IBAction)changeOrientation:(id)sender
 {
@@ -457,7 +458,13 @@ SetControlAttributedStringValue(NSControl *c, NSAttributedString *anObject) {
 - (IBAction)resetRotation:(id)sender
 {
 #if __has_feature(objc_arc)
-	[_clipView scrollCenterTo:[_clipView convertPoint:[_imageView rotateToDegrees:0 adjustingPoint:[_imageView convertPoint:_clipView.center fromView:_clipView]] fromView:_imageView] animation:PGNoAnimation];
+	__weak PGClipView *cv = _clipView;
+	PGImageView *iv = _imageView;
+	[cv scrollCenterTo:[cv convertPoint:[iv rotateToDegrees:0
+											 adjustingPoint:[iv convertPoint:cv.center
+																	fromView:cv]]
+							   fromView:iv]
+			 animation:PGNoAnimation];
 #else
 	[clipView scrollCenterTo:[clipView convertPoint:[_imageView rotateToDegrees:0 adjustingPoint:[_imageView convertPoint:[clipView center] fromView:clipView]] fromView:_imageView] animation:PGNoAnimation];
 #endif
