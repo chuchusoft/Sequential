@@ -1,19 +1,22 @@
-# Sequential 2.5.0 (2023-12-01).
+# Sequential 2.6.0 (2024-09-07).
 
-Sequential is an image and comic viewer for macOS.
-
-Sequential can displays images in folders, PDF files, and archives of
-these formats: ZIP CBZ RAR CBR 7z.
+Sequential is an image and comic viewer for macOS. It can display images
+in folders, PDF files, and archives of these formats: ZIP CBZ RAR CBR 7z.
 
 This is a modernized build of Sequential for Intel and Apple Silicon Macs
 running 10.14 (Intel) or 11.4 (Apple Silicon) or later.
 
+This version contains bug fixes and some feature improvements such as the
+ability to go to a specific page number, the ability to invert the
+colors displayed (useful for reading text-based PDF documents in Dark
+Mode), and the ability to reset the displayed image's free rotation.
+
 To see the release notes for this version, please read the
 [History](History.txt) file.
 
-The last build came out in 2010 so this program needed some work to get it
-to build and run on modern Macs. Several bugs have been fixed and some
-feature enhancements have been added.
+There will probably not be any further changes or improvements to this
+program because of limited free time and no strong desire to improve the
+program any further.
 
 There are parts of the application which probably won’t work properly
 (HTML URLs may not display correctly) and it may have bugs and crashes.
@@ -21,7 +24,7 @@ Caveat emptor. For folders, PDFs and archives, the application works well.
 
 The codebase (and its dependencies) have been updated to build with Xcode
 14.2. Sequential is now built as an Universal app and has been tested on
-macOS 10.14 (on an Intel Mac) and macOS 11.7.1 (on an Apple Silicon Mac).
+macOS 10.14.5 (on an Intel Mac) and macOS 12.7.6 (on an Apple Silicon Mac).
 
 
 
