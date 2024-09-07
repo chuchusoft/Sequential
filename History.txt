@@ -1,3 +1,77 @@
+2.6.0 (2024-09-07)
+- Sequential was crashing when resuming a bookmarked folder (it was
+  attempting to access a deleted object). Fixed.
+- moving an item to the trash now updates the displayed list (Sequential
+  was not doing doing this so it looked like the app was not working).
+- transitioning to fullscreen via the "Tile Window to Left/Right of Screen"
+  command resulted in an incorrect transition when leaving fullscreen mode.
+  Fixed.
+- in the thumbnails, folders containing just folders (no images), and
+  similarly for their children, were not selectable (at least one image was
+  needed), which made it impossible to browse into the sub-folder tree of
+  such a folder. Such folders are now selectable.
+- when an archive has sub-folders with the same name but which are in
+  different folders, eg, a.zip/b/aa/1.jpg and a.zip/c/aa/2.jpg, the selection
+  code would mistake b/aa for c/aa and behave incorrectly when navigating
+  from 1.jpg to 2.jpg. Fixed by testing for the parent of each sub-folder,
+  eg, testing for b vs c when comparing b/aa against c/aa.
+  Rationale: if an archive had a.zip/b/1.jpg and a.zip/c/1.jpg in it,
+  Sequential would confuse the first 1.jpg for the second 1.jpg and behave
+  incorrectly. With this fix, it no longer confuses the 2 files.
+- when resolving URL bookmarks, attempts to mount server volumes are no
+  longer attempted otherwise the app was very slow to update and open menus
+  such as the Recent Items menu and it was slow to respond to the use of the
+  cmd-` shortcut to switch windows. However, such offline entries will now
+  be removed from the Recent Item menu if their server is not mounted when
+  the app builds the Recent Items menu (this is the price to pay for having
+  a responsive UI).
+- added the View > Invert Colors menu command for better PDF reading in Dark
+  Mode (since most text based PDFs have white backgrounds which makes them
+  harder to read when Dark Mode is enabled). Keyboard shortcut: cmd-shift-I.
+- added the View > Reset Rotation menu command to reset the "rotation value"
+  of the displayed image to zero degrees. Keyboard shortcut: cmd-option-R.
+  Note: this command resets only the "rotation value" of an image to zero
+  degrees; it does not reset the "base orientation" of an image to zero
+  degrees so, for example, if the View > Reorient > 90 degrees clockwise
+  command had also been used along with a manual rotation from a
+  2-finger-rotate gesture, using this command would only reset/undo the
+  2-finger-rotate gesture and the image would still having its
+  "base orientation" set to 90 degrees clockwise so it would still appear
+  with a 90 degrees clockwise rotation.
+  Note: use the View > Reorient > Upright command to fully reset an image's
+  display (the command resets both the "base orientation" and the
+  "rotation value" of the image to zero degrees).
+  Rationale: in previous versions, the only way to reset the "rotation
+  value" of an image (which is changed when a 2-finger-rotate gesture was
+  performed) was to close the document and re-open it, and this is best
+  achieved by using the File > Pause command and then selecting the
+  File > Resume > (paused file) command. Obviously, this is not ideal.
+- changed the behavior of the View > Reorient > Upright command: previously,
+  it would only change the "base orientation" of the image to upright but not
+  reset the "rotation value" of the image. In this version, using the command
+  will also reset the "rotation value" of the image to zero degrees.
+  For example, if you rotated the image manually by using a 2-finger-rotate
+  gesture to 45 degrees clockwise and then used the
+  View > Reorient > 90 degrees clockwise command, the image would be displayed
+  with a 135 degree clockwise rotation (with the image having a 90 degree
+  "base orientation" and a 45 degree "rotation value"). In the previous
+  versions, if the Upright command was selected, the image would have its
+  "base orientation" set to zero degrees but its "rotation value" would be
+  left at 45 degrees which resulted in the image being displayed at 45 degrees
+  clockwise rotation. In this version, the "rotation value" of the image is
+  also reset back to zero degrees which causes the image to be displayed with
+  no rotation (which is the behavior expected by most users).
+- added the Page > Go to Page… menu command to enable navigation to a specific
+  page such as in a PDF document. Keyboard shortcut: cmd-option-G. To dismiss
+  the text field where you enter the page number, press the 'esc' or 'return'
+  keys. The page numbers that can be entered apply to those of the current
+  document (such as a PDF document) or current folder and not to the entire
+  archive or root-folder of the window. For example, when displaying a .zip
+  file with 2 PDFs in it with the first having 115 pages and the second having
+  30 pages, Sequential will accept values from 1 to 115 when displaying any
+  page in the first PDF; it will accept values from 1 to 30 when displaying
+  any page in the second PDF.
+
 2.5.0 (2023-12-01)
 - converted the codebase to use Modern Objective-C syntax.
 - converted the codebase to build under Automatic Reference Counting (ARC);
